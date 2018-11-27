@@ -1,0 +1,29 @@
+﻿using System.Collections.Generic;
+using Prem.Util;
+using Prem.Transformer.LocLang;
+using semantics Prem.Transformer.LocLang.Semantics;
+using learners Prem.Transformer.LocLang.WitnessFunctions;
+
+language LocLang;
+
+@complete feature double Score = Prem.Transformer.LocLang.RankingScore;
+
+@input CST source;
+
+@start CST target := Select(filtered, k) = Kth(filtered, k);
+
+IEnumerable<CST> filtered := Filtered(nodes, constraint) = Filter(\x: CST => constraint, nodes);
+
+IEnumerable<CST> nodes := DescendantsOf(ancestor);
+
+CSTNode ancestor := AbsoluteAncestor(source, k)
+                  | RelativeAncestor(source, label, k);
+
+bool constraint := Any(x)
+                 | AnyError(x)
+                 | AnyLeaf(x) | Leaf(x, type)
+                 | AnyNode(x) | Node(x, label);
+
+int k;
+string label;
+int type;
