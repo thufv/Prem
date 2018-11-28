@@ -1,159 +1,321 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json.Linq;
 
 namespace Prem.Util
 {
-    abstract public class CST
+    public class CST
     {
+        public Node root { get; }
+
+        private CST(string json)
+        {
+            var counter = new Counter();
+            JObject obj = JObject.Parse(json);
+            this.root = new Node(obj, 0, counter, this);
+        }
+
+        public static CST FromJSON(string json)
+        {
+            return new CST(json);
+        }
+
+        public Tree Get(int id)
+        {
+            return root.GetDescendants().Find(x => x.id == id);
+        }
+
         public enum Kind
         {
-            LEAF, NODE, ERROR
+            TOKEN, NODE, ERROR
         };
 
-        public Kind kind { get; }
-
-        public int id { get; }
-
-        private static int _next_id;
-
-        public static CST[] NodeList = new CST[1024];
-
-        public CST(Kind kind)
+        abstract public class Tree
         {
-            this.kind = kind;
-            this.id = _next_id;
-            NodeList[id] = this;
-            _next_id++;
-        }
+            public Kind kind { get; }
 
-        public static CSTNode FromJSON(string json)
-        {
-            _next_id = 0;
-            JObject obj = JObject.Parse(json);
-            return new CSTNode(obj);
-        }
+            public int id { get; }
 
-        public CSTNode parent { get; set; }
+            public int depth { get; }
 
-        public bool HasParent()
-        {
-            return parent != null;
-        }
+            public CST associatedTree { get; }
 
-        public CSTNode GetAncestorWhere(Func<CSTNode, bool> predicate, int k)
-        {
-            CSTNode node = parent;
-            while (true) {
-                if (predicate(node)) {
-                    k--;
-                    if (k == 0) return node;
+            public Tree(Kind kind, int depth, Counter counter, CST tree)
+            {
+                this.kind = kind;
+                this.depth = depth;
+                this.id = counter.AllocateId();
+                this.associatedTree = tree;
+            }
+
+            public Node parent { get; set; }
+
+            public bool HasParent()
+            {
+                return parent != null;
+            }
+
+            public Node GetAncestorWhere(Func<Node, bool> predicate, int k)
+            {
+                Node node = parent;
+                while (true)
+                {
+                    if (predicate(node))
+                    {
+                        k--;
+                        if (k == 0) return node;
+                    }
+
+                    if (node.HasParent())
+                    {
+                        node = node.parent;
+                    }
+                    else
+                    {
+                        return null;
+                    }
                 }
+            }
 
-                if (node.HasParent()) {
+            public Node GetAncestor(int k)
+            {
+                return GetAncestorWhere(_ => true, k);
+            }
+
+            // including itself
+            public List<Tree> GetAncestors()
+            {
+                var ancestors = new List<Tree>();
+                var node = this;
+                ancestors.Add(node);
+
+                while (node.HasParent())
+                {
                     node = node.parent;
-                } else {
-                    return null;
+                    ancestors.Add(node);
+                }
+
+                return ancestors;
+            }
+
+            public int CountAncestorWhere(Func<Node, bool> predicate, int until)
+            {
+                Node node = parent;
+                int count = 0;
+                while (true)
+                {
+                    if (predicate(node))
+                    {
+                        count++;
+                        if (node.id == until) return count;
+                    }
+
+                    if (node.HasParent())
+                    {
+                        node = node.parent;
+                    }
                 }
             }
+
+            abstract public void PrintTo(IndentPrinter printer);
         }
 
-        public CSTNode GetAncestor(int k)
+        public class Token : Tree
         {
-            return GetAncestorWhere(_ => true, k);
-        }
+            string value;
 
-        abstract public void PrintTo(IndentPrinter printer);
-    }
+            Pos pos;
 
-    public class CSTLeaf : CST
-    {
-        string value;
-        
-        Pos pos;
+            public int type;
 
-        public int type;
+            public Token(JObject obj, int depth, Counter counter, CST tree) : 
+                base(Kind.TOKEN, depth, counter, tree)
+            {
+                this.value = (string)obj["text"];
+                this.pos = new Pos((int)obj["line"], (int)obj["pos"]);
+                this.type = (int)obj["type"];
+            }
 
-        public CSTLeaf(JObject obj) : base(Kind.LEAF)
-        {
-            this.value = (string) obj["text"];
-            this.pos = new Pos((int) obj["line"], (int)obj["pos"]);
-            this.type = (int) obj["type"];
-        }
+            public override string ToString()
+            {
+                return $"({id}) {value} : {type} @ {pos}";
+            }
 
-        public override void PrintTo(IndentPrinter printer)
-        {
-            printer.PrintLine($"({id}) {value} : {type} @ {pos}");
-        }
-    }
+            public override void PrintTo(IndentPrinter printer)
+            {
+                printer.PrintLine(ToString());
+            }
 
-    public class CSTError : CST
-    {
-        string text;
-        
-        Pos pos;
+            public override bool Equals(Object obj)
+            {
+                var Log = Logger.Instance;
+                Log.Fine("{0} =? {1}", this, obj);
 
-        public CSTError(JObject obj) : base(Kind.ERROR)
-        {
-            this.text = (string)obj["text"];
-            this.pos = new Pos((int)obj["line"], (int)obj["pos"]);
-        }
-
-        public override void PrintTo(IndentPrinter printer)
-        {
-            printer.PrintLine($"({id}) {text} : <error> @ {pos}");
-        }
-    }
-
-    public class CSTNode : CST
-    {
-        public string label { get; set; }
-        
-        public int arity { get; set; }
-
-        public CST[] children { get; set; }
-
-        public CST getChild(int i)
-        {
-            return children[i];
-        }
-
-        public CSTNode(JObject obj) : base(Kind.NODE)
-        {
-            this.label = (string) obj["label"];
-            this.arity = (int) obj["arity"];
-            this.children = new CST[arity];
-
-            JArray array = (JArray) obj["children"];
-            for (int i = 0; i < arity; i++) {
-                JObject o = (JObject) array[i];
-                switch ((string) o["kind"]) {
-                    case "node":
-                        this.children[i] = new CSTNode(o);
-                        break;
-                    case "leaf":
-                        this.children[i] = new CSTLeaf(o);
-                        break;
-                    case "error":
-                        this.children[i] = new CSTError(o);
-                        break;
-                    default:
-                        break;
+                if ((obj == null) || !this.GetType().Equals(obj.GetType()))
+                {
+                    return false;
                 }
-                this.children[i].parent = this;
+
+                var that = (Token)obj;
+                return type == that.type && value == that.value;
             }
         }
 
-        public override void PrintTo(IndentPrinter printer)
+        public class Error : Tree
         {
-            printer.PrintLine($"({id}) {label}");
-            printer.IncIndent();
-            for (int i = 0; i < arity; i++) {
-                children[i].PrintTo(printer);
+            string text;
+
+            Pos pos;
+
+            public Error(JObject obj, int depth, Counter counter, CST tree)
+                : base(Kind.ERROR, depth, counter, tree)
+            {
+                this.text = (string)obj["text"];
+                this.pos = new Pos((int)obj["line"], (int)obj["pos"]);
             }
-            printer.DecIndent();
+
+            public override string ToString()
+            {
+                return $"({id}) {text} : <error> @ {pos}";
+            }
+
+            public override void PrintTo(IndentPrinter printer)
+            {
+                printer.PrintLine(ToString());
+            }
+
+            public override bool Equals(Object obj)
+            {
+                var Log = Logger.Instance;
+                Log.Fine("{0} =? {1}", this, obj);
+
+                if ((obj == null) || !this.GetType().Equals(obj.GetType()))
+                {
+                    return false;
+                }
+
+                var that = (Error)obj;
+                return text == that.text;
+            }
+        }
+
+        public class Node : Tree
+        {
+            public string label { get; set; }
+
+            public int arity { get; set; }
+
+            public Tree[] children { get; set; }
+
+            public Tree getChild(int i)
+            {
+                return children[i];
+            }
+
+            // BFS
+            public List<Tree> GetDescendants()
+            {
+                var list = new List<Tree>();
+                var queue = new Queue<Tree>();
+                queue.Enqueue(this);
+
+                while (queue.Any())
+                {
+                    Tree t = queue.Dequeue();
+                    list.Add(t);
+
+                    if (t.kind == Kind.NODE)
+                    {
+                        var node = (Node)t;
+                        foreach (var child in node.children)
+                        {
+                            queue.Enqueue(child);
+                        }
+                    }
+                }
+
+                return list;
+            }
+
+            public Node(JObject obj, int depth, Counter counter, CST tree)
+                : base(Kind.NODE, depth, counter, tree)
+            {
+                this.label = (string)obj["label"];
+                this.arity = (int)obj["arity"];
+                this.children = new Tree[arity];
+
+                JArray array = (JArray)obj["children"];
+                for (int i = 0; i < arity; i++)
+                {
+                    JObject o = (JObject)array[i];
+                    switch ((string)o["kind"])
+                    {
+                        case "node":
+                            this.children[i] = new Node(o, depth + 1, counter, tree);
+                            break;
+                        case "leaf":
+                            this.children[i] = new Token(o, depth + 1, counter, tree);
+                            break;
+                        case "error":
+                            this.children[i] = new Error(o, depth + 1, counter, tree);
+                            break;
+                        default:
+                            break;
+                    }
+                    this.children[i].parent = this;
+                }
+            }
+
+            public override string ToString()
+            {
+                return $"({id}) {label}";
+            }
+
+            public override void PrintTo(IndentPrinter printer)
+            {
+                printer.PrintLine(ToString());
+                printer.IncIndent();
+                for (int i = 0; i < arity; i++)
+                {
+                    children[i].PrintTo(printer);
+                }
+                printer.DecIndent();
+            }
+
+            public override bool Equals(Object obj)
+            {
+                var Log = Logger.Instance;
+                Log.Fine("{0} =? {1}", this, obj);
+
+                if ((obj == null) || !this.GetType().Equals(obj.GetType()))
+                {
+                    return false;
+                }
+
+                var that = (Node)obj;
+                if (label == that.label && arity == that.arity)
+                {
+                    var zip = children.Zip(that.children, (a, b) => a.Equals(b));
+                    return zip.All(x => x);
+                }
+                return false;
+            }
         }
     }
 
+    public class Counter
+    {
+        private int _next_id = 0;
+
+        public int AllocateId()
+        {
+            int id = _next_id;
+            _next_id++;
+            return id;
+        }
+    }
+    
     public class Pos
     {
         int line;
@@ -168,6 +330,16 @@ namespace Prem.Util
         override public string ToString()
         {
             return $"({line}, {offset})";
+        }
+
+        public override bool Equals(Object obj)
+        {
+            if ((obj == null) || !this.GetType().Equals(obj.GetType())) {
+                return false;
+            }
+
+            var that = (Pos) obj;
+            return line == that.line && offset == that.offset;
         }
     }
 }

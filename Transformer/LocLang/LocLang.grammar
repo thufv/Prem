@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using Prem.Util;
 using Prem.Transformer.LocLang;
+using Microsoft.ProgramSynthesis.Utils;
+
 using semantics Prem.Transformer.LocLang.Semantics;
 using learners Prem.Transformer.LocLang.WitnessFunctions;
 
@@ -8,21 +10,24 @@ language LocLang;
 
 @complete feature double Score = Prem.Transformer.LocLang.RankingScore;
 
-@input CST source;
+@input CST.Tree source;
 
-@start CST target := Select(filtered, k) = Kth(filtered, k);
+@start CST.Tree target := Target(candidates, k) = Kth(candidates, k);
 
-IEnumerable<CST> filtered := Filtered(nodes, constraint) = Filter(\x: CST => constraint, nodes);
+IEnumerable<CST.Tree> candidates := Find(constraint, subtrees)
+                                  = Filter(\x: CST.Tree => constraint, subtrees);
 
-IEnumerable<CST> nodes := DescendantsOf(ancestor);
+IEnumerable<CST.Tree> subtrees := Sub(source, ancestor);
 
-CSTNode ancestor := AbsoluteAncestor(source, k)
-                  | RelativeAncestor(source, label, k);
+CST.Node ancestor := AbsAncestor(source, k)
+                   | RelAncestor(source, labelK);
+
+Record<string, int>? labelK := LabelK(label, k) = Pair(label, k);
 
 bool constraint := Any(x)
                  | AnyError(x)
-                 | AnyLeaf(x) | Leaf(x, type)
-                 | AnyNode(x) | Node(x, label);
+                 | AnyToken(x) | TokenMatch(x, type)
+                 | AnyNode(x) | NodeMatch(x, label);
 
 int k;
 string label;

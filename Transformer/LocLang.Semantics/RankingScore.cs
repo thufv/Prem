@@ -18,21 +18,23 @@ namespace Prem.Transformer.LocLang
         protected override double GetFeatureValueForVariable(VariableNode variable) => 0;
 
         // The larger the score, the higher the rank.
-        [FeatureCalculator("Select")]
-        public static double Select(double filtered, double k) => k;
+        [FeatureCalculator("Target")]
+        public static double Target(double candidates, double k) => k;
 
-        [FeatureCalculator("Filtered")]
-        public static double Filtered(double nodes, double constraint) => constraint;
+        [FeatureCalculator("Find")]
+        public static double Find(double constraint, double subtrees) => constraint;
 
-        [FeatureCalculator(nameof(Semantics.DescendantsOf))]
-        public static double DescendantsOf(double s) => s;
+        [FeatureCalculator(nameof(Semantics.Sub))]
+        public static double Sub(double source, double ancestor) => source;
 
-        [FeatureCalculator(nameof(Semantics.AbsoluteAncestor))]
-        public static double AbsoluteAncestor(double source, double k) => 0;
+        [FeatureCalculator(nameof(Semantics.AbsAncestor))]
+        public static double AbsAncestor(double source, double k) => 0;
 
-        [FeatureCalculator(nameof(Semantics.RelativeAncestor))]
-        public static double RelativeAncestor(double source, double label, double k) => 0; // <= 1
+        [FeatureCalculator(nameof(Semantics.RelAncestor))]
+        public static double RelAncestor(double source, double labelK) => 0; // <= 1
 
+        [FeatureCalculator("LabelK")]
+        public static double LabelK(double label, double k) => 0; // <= 1
 
         [FeatureCalculator(nameof(Semantics.Any))]
         public static double Any(double x) => 0;
@@ -40,17 +42,17 @@ namespace Prem.Transformer.LocLang
         [FeatureCalculator(nameof(Semantics.AnyError))]
         public static double AnyError(double x) => x;
 
-        [FeatureCalculator(nameof(Semantics.AnyLeaf))]
-        public static double AnyLeaf(double x) => x;
+        [FeatureCalculator(nameof(Semantics.AnyToken))]
+        public static double AnyToken(double x) => x;
 
-        [FeatureCalculator(nameof(Semantics.Leaf))]
-        public static double Leaf(double x, double type) => x * type;
+        [FeatureCalculator(nameof(Semantics.TokenMatch))]
+        public static double TokenMatch(double x, double type) => x * type;
 
         [FeatureCalculator(nameof(Semantics.AnyNode))]
         public static double AnyNode(double x) => x;
 
-        [FeatureCalculator(nameof(Semantics.Node))]
-        public static double Node(double x, double label) => x * label;
+        [FeatureCalculator(nameof(Semantics.NodeMatch))]
+        public static double NodeMatch(double x, double label) => x * label;
 
         [FeatureCalculator("k", Method = CalculationMethod.FromLiteral)]
         public static double K(int k) => 0;

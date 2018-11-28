@@ -21,10 +21,10 @@ namespace Prem.Transformer
 {
     public class LocExample
     {
-        public CST input { get; }
-        public CST output { get; }
+        public CST.Tree input { get; }
+        public CST.Tree output { get; }
 
-        public LocExample(CST src, CST dst)
+        public LocExample(CST.Tree src, CST.Tree dst)
         {
             this.input = src;
             this.output = dst;
@@ -49,7 +49,10 @@ namespace Prem.Transformer
         {
             // compile grammar
             var grammar = LoadGrammar("/Users/paul/Workspace/prem/Transformer/LocLang/LocLang.grammar",
-                CompilerReference.FromAssemblyFiles(typeof(Semantics).GetTypeInfo().Assembly));
+                CompilerReference.FromAssemblyFiles(
+                    typeof(Semantics).GetTypeInfo().Assembly,
+                    typeof(Record).GetTypeInfo().Assembly,
+                    typeof(CST).GetTypeInfo().Assembly));
             if (grammar == null) {
                 Console.WriteLine("ST: Grammar not compiled.");
                 return;
@@ -84,7 +87,7 @@ namespace Prem.Transformer
 
             // learn
             ProgramSet consistentPrograms = _engine.LearnGrammar(spec);
-            // _engine.Configuration.LogListener.SaveLogToXML("learning.log.xml");
+            _engine.Configuration.LogListener.SaveLogToXML("learning.log.xml");
             var programs = consistentPrograms.TopK(_scorer, k).Take(k).ToArray();
             Log.Debug("{0} program(s) synthesized.", programs.Length);
             
