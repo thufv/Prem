@@ -86,12 +86,11 @@ namespace Prem.Transformer
             Spec spec = new ExampleSpec(constraints);
 
             // learn
-            ProgramSet consistentPrograms = _engine.LearnGrammar(spec);
+            var programs = _engine.LearnGrammarTopK(spec, _scorer, k);
             _engine.Configuration.LogListener.SaveLogToXML("learning.log.xml");
-            var programs = consistentPrograms.TopK(_scorer, k).Take(k).ToArray();
-            Log.Debug("{0} program(s) synthesized.", programs.Length);
+            Log.Debug("{0} program(s) synthesized.", programs.Size);
             
-            return programs;
+            return programs.RealizedPrograms.Take(k).ToArray();
         }
 
         public static Grammar LoadGrammar(string grammarFile, IReadOnlyList<CompilerReference> assemblyReferences)

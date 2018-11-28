@@ -107,7 +107,7 @@ namespace Prem.Transformer.LocLang {
             {
                 var source = (CST.Tree)input[rule.Body[0]];
                 var ancestors = spec.DisjunctiveExamples[input].Select(x => (CST.Tree)x);
-                var candidates = ancestors.Select(a => source.depth - a.depth)
+                var candidates = ancestors.Select(a => source.depth - a.depth - 1)
                     .Select(x => (object)x);
                 ShowList(candidates);
 
@@ -133,7 +133,7 @@ namespace Prem.Transformer.LocLang {
                 var ancestors = spec.DisjunctiveExamples[input].Select(x => (CST.Node)x);
 
                 var candidates = ancestors.Select(a => Record.Create(
-                    a.label, source.CountAncestorWhere(x => x.label == a.label, a.id)
+                    a.label, source.CountAncestorWhere(x => x.label == a.label, a.id) - 1
                 )).Select(x => (object)x);
                 
                 ShowList(candidates);

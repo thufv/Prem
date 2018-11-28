@@ -63,8 +63,8 @@ namespace Prem.Util
                 {
                     if (predicate(node))
                     {
-                        k--;
                         if (k == 0) return node;
+                        k--;
                     }
 
                     if (node.HasParent())
@@ -149,9 +149,6 @@ namespace Prem.Util
 
             public override bool Equals(Object obj)
             {
-                var Log = Logger.Instance;
-                Log.Fine("{0} =? {1}", this, obj);
-
                 if ((obj == null) || !this.GetType().Equals(obj.GetType()))
                 {
                     return false;
@@ -187,9 +184,6 @@ namespace Prem.Util
 
             public override bool Equals(Object obj)
             {
-                var Log = Logger.Instance;
-                Log.Fine("{0} =? {1}", this, obj);
-
                 if ((obj == null) || !this.GetType().Equals(obj.GetType()))
                 {
                     return false;
@@ -285,9 +279,6 @@ namespace Prem.Util
 
             public override bool Equals(Object obj)
             {
-                var Log = Logger.Instance;
-                Log.Fine("{0} =? {1}", this, obj);
-
                 if ((obj == null) || !this.GetType().Equals(obj.GetType()))
                 {
                     return false;
