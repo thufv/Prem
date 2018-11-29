@@ -21,7 +21,10 @@ namespace Prem
         static void Main(string[] args)
         {
             Logger.Instance.DisplayLevel = LogLevel.FINE;
-            run("/Users/paul/Workspace/prem/1.json", "/Users/paul/Workspace/prem/upd.json");
+            // run("/Users/paul/Workspace/prem/1.json", "/Users/paul/Workspace/prem/upd.json");
+            // run("/Users/paul/Workspace/prem/1.json", "/Users/paul/Workspace/prem/del.json");
+            // run("/Users/paul/Workspace/prem/1.json", "/Users/paul/Workspace/prem/ins.json");
+            run("/Users/paul/Workspace/prem/del.json", "/Users/paul/Workspace/prem/ins.json");
         }
 
         static void run(string file1, string file2)
@@ -30,9 +33,9 @@ namespace Prem
             string json2 = File.ReadAllText(file2);
 
             var ctx1 = SyntaxNodeContext.FromJSON(json1);
-            var ctx2 = SyntaxNodeContext.FromJSON(json1);
+            var ctx2 = SyntaxNodeContext.FromJSON(json2);
 
-            SyntaxNodeDiff.diff(ctx1.root, ctx2.root);
+            SyntaxNodeAlgo.diff(ctx1.root, ctx2.root);
 
             // var src = tree.Get(9);
             // var dst = tree.Get(4);

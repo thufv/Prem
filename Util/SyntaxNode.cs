@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.CodeAnalysis.Text;
 using Newtonsoft.Json.Linq;
 
 namespace Prem.Util
@@ -26,8 +25,6 @@ namespace Prem.Util
         public SyntaxNodeContext context { get; }
 
         public string code { get; }
-
-        public TextSpan span { get; }
 
         public int label { get; }
 

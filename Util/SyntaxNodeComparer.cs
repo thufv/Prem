@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using Microsoft.CodeAnalysis.Differencing;
-using Microsoft.CodeAnalysis.Text;
+
+using Prem.Diff;
 
 namespace Prem.Util {
     public class SyntaxNodeComparer : TreeComparer<SyntaxNode>
@@ -26,17 +26,11 @@ namespace Prem.Util {
 
         protected override int GetLabel(SyntaxNode node) => node.label;
 
-        protected override TextSpan GetSpan(SyntaxNode node)
-        {
-            Debug.Assert(false);
-            return node.span;
-        }
-
         protected override int TiedToAncestor(int label) => 0;
 
         protected override bool TreesEqual(SyntaxNode oldNode, SyntaxNode newNode)
         {
-            Log.Debug("TreesEqual {0} and {1}", oldNode, newNode);
+            // Log.Debug("TreesEqual {0} and {1}", oldNode, newNode);
             return oldNode.context == newNode.context;
         }
 
