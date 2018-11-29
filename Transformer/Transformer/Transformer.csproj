@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
@@ -15,5 +14,4 @@
     <PackageReference Include="Microsoft.ProgramSynthesis" Version="6.9.0" />
     <PackageReference Include="Microsoft.ProgramSynthesis.Compiler" Version="6.9.0" />
   </ItemGroup>
-
 </Project>

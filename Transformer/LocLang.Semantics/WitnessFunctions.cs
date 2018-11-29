@@ -17,8 +17,45 @@ namespace Prem.Transformer.LocLang {
         private static void ShowList<T>(IEnumerable<T> list) {
             Log.Fine("Candidates: " + String.Join(", ", list.Select(x => x.ToString())));
         }
-        
-        public WitnessFunctions(Grammar grammar) : base(grammar) { }
+
+        private Symbol _inputSymbol;
+
+        public WitnessFunctions(Grammar grammar) : base(grammar)
+        {
+            this._inputSymbol = grammar.InputSymbol;
+        }
+
+        private SyntaxNode GetSource(State input)
+        {
+            return (SyntaxNode) input[_inputSymbol];
+        }
+
+        [WitnessFunction(nameof(Semantics.Insert), 0)]
+        public ExampleSpec InsertRef(GrammarRule rule, ExampleSpec spec)
+        {
+            // Find the `ref` s.t. `Insert(ref, k, tree) = target` for some `k` and `tree`.
+            Log.Fine("Insert.ref |- {0}", spec);
+
+            return null;
+        }
+
+        [WitnessFunction(nameof(Semantics.Delete), 0)]
+        public ExampleSpec DeleteRef(GrammarRule rule, ExampleSpec spec)
+        {
+            // Find the `ref` s.t. `Insert(ref, k, tree) = target` for some `k` and `tree`.
+            Log.Fine("Delete.ref |- {0}", spec);
+
+            return spec;
+        }
+
+        [WitnessFunction(nameof(Semantics.Update), 0)]
+        public ExampleSpec UpdateRef(GrammarRule rule, ExampleSpec spec)
+        {
+            // Find the `ref` s.t. `Update(ref, tree) = target` for some `tree`.
+            Log.Fine("Update.ref |- {0}", spec);
+
+            return null;
+        }
 
         [WitnessFunction(nameof(Semantics.TokenMatch), 1)]
         public ExampleSpec TokenMatchType(GrammarRule rule, DisjunctiveExamplesSpec spec)
@@ -29,10 +66,10 @@ namespace Prem.Transformer.LocLang {
             var types = new Dictionary<State, object>();
             foreach (var input in spec.ProvidedInputs)
             {
-                var x = (CST.Tree)input[rule.Body[0]];
-                if (x.kind == CST.Kind.TOKEN)
+                var x = (SyntaxNode)input[rule.Body[0]];
+                if (x.kind == SyntaxKind.TOKEN)
                 {
-                    var type = ((CST.Token)x).type;
+                    var type = ((Token)x).type;
                     Log.Fine("Candidates: {0}", type);
                     types[input] = type;
                 }
@@ -55,10 +92,10 @@ namespace Prem.Transformer.LocLang {
             var types = new Dictionary<State, object>();
             foreach (var input in spec.ProvidedInputs)
             {
-                var x = (CST.Tree)input[rule.Body[0]];
-                if (x.kind == CST.Kind.NODE)
+                var x = (SyntaxNode)input[rule.Body[0]];
+                if (x.kind == SyntaxKind.NODE)
                 {
-                    var label = ((CST.Node)x).label;
+                    var label = ((Node)x).name;
                     Log.Fine("Candidates: {0}", label);
                     types[input] = label;
                 }
@@ -72,7 +109,7 @@ namespace Prem.Transformer.LocLang {
             return new ExampleSpec(types);
         }
 
-        [WitnessFunction(nameof(Semantics.Sub), 1)]
+        [WitnessFunction(nameof(Semantics.Sub), 0)]
         public DisjunctiveExamplesSpec SubAncestor(GrammarRule rule, SubsequenceSpec spec)
         {
             // Find all `ancestor` s.t. `Sub(source, ancestor)` includes the node seq
@@ -81,10 +118,10 @@ namespace Prem.Transformer.LocLang {
             var ancestors = new Dictionary<State, IEnumerable<object>>();
             foreach (var input in spec.ProvidedInputs)
             {
-                var positive = spec.PositiveExamples[input].Select(x => (CST.Tree)x).ToList();
-                // var negative = (List<Tree.CST>) spec.NegativeExamples[input];
+                var positive = spec.PositiveExamples[input].Select(x => (SyntaxNode)x).ToList();
+                // var negative = (List<Tree.SyntaxNodeContext>) spec.NegativeExamples[input];
                 
-                var source = (CST.Tree)input[rule.Body[0]];
+                var source = GetSource(input);
                 var candidates = CommonAncestor.CommonAncestors(source, positive);
                 ShowList(candidates);
 
@@ -105,8 +142,8 @@ namespace Prem.Transformer.LocLang {
             var ks = new Dictionary<State, IEnumerable<object>>();
             foreach (var input in spec.ProvidedInputs)
             {
-                var source = (CST.Tree)input[rule.Body[0]];
-                var ancestors = spec.DisjunctiveExamples[input].Select(x => (CST.Tree)x);
+                var source = GetSource(input);
+                var ancestors = spec.DisjunctiveExamples[input].Select(x => (SyntaxNode)x);
                 var candidates = ancestors.Select(a => source.depth - a.depth - 1)
                     .Select(x => (object)x);
                 ShowList(candidates);
@@ -129,11 +166,11 @@ namespace Prem.Transformer.LocLang {
             var labelKs = new Dictionary<State, IEnumerable<object>>();
             foreach (var input in spec.ProvidedInputs)
             {
-                var source = (CST.Tree)input[rule.Body[0]];
-                var ancestors = spec.DisjunctiveExamples[input].Select(x => (CST.Node)x);
+                var source = GetSource(input);
+                var ancestors = spec.DisjunctiveExamples[input].Select(x => (Node)x);
 
                 var candidates = ancestors.Select(a => Record.Create(
-                    a.label, source.CountAncestorWhere(x => x.label == a.label, a.id) - 1
+                    a.name, source.CountAncestorWhere(x => x.name == a.name, a.id) - 1
                 )).Select(x => (object)x);
                 
                 ShowList(candidates);

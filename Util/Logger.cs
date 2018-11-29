@@ -44,11 +44,6 @@ namespace Prem.Util
         }
 
         /// <summary>
-        /// Log levels. The priority is from the highest to the lowest.
-        /// </summary>
-        public enum LogLevel { ERROR, WARNING, FAILURE, SUCCESS, INFO, DEBUG, FINE }
-
-        /// <summary>
         /// Get string representation for each log level.
         /// </summary>
         /// <returns>The string representation.</returns>
@@ -265,5 +260,18 @@ namespace Prem.Util
         {
             Log(LogLevel.FINE, format, args);
         }
+
+        /// <summary>
+        /// Check if the specified <code>level</code> is loggable in the current log level.
+        /// </summary>
+        public bool IsLoggable(LogLevel level)
+        {
+            return level <= DisplayLevel;
+        }
     }
+
+    /// <summary>
+    /// Log levels. The priority is from the highest to the lowest.
+    /// </summary>
+    public enum LogLevel { ERROR, WARNING, FAILURE, SUCCESS, INFO, DEBUG, FINE }
 }

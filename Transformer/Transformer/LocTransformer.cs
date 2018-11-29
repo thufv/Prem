@@ -21,10 +21,10 @@ namespace Prem.Transformer
 {
     public class LocExample
     {
-        public CST.Tree input { get; }
-        public CST.Tree output { get; }
+        public SyntaxNode input { get; }
+        public SyntaxNode output { get; }
 
-        public LocExample(CST.Tree src, CST.Tree dst)
+        public LocExample(SyntaxNode src, SyntaxNode dst)
         {
             this.input = src;
             this.output = dst;
@@ -42,7 +42,7 @@ namespace Prem.Transformer
         private static MyLogger Log = MyLogger.Instance;
 
         private SynthesisEngine _engine;
-        private Symbol _inputSymbol;
+        private Symbol _inputSymbol, _refSymbol;
         private RankingScore _scorer;
 
         public LocTransformer()
@@ -52,12 +52,13 @@ namespace Prem.Transformer
                 CompilerReference.FromAssemblyFiles(
                     typeof(Semantics).GetTypeInfo().Assembly,
                     typeof(Record).GetTypeInfo().Assembly,
-                    typeof(CST).GetTypeInfo().Assembly));
+                    typeof(SyntaxNode).GetTypeInfo().Assembly));
             if (grammar == null) {
                 Console.WriteLine("ST: Grammar not compiled.");
                 return;
             }
             _inputSymbol = grammar.InputSymbol; // set input symbol
+            _refSymbol = grammar.Symbol("ref"); // set ref symbol
 
             // set up engine
             var witnessFunctions = new WitnessFunctions(grammar);

@@ -10,17 +10,22 @@ language LocLang;
 
 @complete feature double Score = Prem.Transformer.LocLang.RankingScore;
 
-@input CST.Tree source;
+@input SyntaxNode source;
 
-@start CST.Tree target := Target(candidates, k) = Kth(candidates, k);
+@start SyntaxNode program := Insert(ref, k, tree) | Delete(ref) | Update(ref, tree);
 
-IEnumerable<CST.Tree> candidates := Find(constraint, subtrees)
-                                  = Filter(\x: CST.Tree => constraint, subtrees);
+SyntaxNode tree := ref | Node(label, children);
 
-IEnumerable<CST.Tree> subtrees := Sub(source, ancestor);
+IEnumerable<SyntaxNode> children := Child(tree) | Children(tree, children);
 
-CST.Node ancestor := AbsAncestor(source, k)
-                   | RelAncestor(source, labelK);
+SyntaxNode ref := Ref(candidates, k) = Kth(candidates, k);
+
+IEnumerable<SyntaxNode> candidates := Find(constraint, subtrees)
+                                    = Filter(\x: SyntaxNode => constraint, subtrees);
+
+IEnumerable<SyntaxNode> subtrees := Sub(ancestor);
+
+Node ancestor := AbsAncestor(source, k) | RelAncestor(source, labelK);
 
 Record<string, int>? labelK := LabelK(label, k) = Pair(label, k);
 

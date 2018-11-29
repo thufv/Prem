@@ -6,7 +6,7 @@ namespace Prem.Util
 {
     public static class CommonAncestor
     {
-        public static CST.Tree CommonAncestorOf(CST.Tree t1, CST.Tree t2)
+        public static SyntaxNode CommonAncestorOf(SyntaxNode t1, SyntaxNode t2)
         {
             while (true)
             {
@@ -30,7 +30,7 @@ namespace Prem.Util
             }
         }
 
-        public static List<CST.Tree> CommonAncestors(CST.Tree head, List<CST.Tree> tail)
+        public static List<SyntaxNode> CommonAncestors(SyntaxNode head, List<SyntaxNode> tail)
         {
             var pivot = head;
             foreach (var node in tail)

@@ -19,14 +19,32 @@ namespace Prem.Transformer.LocLang
 
         // The larger the score, the higher the rank.
 
-        [FeatureCalculator("Target")]
-        public static double Target(double candidates, double k) => candidates * k;
+        [FeatureCalculator(nameof(Semantics.Insert))]
+        public static double Insert(double dst, double k, double tree) => dst * tree;
+
+        [FeatureCalculator(nameof(Semantics.Delete))]
+        public static double Delete(double dst) => dst;
+
+        [FeatureCalculator(nameof(Semantics.Update))]
+        public static double Update(double dst, double tree) => dst * tree;
+
+        [FeatureCalculator(nameof(Semantics.Node))]
+        public static double Node(double label, double children) => children;
+
+        [FeatureCalculator(nameof(Semantics.Child))]
+        public static double Child(double tree) => tree;
+
+        [FeatureCalculator(nameof(Semantics.Children))]
+        public static double Children(double tree, double children) => tree * children;
+
+        [FeatureCalculator("Ref")]
+        public static double Ref(double candidates, double k) => candidates * k;
 
         [FeatureCalculator("Find")]
         public static double Find(double constraint, double subtrees) => constraint * subtrees;
 
         [FeatureCalculator(nameof(Semantics.Sub))]
-        public static double Sub(double source, double ancestor) => ancestor;
+        public static double Sub(double ancestor) => ancestor;
 
         [FeatureCalculator(nameof(Semantics.AbsAncestor))]
         public static double AbsAncestor(double source, double k) => k;
