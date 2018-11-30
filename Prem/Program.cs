@@ -21,9 +21,10 @@ namespace Prem
         static void Main(string[] args)
         {
             Logger.Instance.DisplayLevel = LogLevel.FINE;
-            // run("/Users/paul/Workspace/prem/1.json", "/Users/paul/Workspace/prem/upd.json");
+            Logger.Instance.ShowColor = true;
+            run("/Users/paul/Workspace/prem/1.json", "/Users/paul/Workspace/prem/upd.json");
             // run("/Users/paul/Workspace/prem/1.json", "/Users/paul/Workspace/prem/del.json");
-            run("/Users/paul/Workspace/prem/1.json", "/Users/paul/Workspace/prem/ins.json");
+            // run("/Users/paul/Workspace/prem/1.json", "/Users/paul/Workspace/prem/ins.json");
             // run("/Users/paul/Workspace/prem/del.json", "/Users/paul/Workspace/prem/ins.json");
         }
 
@@ -35,20 +36,18 @@ namespace Prem
             var ctx1 = SyntaxNodeContext.FromJSON(json1);
             var ctx2 = SyntaxNodeContext.FromJSON(json2);
 
-            SyntaxNodeAlgo.diff(ctx1.root, ctx2.root);
+            var printer = new IndentPrinter();
+            ctx1.root.PrintTo(printer);
+            var errNode = ctx1.FindNode(9);
 
-            // var src = tree.Get(9);
-            // var dst = tree.Get(4);
+            ctx1.DoComparison(ctx2.root);
 
-            // 
-            // Logger.Instance.Fine("src={0}, dst={1}", src, dst);
-
-            // var example = new LocExample(src, dst);
-            // var t = new LocTransformer();
-            // var programs = t.LearnPrograms(IEnumerableExt.SingleItemAsEnumerable(example), 10);
-            // foreach (var prog in programs) {
-            //     Console.WriteLine(prog.ToString());
-            // }
+            var example = new LocExample(ctx1.root, errNode, ctx2.root);
+            var t = new LocTransformer();
+            var programs = t.LearnPrograms(IEnumerableExt.SingleItemAsEnumerable(example), 10);
+            foreach (var prog in programs) {
+                Console.WriteLine(prog.ToString());
+            }
         }
     }
 }

@@ -21,13 +21,17 @@ namespace Prem.Transformer
 {
     public class LocExample
     {
-        public SyntaxNode input { get; }
-        public SyntaxNode output { get; }
+        public SyntaxNode inputTree { get; }
 
-        public LocExample(SyntaxNode src, SyntaxNode dst)
+        public SyntaxNode errNode { get; }
+
+        public SyntaxNode outputTree { get; }
+
+        public LocExample(SyntaxNode inputTree, SyntaxNode errNode, SyntaxNode outputTree)
         {
-            this.input = src;
-            this.output = dst;
+            this.inputTree = inputTree;
+            this.errNode = errNode;
+            this.outputTree = outputTree;
         }
     }
 
@@ -81,8 +85,8 @@ namespace Prem.Transformer
         {
             // examples
             var constraints = examples.ToDictionary(
-                e => State.CreateForLearning(_inputSymbol, e.input),
-                e => (object) e.output
+                e => State.CreateForLearning(_inputSymbol, e.errNode),
+                e => (object) e.outputTree
             );
             Spec spec = new ExampleSpec(constraints);
 

@@ -30,48 +30,154 @@ namespace Prem.Transformer.LocLang {
             return (SyntaxNode) input[_inputSymbol];
         }
 
-        [WitnessFunction(nameof(Semantics.Ins), 0)]
-        public ExampleSpec InsertRef(GrammarRule rule, ExampleSpec spec)
+        private Result GetResult(State input)
         {
-            // Find the `ref` s.t. `Insert(ref, k, tree) = target` for some `k` and `tree`.
-            Log.Fine("Insert.ref |- {0}", spec);
+            return GetSource(input).context.GetResult();
+        }
 
-            return null;
+        [WitnessFunction(nameof(Semantics.Ins), 0)]
+        public ExampleSpec InsRef(GrammarRule rule, ExampleSpec spec)
+        {
+            // Obtain the `ref` for `Insert(ref, k, tree)` based on tree comparison result.
+            Log.Fine("Ins.ref |- {0}", spec);
+
+            var refDict = new Dictionary<State, object>();
+            foreach (var input in spec.ProvidedInputs)
+            {
+                var result = GetResult(input);
+                if (result.kind != ResultKind.INSERT)
+                {
+                    return null;
+                }
+
+                refDict[input] = ((Insert)result).oldNodeParent;
+            }
+
+            return new ExampleSpec(refDict);
+        }
+
+        [WitnessFunction(nameof(Semantics.Ins), 1)]
+        public ExampleSpec InsK(GrammarRule rule, ExampleSpec spec)
+        {
+            // Obtain the `k` for `Insert(ref, k, tree)` based on tree comparison result.
+            Log.Fine("Ins.k |- {0}", spec);
+
+            var kDict = new Dictionary<State, object>();
+            foreach (var input in spec.ProvidedInputs)
+            {
+                var result = GetResult(input);
+                if (result.kind != ResultKind.INSERT)
+                {
+                    return null;
+                }
+
+                kDict[input] = ((Insert)result).k;
+            }
+
+            return new ExampleSpec(kDict);
+        }
+
+        [WitnessFunction(nameof(Semantics.Ins), 2)]
+        public ExampleSpec InsTree(GrammarRule rule, ExampleSpec spec)
+        {
+            // Obtain the `tree` for `Insert(ref, k, tree)` based on tree comparison result.
+            Log.Fine("Ins.tree |- {0}", spec);
+
+            var treeDict = new Dictionary<State, object>();
+            foreach (var input in spec.ProvidedInputs)
+            {
+                var result = GetResult(input);
+                if (result.kind != ResultKind.INSERT)
+                {
+                    return null;
+                }
+
+                treeDict[input] = ((Insert)result).newNode;
+            }
+
+            return new ExampleSpec(treeDict);
         }
 
         [WitnessFunction(nameof(Semantics.Del), 0)]
-        public ExampleSpec DeleteRef(GrammarRule rule, ExampleSpec spec)
+        public ExampleSpec DelRef(GrammarRule rule, ExampleSpec spec)
         {
-            // Find the `ref` s.t. `Insert(ref, k, tree) = target` for some `k` and `tree`.
-            Log.Fine("Delete.ref |- {0}", spec);
+            // Obtain the `ref` for `Del(ref)` based on tree comparison result.
+            Log.Fine("Del.ref |- {0}", spec);
 
-            return spec;
+            var refDict = new Dictionary<State, object>();
+            foreach (var input in spec.ProvidedInputs)
+            {
+                var result = GetResult(input);
+                if (result.kind != ResultKind.DELETE)
+                {
+                    return null;
+                }
+
+                refDict[input] = ((Delete)result).oldNode;
+            }
+
+            return new ExampleSpec(refDict);
         }
 
         [WitnessFunction(nameof(Semantics.Upd), 0)]
-        public ExampleSpec UpdateRef(GrammarRule rule, ExampleSpec spec)
+        public ExampleSpec UpdRef(GrammarRule rule, ExampleSpec spec)
         {
-            // Find the `ref` s.t. `Update(ref, tree) = target` for some `tree`.
-            Log.Fine("Update.ref |- {0}", spec);
+            // Obtain the `ref` for `Update(ref, tree)` based on tree comparison result.
+            Log.Fine("Upd.ref |- {0}", spec);
 
-            return null;
+            var refDict = new Dictionary<State, object>();
+            foreach (var input in spec.ProvidedInputs)
+            {
+                var result = GetResult(input);
+                if (result.kind != ResultKind.UPDATE)
+                {
+                    return null;
+                }
+
+                refDict[input] = ((Update)result).oldNode;
+            }
+
+            return new ExampleSpec(refDict);
         }
 
-        [WitnessFunction(nameof(Semantics.TokenMatch), 1)]
-        public ExampleSpec TokenMatchType(GrammarRule rule, DisjunctiveExamplesSpec spec)
+        [WitnessFunction(nameof(Semantics.Upd), 1)]
+        public ExampleSpec UpdTree(GrammarRule rule, ExampleSpec spec)
         {
-            // Find the `type` s.t. `TokenMatch(x, type) = true`.
-            Log.Fine("TokenMatch.type |- {0}", spec);
+            // Obtain the `tree` for `Update(ref, tree)` based on tree comparison result.
+            Log.Fine("Upd.tree |- {0}", spec);
 
-            var types = new Dictionary<State, object>();
+            var treeDict = new Dictionary<State, object>();
+            foreach (var input in spec.ProvidedInputs)
+            {
+                var result = GetResult(input);
+                if (result.kind != ResultKind.UPDATE)
+                {
+                    return null;
+                }
+
+                treeDict[input] = ((Update)result).newNode;
+            }
+
+            return new ExampleSpec(treeDict);
+        }
+
+
+
+        [WitnessFunction(nameof(Semantics.TokenMatch), 1)]
+        public ExampleSpec TokenMatchLabel(GrammarRule rule, DisjunctiveExamplesSpec spec)
+        {
+            // Find the `label` s.t. `TokenMatch(x, label) = true`.
+            Log.Fine("TokenMatch.label |- {0}", spec);
+
+            var labelDict = new Dictionary<State, object>();
             foreach (var input in spec.ProvidedInputs)
             {
                 var x = (SyntaxNode)input[rule.Body[0]];
                 if (x.kind == SyntaxKind.TOKEN)
                 {
-                    var type = ((Token)x).type;
-                    Log.Fine("Candidates: {0}", type);
-                    types[input] = type;
+                    var label = ((Token)x).label;
+                    Log.Fine("Candidates: {0}", label);
+                    labelDict[input] = label;
                 }
                 else
                 {
@@ -80,7 +186,7 @@ namespace Prem.Transformer.LocLang {
                 }
             }
 
-            return new ExampleSpec(types);
+            return new ExampleSpec(labelDict);
         }
 
         [WitnessFunction(nameof(Semantics.NodeMatch), 1)]

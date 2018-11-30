@@ -24,7 +24,7 @@ namespace Prem.Transformer.LocLang {
             return new Update(oldNode, newNode).GetTransformed();
         }
 
-        public static SyntaxNode TreeNode(string label, IEnumerable<SyntaxNode> children)
+        public static SyntaxNode TreeNode(int label, IEnumerable<SyntaxNode> children)
         {
             return null;
         }

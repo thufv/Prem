@@ -72,9 +72,9 @@ namespace Prem.Util
                 case LogLevel.WARNING: return Color.Yellow;
                 case LogLevel.FAILURE: return Color.DarkRed;
                 case LogLevel.SUCCESS: return Color.DarkGreen;
-                case LogLevel.INFO: return Color.White;
+                case LogLevel.INFO: return Color.Cyan;
                 case LogLevel.DEBUG: return Color.LightBlue;
-                case LogLevel.FINE: return Color.Navy;
+                case LogLevel.FINE: return Color.White;
             }
             return Color.White;
         }

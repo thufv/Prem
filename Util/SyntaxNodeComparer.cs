@@ -8,7 +8,7 @@ namespace Prem.Util
     /// <summary>
     /// Compare two syntax trees of type `SyntaxNode`.
     /// </summary>
-    public abstract class SyntaxNodeComparer
+    public class SyntaxNodeComparer
     {
         private static Logger Log = Logger.Instance;
 
@@ -87,7 +87,7 @@ namespace Prem.Util
             {
                 // Then, which one? In the worst case, we have to attempt them all.
                 // However, we can use an heuristic order.
-                foreach (int j in heuristicOrder(newChildren, oldChildren))
+                foreach (int j in HeuristicOrder(newChildren, oldChildren))
                 {
                     var child = oldChildren[j];
                     Log.Fine("Guess: delete {0}", child);
@@ -121,7 +121,7 @@ namespace Prem.Util
             if (k2 - k1 == 1) // One of the children is inserted.
             {
                 // We tell the same story.
-                foreach (int j in heuristicOrder(oldChildren, newChildren))
+                foreach (int j in HeuristicOrder(oldChildren, newChildren))
                 {
                     var child = newChildren[j];
                     Log.Fine("Guess: insert {0}", child);
@@ -158,7 +158,7 @@ namespace Prem.Util
             return new Update(oldNode, newNode);
         }
 
-        protected List<int> heuristicOrder(List<SyntaxNode> less, List<SyntaxNode> more)
+        protected List<int> HeuristicOrder(List<SyntaxNode> less, List<SyntaxNode> more)
         {
             int k = less.Count;
             Debug.Assert(more.Count == k + 1);
@@ -179,15 +179,23 @@ namespace Prem.Util
         }
 
         /// <summary>
-        /// User-specified function for estimating the similarity of two trees,
+        /// A heuristic function for estimating the similarity of two trees,
         /// i.e. all descendants shall be considered.
-        /// Since this function is simply an estimation, the user should design a fast algorithm.
+        /// Since this function is simply an estimation, we need to design a fast algorithm,
+        /// say we simply compare if their labels and code are the same.
         /// The higher number, the more similar.
         /// </summary>
         /// <param name="node1">The first tree.</param>
         /// <param name="node2">The second tree.</param>
         /// <returns>A numeric value in range [0,1] presenting the similarity.</returns>
-        abstract public double EstimatedSimilarity(SyntaxNode node1, SyntaxNode node2);
+        protected double EstimatedSimilarity(SyntaxNode node1, SyntaxNode node2)
+        {
+            double score = 0;
+            if (node1.code == node2.code) score += 0.5;
+            if (node1.label == node2.label) score += 0.5;
+
+            return score;
+        }
     }
 
     public enum ResultKind
@@ -304,7 +312,7 @@ namespace Prem.Util
         public SyntaxNode newNode { get; }
 
         public Update(SyntaxNode oldNode, SyntaxNode newNode) 
-            : base(ResultKind.DELETE, oldNode.context.root)
+            : base(ResultKind.UPDATE, oldNode.context.root)
         {
             this.oldNode = oldNode;
             this.newNode = newNode;

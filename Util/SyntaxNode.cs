@@ -19,7 +19,7 @@ namespace Prem.Util
     /// </summary>
     abstract public class SyntaxNode
     {
-        private static Logger Log = Logger.Instance;
+        protected static Logger Log = Logger.Instance;
 
         public SyntaxKind kind { get; }
 
@@ -117,8 +117,7 @@ namespace Prem.Util
         public List<SyntaxNode> GetChildren() =>
             kind == SyntaxKind.NODE ? ((Node)this).children.ToList() : new List<SyntaxNode>();
 
-        public int GetNumChildren() => kind == SyntaxKind.NODE ? ((Node)this).arity : 0;
-
+        public virtual int GetNumChildren() => 0;
         public List<SyntaxNode> GetDescendantsDFS()
         {
             var nodes = DFS<SyntaxNode>(x => x);
@@ -196,13 +195,7 @@ namespace Prem.Util
 
     public class Token : SyntaxNode
     {
-        // TODO: DEPRECATED
-        public string value { get; }
-
         Pos pos;
-
-        // TODO: DEPRECATED
-        public int type { get; }
 
         public Token(SyntaxNodeContext context, int depth, int label, string name, string code = "")
             : base(SyntaxKind.TOKEN, context, depth, label, name, code)
@@ -215,14 +208,15 @@ namespace Prem.Util
             {
                 var label = (int)obj["label"];
                 var name = (string)obj["name"];
+                var code = (string)obj["code"];
 
-                return new Token(context, depth, label, name);
+                return new Token(context, depth, label, name, code);
             };
         }
 
         public override string ToString()
         {
-            return $"({id}) {value} : {type} @ {pos}";
+            return $"({id}) {name} \"{code}\" @ {pos}";
         }
 
         public override void PrintTo(IndentPrinter printer)
@@ -238,7 +232,7 @@ namespace Prem.Util
             }
 
             var that = (Token)obj;
-            return type == that.type && value == that.value;
+            return label == that.label && code == that.code;
         }
 
         public override List<T> DFS<T>(Func<SyntaxNode, T> visitor)
@@ -257,12 +251,10 @@ namespace Prem.Util
 
     public class Error : SyntaxNode
     {
-        string text;
-
         Pos pos;
 
-        public Error(SyntaxNodeContext context, int depth, int label)
-            : base(SyntaxKind.ERROR, context, depth, label, "ERROR")
+        public Error(SyntaxNodeContext context, int depth, int label, string code = "")
+            : base(SyntaxKind.ERROR, context, depth, label, "<error>", code)
         {
         }
 
@@ -271,14 +263,15 @@ namespace Prem.Util
             return (context, depth) =>
             {
                 var label = (int)obj["label"];
+                var code = (string)obj["code"];
 
-                return new Error(context, depth, label);
+                return new Error(context, depth, label, code);
             };
         }
 
         public override string ToString()
         {
-            return $"({id}) {text} : <error> @ {pos}";
+            return $"({id}) {name} \"{code}\" @ {pos}";
         }
 
         public override void PrintTo(IndentPrinter printer)
@@ -294,7 +287,7 @@ namespace Prem.Util
             }
 
             var that = (Error)obj;
-            return text == that.text;
+            return code == that.code;
         }
 
         public override List<T> DFS<T>(Func<SyntaxNode, T> visitor)
@@ -313,16 +306,9 @@ namespace Prem.Util
 
     public class Node : SyntaxNode
     {
-        public string name { get; set; }
-
-        public int arity { get; set; }
-
         public List<SyntaxNode> children { get; set; }
 
-        public SyntaxNode getChild(int i)
-        {
-            return children[i];
-        }
+        public SyntaxNode GetChild(int i) => children[i];
 
         // BFS
         public List<SyntaxNode> GetDescendants()
@@ -350,12 +336,14 @@ namespace Prem.Util
         }
 
         public Node(SyntaxNodeContext context, int depth, int label, string name,
-            List<Func<SyntaxNodeContext, int, SyntaxNode>> builders) 
-            : base(SyntaxKind.NODE, context, depth, label, name)
+            IEnumerable<Func<SyntaxNodeContext, int, SyntaxNode>> builders, string code = "")
+            : base(SyntaxKind.NODE, context, depth, label, name, code)
         {
-            this.arity = builders.Count;
             this.children = builders.Select(f => f(context, depth + 1)).ToList();
+            this.children.ForEach(x => x.parent = this);
         }
+
+        public override int GetNumChildren() => children.Count;
 
         public override string ToString()
         {
@@ -366,10 +354,7 @@ namespace Prem.Util
         {
             printer.PrintLine(ToString());
             printer.IncIndent();
-            for (int i = 0; i < arity; i++)
-            {
-                children[i].PrintTo(printer);
-            }
+            children.ForEach(x => x.PrintTo(printer));
             printer.DecIndent();
         }
 
@@ -381,7 +366,7 @@ namespace Prem.Util
             }
 
             var that = (Node)obj;
-            if (name == that.name && arity == that.arity)
+            if (name == that.name && GetNumChildren() == that.GetNumChildren())
             {
                 var zip = children.Zip(that.children, (a, b) => a.Equals(b));
                 return zip.All(x => x);
@@ -392,10 +377,7 @@ namespace Prem.Util
         public override List<T> DFS<T>(Func<SyntaxNode, T> visit)
         {
             var results = new List<T> { visit(this) };
-            for (int i = 0; i < arity; i++)
-            {
-                results.AddRange(children[i].DFS(visit));
-            }
+            children.ForEach(x => results.AddRange(x.DFS(visit)));
             return results;
         }
 
@@ -403,8 +385,8 @@ namespace Prem.Util
         {
             return (context, depth) =>
             {
-                return new Node(context, depth, label, name, 
-                    children.Select(x => x.CloneBuilder()).ToList());
+                return new Node(context, depth, label, name,
+                    children.Select(x => x.CloneBuilder()));
             };
         }
 
@@ -414,16 +396,18 @@ namespace Prem.Util
             {
                 var label = (int)obj["label"];
                 var name = (string)obj["name"];
-                var builders = obj["children"].Select(t => (JObject)t)
+                var code = (string)obj["code"];
+                var builders = obj["children"]
+                    .Select(t => (JObject)t)
                     .Select(o =>
-                    {
-                        var kind = (string)o["kind"];
-                        return kind == "node" ? Node.JSONBuilder(o)
-                            : kind == "leaf" ? Token.JSONBuilder(o)
-                            : Error.JSONBuilder(o);
-                    }).ToList();
+                        {
+                            var kind = (string)o["kind"];
+                            return kind == "node" ? Node.JSONBuilder(o)
+                                : kind == "leaf" ? Token.JSONBuilder(o)
+                                : Error.JSONBuilder(o);
+                        });
 
-                return new Node(context, depth, label, name, builders);
+                return new Node(context, depth, label, name, builders, code);
             };
         }
     }
