@@ -12,9 +12,9 @@ language LocLang;
 
 @input SyntaxNode source;
 
-@start SyntaxNode program := Insert(ref, k, tree) | Delete(ref) | Update(ref, tree);
+@start SyntaxNode program := Ins(ref, k, tree) | Del(ref) | Upd(ref, tree);
 
-SyntaxNode tree := ref | Node(label, children);
+SyntaxNode tree := ref | TreeNode(label, children);
 
 IEnumerable<SyntaxNode> children := Child(tree) | Children(tree, children);
 
@@ -27,13 +27,12 @@ IEnumerable<SyntaxNode> subtrees := Sub(ancestor);
 
 Node ancestor := AbsAncestor(source, k) | RelAncestor(source, labelK);
 
-Record<string, int>? labelK := LabelK(label, k) = Pair(label, k);
+Record<int, int>? labelK := LabelK(label, k) = Pair(label, k);
 
 bool constraint := Any(x)
                  | AnyError(x)
-                 | AnyToken(x) | TokenMatch(x, type)
+                 | AnyToken(x) | TokenMatch(x, label)
                  | AnyNode(x) | NodeMatch(x, label);
 
 int k;
-string label;
-int type;
+int label;

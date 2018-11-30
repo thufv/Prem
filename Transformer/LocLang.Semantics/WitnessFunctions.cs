@@ -30,7 +30,7 @@ namespace Prem.Transformer.LocLang {
             return (SyntaxNode) input[_inputSymbol];
         }
 
-        [WitnessFunction(nameof(Semantics.Insert), 0)]
+        [WitnessFunction(nameof(Semantics.Ins), 0)]
         public ExampleSpec InsertRef(GrammarRule rule, ExampleSpec spec)
         {
             // Find the `ref` s.t. `Insert(ref, k, tree) = target` for some `k` and `tree`.
@@ -39,7 +39,7 @@ namespace Prem.Transformer.LocLang {
             return null;
         }
 
-        [WitnessFunction(nameof(Semantics.Delete), 0)]
+        [WitnessFunction(nameof(Semantics.Del), 0)]
         public ExampleSpec DeleteRef(GrammarRule rule, ExampleSpec spec)
         {
             // Find the `ref` s.t. `Insert(ref, k, tree) = target` for some `k` and `tree`.
@@ -48,7 +48,7 @@ namespace Prem.Transformer.LocLang {
             return spec;
         }
 
-        [WitnessFunction(nameof(Semantics.Update), 0)]
+        [WitnessFunction(nameof(Semantics.Upd), 0)]
         public ExampleSpec UpdateRef(GrammarRule rule, ExampleSpec spec)
         {
             // Find the `ref` s.t. `Update(ref, tree) = target` for some `tree`.

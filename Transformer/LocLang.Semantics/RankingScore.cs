@@ -19,17 +19,17 @@ namespace Prem.Transformer.LocLang
 
         // The larger the score, the higher the rank.
 
-        [FeatureCalculator(nameof(Semantics.Insert))]
-        public static double Insert(double dst, double k, double tree) => dst * tree;
+        [FeatureCalculator(nameof(Semantics.Ins))]
+        public static double Ins(double dst, double k, double tree) => dst * tree;
 
-        [FeatureCalculator(nameof(Semantics.Delete))]
-        public static double Delete(double dst) => dst;
+        [FeatureCalculator(nameof(Semantics.Del))]
+        public static double Del(double dst) => dst;
 
-        [FeatureCalculator(nameof(Semantics.Update))]
-        public static double Update(double dst, double tree) => dst * tree;
+        [FeatureCalculator(nameof(Semantics.Upd))]
+        public static double Upd(double dst, double tree) => dst * tree;
 
-        [FeatureCalculator(nameof(Semantics.Node))]
-        public static double Node(double label, double children) => children;
+        [FeatureCalculator(nameof(Semantics.TreeNode))]
+        public static double TreeNode(double label, double children) => children;
 
         [FeatureCalculator(nameof(Semantics.Child))]
         public static double Child(double tree) => tree;
