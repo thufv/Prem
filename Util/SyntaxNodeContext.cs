@@ -5,26 +5,45 @@ namespace Prem.Util
 {
     public class SyntaxNodeContext
     {
-        public Node root { get; }
+        public SyntaxNode root { get; set; }
 
-        private SyntaxNodeContext(string json)
+        protected Counter counter;
+
+        public SyntaxNodeContext()
         {
-            var counter = new Counter();
-            JObject obj = JObject.Parse(json);
-            this.root = new Node(obj, 0, counter, this);
-            this.diffResult = Option.None<DiffResult>();
+            counter = new Counter();
         }
 
-        public Option<DiffResult> diffResult { get; set; }
+        public int AllocateId() => counter.AllocateId();
+
+        public SyntaxNodeContext(string json)
+        {
+            var counter = new Counter();
+            
+        }
+
+        public Option<Result> diffResult { get; set; }
 
         public static SyntaxNodeContext FromJSON(string json)
         {
-            return new SyntaxNodeContext(json);
-        }
+            var context = new SyntaxNodeContext();
+            JObject obj = JObject.Parse(json);
+            context.root = Node.JSONBuilder(obj)(context, 0);
+            context.diffResult = Option.None<Result>();
 
-        public SyntaxNode Get(int id)
+            return context;
+        }
+    }
+
+    public class Counter
+    {
+        private int _next_id = 0;
+
+        public int AllocateId()
         {
-            return root.GetDescendants().Find(x => x.id == id);
+            int id = _next_id;
+            _next_id++;
+            return id;
         }
     }
 }

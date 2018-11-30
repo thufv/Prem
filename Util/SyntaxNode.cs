@@ -12,22 +12,62 @@ namespace Prem.Util
         ERROR
     }
 
+    /// <summary>
+    /// A tree structure representing a concrete syntax tree.
+    /// `Node` is an internal node,
+    /// `Token` and `Error` are leaf nodes.
+    /// </summary>
     abstract public class SyntaxNode
     {
         private static Logger Log = Logger.Instance;
 
         public SyntaxKind kind { get; }
 
-        public int id { get; }
-
-        public int depth { get; }
-
+        /// <summary>
+        /// Associated tree context, which stores useful information about the entire tree.
+        /// </summary>
+        /// <value>The tree context.</value>
         public SyntaxNodeContext context { get; }
 
-        public string code { get; }
+        /// <summary>
+        /// Unique identifier (inside the tree).
+        /// </summary>
+        /// <value>The identifier.</value>
+        public int id { get; }
 
+        /// <summary>
+        /// Node depth, counting from 0 (the root level).
+        /// </summary>
+        /// <value>The depth.</value>
+        public int depth { get; }
+
+        /// <summary>
+        /// Node label id.
+        /// In a syntax tree, a label could signify a nonterminal symbol (for `Node`),
+        /// a terminal symbol (for `Token`), 
+        /// or a special symbol indicating syntax error (for `Error`).
+        /// 
+        /// For a specified programming language, each label must be mapped into a unique id.
+        /// </summary>
+        /// <value>The label id.</value>
         public int label { get; }
 
+        /// <summary>
+        /// Node label name, for humans to read.
+        /// </summary>
+        /// <value>The name for the `label`.</value>
+        public string name { get; }
+
+        /// <summary>
+        /// A string representing the source code fragment of the node.
+        /// </summary>
+        /// <value>The source code.</value>
+        public string code { get; }
+
+        /// <summary>
+        /// Parent node.
+        /// </summary>
+        /// <value>The parent node, null if `this` is the root.</value>
         public Node parent { get; set; }
 
         public bool HasParent()
@@ -35,20 +75,49 @@ namespace Prem.Util
             return parent != null;
         }
 
-        public SyntaxNode(SyntaxKind kind, JObject obj,
-            int depth, Counter counter, SyntaxNodeContext context)
+        /// <summary>
+        /// Building a tree is not easy: we have to handle a couple of things carefully,
+        /// including allocating ids, computing depths and associating parents.
+        /// Instead of specifying complex constructors, we use a more flexible way, 
+        /// namely a builder, which is actually a function of type 
+        /// `SyntaxNodeContext * int -> SyntaxNode`.
+        /// It takes a context and depth as input, and returns a node as the constrution result.
+        /// 
+        /// A clone builder is a builder where it simply returns a copy of `this` node.
+        /// </summary>
+        /// <returns>The clone builder.</returns>
+        public abstract Func<SyntaxNodeContext, int, SyntaxNode> CloneBuilder();
+
+        /// <summary>
+        /// Internal base constructor.
+        /// </summary>
+        /// <param name="kind"></param>
+        /// <param name="context"></param>
+        /// <param name="depth"></param>
+        /// <param name="label"></param>
+        /// <param name="name"></param>
+        /// <param name="code"></param>
+        protected SyntaxNode(SyntaxKind kind, SyntaxNodeContext context, int depth, 
+            int label, string name, string code = "")
         {
             this.kind = kind;
-            this.id = counter.AllocateId();
-            this.depth = depth;
             this.context = context;
-            this.code = (string)obj["code"];
-            // TODO: span
-            this.label = (int)obj["label"];
+            this.depth = depth;
+            this.label = label;
+            this.name = name;
+            this.id = context.AllocateId();
+            this.code = code;
         }
 
-        public List<SyntaxNode> GetChildrenOrNull() =>
-            kind == SyntaxKind.NODE ? ((Node)this).children.ToList() : null;
+        public SyntaxNode AddChild(int k)
+        {
+            return null;
+        }
+
+        public List<SyntaxNode> GetChildren() =>
+            kind == SyntaxKind.NODE ? ((Node)this).children.ToList() : new List<SyntaxNode>();
+
+        public int GetNumChildren() => kind == SyntaxKind.NODE ? ((Node)this).arity : 0;
 
         public List<SyntaxNode> GetDescendantsDFS()
         {
@@ -124,6 +193,7 @@ namespace Prem.Util
 
         abstract public void PrintTo(IndentPrinter printer);
     }
+
     public class Token : SyntaxNode
     {
         // TODO: DEPRECATED
@@ -134,11 +204,20 @@ namespace Prem.Util
         // TODO: DEPRECATED
         public int type { get; }
 
-        public Token(JObject obj, int depth, Counter counter, SyntaxNodeContext context) :
-            base(SyntaxKind.TOKEN, obj, depth, counter, context)
+        public Token(SyntaxNodeContext context, int depth, int label, string name, string code = "")
+            : base(SyntaxKind.TOKEN, context, depth, label, name, code)
         {
-            this.type = label;
-            this.value = code;
+        }
+
+        public static Func<SyntaxNodeContext, int, SyntaxNode> JSONBuilder(JObject obj)
+        {
+            return (context, depth) =>
+            {
+                var label = (int)obj["label"];
+                var name = (string)obj["name"];
+
+                return new Token(context, depth, label, name);
+            };
         }
 
         public override string ToString()
@@ -166,6 +245,14 @@ namespace Prem.Util
         {
             return new List<T> { visitor(this) };
         }
+
+        public override Func<SyntaxNodeContext, int, SyntaxNode> CloneBuilder()
+        {
+            return (context, depth) =>
+            {
+                return new Token(context, depth, label, name);
+            };
+        }
     }
 
     public class Error : SyntaxNode
@@ -174,11 +261,19 @@ namespace Prem.Util
 
         Pos pos;
 
-        public Error(JObject obj, int depth, Counter counter, SyntaxNodeContext context)
-            : base(SyntaxKind.ERROR, obj, depth, counter, context)
+        public Error(SyntaxNodeContext context, int depth, int label)
+            : base(SyntaxKind.ERROR, context, depth, label, "ERROR")
         {
-            this.text = (string)obj["text"];
-            this.pos = new Pos((int)obj["line"], (int)obj["pos"]);
+        }
+
+        public static Func<SyntaxNodeContext, int, SyntaxNode> JSONBuilder(JObject obj)
+        {
+            return (context, depth) =>
+            {
+                var label = (int)obj["label"];
+
+                return new Error(context, depth, label);
+            };
         }
 
         public override string ToString()
@@ -206,6 +301,14 @@ namespace Prem.Util
         {
             return new List<T> { visitor(this) };
         }
+
+        public override Func<SyntaxNodeContext, int, SyntaxNode> CloneBuilder()
+        {
+            return (context, depth) =>
+            {
+                return new Token(context, depth, label, name);
+            };
+        }
     }
 
     public class Node : SyntaxNode
@@ -214,7 +317,7 @@ namespace Prem.Util
 
         public int arity { get; set; }
 
-        public SyntaxNode[] children { get; set; }
+        public List<SyntaxNode> children { get; set; }
 
         public SyntaxNode getChild(int i)
         {
@@ -246,33 +349,12 @@ namespace Prem.Util
             return list;
         }
 
-        public Node(JObject obj, int depth, Counter counter, SyntaxNodeContext context)
-            : base(SyntaxKind.NODE, obj, depth, counter, context)
+        public Node(SyntaxNodeContext context, int depth, int label, string name,
+            List<Func<SyntaxNodeContext, int, SyntaxNode>> builders) 
+            : base(SyntaxKind.NODE, context, depth, label, name)
         {
-            this.name = (string)obj["name"];
-            this.arity = (int)obj["arity"];
-            this.children = new SyntaxNode[arity];
-
-            JArray array = (JArray)obj["children"];
-            for (int i = 0; i < arity; i++)
-            {
-                JObject o = (JObject)array[i];
-                switch ((string)o["kind"])
-                {
-                    case "node":
-                        this.children[i] = new Node(o, depth + 1, counter, context);
-                        break;
-                    case "leaf":
-                        this.children[i] = new Token(o, depth + 1, counter, context);
-                        break;
-                    case "error":
-                        this.children[i] = new Error(o, depth + 1, counter, context);
-                        break;
-                    default:
-                        break;
-                }
-                this.children[i].parent = this;
-            }
+            this.arity = builders.Count;
+            this.children = builders.Select(f => f(context, depth + 1)).ToList();
         }
 
         public override string ToString()
@@ -315,6 +397,34 @@ namespace Prem.Util
                 results.AddRange(children[i].DFS(visit));
             }
             return results;
+        }
+
+        public override Func<SyntaxNodeContext, int, SyntaxNode> CloneBuilder()
+        {
+            return (context, depth) =>
+            {
+                return new Node(context, depth, label, name, 
+                    children.Select(x => x.CloneBuilder()).ToList());
+            };
+        }
+
+        public static Func<SyntaxNodeContext, int, SyntaxNode> JSONBuilder(JObject obj)
+        {
+            return (context, depth) =>
+            {
+                var label = (int)obj["label"];
+                var name = (string)obj["name"];
+                var builders = obj["children"].Select(t => (JObject)t)
+                    .Select(o =>
+                    {
+                        var kind = (string)o["kind"];
+                        return kind == "node" ? Node.JSONBuilder(o)
+                            : kind == "leaf" ? Token.JSONBuilder(o)
+                            : Error.JSONBuilder(o);
+                    }).ToList();
+
+                return new Node(context, depth, label, name, builders);
+            };
         }
     }
 }

@@ -8,19 +8,20 @@ using Prem.Util;
 namespace Prem.Transformer.LocLang {
     public static class Semantics
     {
-        public static SyntaxNode Insert(SyntaxNode dst, int k, SyntaxNode tree)
+        public static SyntaxNode Insert(SyntaxNode oldNodeParent, int childIndex, 
+                                        SyntaxNode newNode)
         {
-            return tree;
+            return new Insert(oldNodeParent, childIndex, newNode).GetTransformed();
         }
 
-        public static SyntaxNode Delete(SyntaxNode dst)
+        public static SyntaxNode Delete(SyntaxNode oldNode)
         {
-            return dst;
+            return new Delete(oldNode).GetTransformed();
         }
 
-        public static SyntaxNode Update(SyntaxNode dst, SyntaxNode tree)
+        public static SyntaxNode Update(SyntaxNode oldNode, SyntaxNode newNode)
         {
-            return tree;
+            return new Update(oldNode, newNode).GetTransformed();
         }
 
         public static SyntaxNode Node(string label, IEnumerable<SyntaxNode> children)

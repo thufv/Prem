@@ -23,8 +23,8 @@ namespace Prem
             Logger.Instance.DisplayLevel = LogLevel.FINE;
             // run("/Users/paul/Workspace/prem/1.json", "/Users/paul/Workspace/prem/upd.json");
             // run("/Users/paul/Workspace/prem/1.json", "/Users/paul/Workspace/prem/del.json");
-            // run("/Users/paul/Workspace/prem/1.json", "/Users/paul/Workspace/prem/ins.json");
-            run("/Users/paul/Workspace/prem/del.json", "/Users/paul/Workspace/prem/ins.json");
+            run("/Users/paul/Workspace/prem/1.json", "/Users/paul/Workspace/prem/ins.json");
+            // run("/Users/paul/Workspace/prem/del.json", "/Users/paul/Workspace/prem/ins.json");
         }
 
         static void run(string file1, string file2)

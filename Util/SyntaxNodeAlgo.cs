@@ -2,41 +2,28 @@ using System;
 using System.Linq;
 using Optional;
 
-using Prem.Diff;
-
-namespace Prem.Util {
-    public static class SyntaxNodeAlgo
+namespace Prem.Util
+{
+    public class SyntaxNodeAlgo
     {
         private static Logger Log = Logger.Instance;
-
-        public static void diff(SyntaxNode source, SyntaxNode target)
+        
+        public static void diff(SyntaxNode oldNode, SyntaxNode newNode)
         {
-            var comparer = new SyntaxNodeComparer();
+            var r = new Comparer().GetResult(oldNode,newNode);
+            Log.Debug("Result: {0}", r);
+        }
+    }
 
-            if (Log.IsLoggable(LogLevel.FINE))
-            {
-                var m = comparer.ComputeMatch(source, target);
-                Log.Fine("Matches:");
-                foreach (var match in m.Matches)
-                {
-                    Console.WriteLine("{0} -> {1}", match.Key, match.Value);
-                }
-            }
+    class Comparer : SyntaxNodeComparer
+    {
+        public override double EstimatedSimilarity(SyntaxNode node1, SyntaxNode node2)
+        {
+            double score = 0;
+            if (node1.code == node2.code) score += 0.5;
+            if (node1.label == node2.label) score += 0.5;
 
-            var s = comparer.ComputeEditScript(source, target);
-            Log.Debug("Edits:");
-            if (Log.IsLoggable(LogLevel.DEBUG))
-            {
-                foreach (var edit in s.Edits)
-                {
-                    Console.WriteLine("{0}: {1} -> {2}", edit.Kind, edit.OldNode, edit.NewNode);
-                }
-            }
-
-            // var scripts = new List<Edit<SyntaxNode>>();
-
-            // // Minimize insert script, only remain the top ones.
-            // s.Edits.Select(x => x.Kind == EditKind.INSERT)
+            return score;
         }
     }
 }
