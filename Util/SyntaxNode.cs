@@ -126,6 +126,11 @@ namespace Prem.Util
             return nodes;
         }
 
+        public List<SyntaxNode> GetSubtrees()
+        {
+            return DFS<SyntaxNode>(x => x);
+        }
+
         abstract public List<T> DFS<T>(Func<SyntaxNode, T> visit);
 
         public Node GetAncestorWhere(Func<Node, bool> predicate, int k)
@@ -155,7 +160,7 @@ namespace Prem.Util
             return GetAncestorWhere(_ => true, k);
         }
 
-        // including itself
+        // including itself        
         public List<SyntaxNode> GetAncestors()
         {
             var ancestors = new List<SyntaxNode>();

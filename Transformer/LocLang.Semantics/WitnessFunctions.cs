@@ -39,13 +39,14 @@ namespace Prem.Transformer.LocLang {
         public ExampleSpec InsRef(GrammarRule rule, ExampleSpec spec)
         {
             // Obtain the `ref` for `Insert(ref, k, tree)` based on tree comparison result.
+#if DEBUG
             Log.Fine("Ins.ref |- {0}", spec);
-
+#endif
             var refDict = new Dictionary<State, object>();
             foreach (var input in spec.ProvidedInputs)
             {
                 var result = GetResult(input);
-                if (result.kind != ResultKind.INSERT)
+                if (result.kind != ResultKind.INSERT) // Insert is not suitable for this spec.
                 {
                     return null;
                 }
@@ -60,13 +61,14 @@ namespace Prem.Transformer.LocLang {
         public ExampleSpec InsK(GrammarRule rule, ExampleSpec spec)
         {
             // Obtain the `k` for `Insert(ref, k, tree)` based on tree comparison result.
+#if DEBUG
             Log.Fine("Ins.k |- {0}", spec);
-
+#endif
             var kDict = new Dictionary<State, object>();
             foreach (var input in spec.ProvidedInputs)
             {
                 var result = GetResult(input);
-                if (result.kind != ResultKind.INSERT)
+                if (result.kind != ResultKind.INSERT) // Insert is not suitable for this spec.
                 {
                     return null;
                 }
@@ -81,13 +83,14 @@ namespace Prem.Transformer.LocLang {
         public ExampleSpec InsTree(GrammarRule rule, ExampleSpec spec)
         {
             // Obtain the `tree` for `Insert(ref, k, tree)` based on tree comparison result.
+#if DEBUG
             Log.Fine("Ins.tree |- {0}", spec);
-
+#endif
             var treeDict = new Dictionary<State, object>();
             foreach (var input in spec.ProvidedInputs)
             {
                 var result = GetResult(input);
-                if (result.kind != ResultKind.INSERT)
+                if (result.kind != ResultKind.INSERT) // Insert is not suitable for this spec.
                 {
                     return null;
                 }
@@ -102,13 +105,14 @@ namespace Prem.Transformer.LocLang {
         public ExampleSpec DelRef(GrammarRule rule, ExampleSpec spec)
         {
             // Obtain the `ref` for `Del(ref)` based on tree comparison result.
+#if DEBUG
             Log.Fine("Del.ref |- {0}", spec);
-
+#endif
             var refDict = new Dictionary<State, object>();
             foreach (var input in spec.ProvidedInputs)
             {
                 var result = GetResult(input);
-                if (result.kind != ResultKind.DELETE)
+                if (result.kind != ResultKind.DELETE) // Delete is not suitable for this spec.
                 {
                     return null;
                 }
@@ -123,13 +127,14 @@ namespace Prem.Transformer.LocLang {
         public ExampleSpec UpdRef(GrammarRule rule, ExampleSpec spec)
         {
             // Obtain the `ref` for `Update(ref, tree)` based on tree comparison result.
+#if DEBUG
             Log.Fine("Upd.ref |- {0}", spec);
-
+#endif
             var refDict = new Dictionary<State, object>();
             foreach (var input in spec.ProvidedInputs)
             {
                 var result = GetResult(input);
-                if (result.kind != ResultKind.UPDATE)
+                if (result.kind != ResultKind.UPDATE) // Update is not suitable for this spec.
                 {
                     return null;
                 }
@@ -144,13 +149,14 @@ namespace Prem.Transformer.LocLang {
         public ExampleSpec UpdTree(GrammarRule rule, ExampleSpec spec)
         {
             // Obtain the `tree` for `Update(ref, tree)` based on tree comparison result.
+#if DEBUG
             Log.Fine("Upd.tree |- {0}", spec);
-
+#endif
             var treeDict = new Dictionary<State, object>();
             foreach (var input in spec.ProvidedInputs)
             {
                 var result = GetResult(input);
-                if (result.kind != ResultKind.UPDATE)
+                if (result.kind != ResultKind.UPDATE) // Update is not suitable for this spec.
                 {
                     return null;
                 }
@@ -161,14 +167,47 @@ namespace Prem.Transformer.LocLang {
             return new ExampleSpec(treeDict);
         }
 
+        [WitnessFunction(nameof(Semantics.TreeNode), 0)]
+        public ExampleSpec TreeNodeLabel(GrammarRule rule, ExampleSpec spec)
+        {
+            // Find the `label` s.t. `TreeNode(label, children) = tree` for some `children`.
+#if DEBUG
+            Log.Fine("TreeNode.label |- {0}", spec);
+#endif
+            var labelDict = new Dictionary<State, object>();
+            foreach (var input in spec.ProvidedInputs)
+            {
+                var tree = (SyntaxNode)spec.Examples[input];
+                if (tree.kind != SyntaxKind.NODE) // `TreeNode` can only construct nodes.
+                {
+                    return null;
+                }
 
+                var node = (Node)tree;
+                Log.Fine("Candidate: {0}={1}", node.label, node.name);
+                labelDict[input] = node.label;
+            }
+
+            return new ExampleSpec(labelDict);
+        }
+
+        [WitnessFunction(nameof(Semantics.Ref), 0)]
+        public DisjunctiveExamplesSpec RefTarget(GrammarRule rule, DisjunctiveExamplesSpec spec)
+        {
+            // Find all `target`s s.t. `Ref(target) = ref`.
+#if DEBUG
+            Log.Fine("Ref.target |- {0}", spec);
+#endif
+            return null;
+        }
 
         [WitnessFunction(nameof(Semantics.TokenMatch), 1)]
         public ExampleSpec TokenMatchLabel(GrammarRule rule, DisjunctiveExamplesSpec spec)
         {
             // Find the `label` s.t. `TokenMatch(x, label) = true`.
+#if DEBUG
             Log.Fine("TokenMatch.label |- {0}", spec);
-
+#endif
             var labelDict = new Dictionary<State, object>();
             foreach (var input in spec.ProvidedInputs)
             {
@@ -193,8 +232,9 @@ namespace Prem.Transformer.LocLang {
         public ExampleSpec NodeMatchLabel(GrammarRule rule, DisjunctiveExamplesSpec spec)
         {
             // Find the `label` s.t. `NodeMatch(x, label) = true`.
+#if DEBUG
             Log.Fine("NodeMatch.label |- {0}", spec);
-
+#endif
             var types = new Dictionary<State, object>();
             foreach (var input in spec.ProvidedInputs)
             {
@@ -218,9 +258,10 @@ namespace Prem.Transformer.LocLang {
         [WitnessFunction(nameof(Semantics.Sub), 0)]
         public DisjunctiveExamplesSpec SubAncestor(GrammarRule rule, SubsequenceSpec spec)
         {
-            // Find all `ancestor` s.t. `Sub(source, ancestor)` includes the node seq
+            // Find all `ancestor`s s.t. `Sub(source, ancestor)` includes the node seq.
+#if DEBUG
             Log.Fine("Sub.ancestor |- {0}", spec);
-
+#endif
             var ancestors = new Dictionary<State, IEnumerable<object>>();
             foreach (var input in spec.ProvidedInputs)
             {
@@ -240,18 +281,19 @@ namespace Prem.Transformer.LocLang {
         [WitnessFunction(nameof(Semantics.AbsAncestor), 1)]
         public DisjunctiveExamplesSpec AbsAncestorK(GrammarRule rule, DisjunctiveExamplesSpec spec)
         {
-            // Find all `k` s.t. `AbsAncestor(source, k) = a` 
-            // where `a \in ancestors`.
+            // Find all `k` s.t. `AbsAncestor(source, k) = a` where `a \in ancestors`.
             // ASSUME every `a` is an ancestor of `source`.
+#if DEBUG
             Log.Fine("AbsAncestor.k |- {0}", spec);
-
+#endif
             var ks = new Dictionary<State, IEnumerable<object>>();
             foreach (var input in spec.ProvidedInputs)
             {
                 var source = GetSource(input);
-                var ancestors = spec.DisjunctiveExamples[input].Select(x => (SyntaxNode)x);
-                var candidates = ancestors.Select(a => source.depth - a.depth - 1)
-                    .Select(x => (object)x);
+                var ancestors = spec.DisjunctiveExamples[input].Select(a => (SyntaxNode)a).ToList();
+                var candidates = ancestors.FindAll(a => a.id != source.id)
+                    .Select(a => source.depth - a.depth - 1)
+                    .Select(a => (object)a);
                 ShowList(candidates);
 
                 ks[input] = candidates;
@@ -267,17 +309,18 @@ namespace Prem.Transformer.LocLang {
             // Find all `labelK` s.t. `RelAncestor(source, labelK) = a`.
             // where `a \in ancestors`.
             // ASSUME every `a` is an ancestor of `source`.
+#if DEBUG
             Log.Fine("RelAncestor.labelK |- {0}", spec);
-
+#endif
             var labelKs = new Dictionary<State, IEnumerable<object>>();
             foreach (var input in spec.ProvidedInputs)
             {
                 var source = GetSource(input);
-                var ancestors = spec.DisjunctiveExamples[input].Select(x => (Node)x);
-
-                var candidates = ancestors.Select(a => Record.Create(
-                    a.name, source.CountAncestorWhere(x => x.name == a.name, a.id) - 1
-                )).Select(x => (object)x);
+                var ancestors = spec.DisjunctiveExamples[input].Select(a => (SyntaxNode)a).ToList();
+                var candidates = ancestors.FindAll(a => a.id != source.id)
+                    .Select(a => Record.Create(
+                        a.name, source.CountAncestorWhere(x => x.name == a.name, a.id) - 1))
+                    .Select(a => (object)a);
                 
                 ShowList(candidates);
                 labelKs[input] = candidates;

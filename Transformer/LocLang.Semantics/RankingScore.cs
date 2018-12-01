@@ -37,14 +37,20 @@ namespace Prem.Transformer.LocLang
         [FeatureCalculator(nameof(Semantics.Children))]
         public static double Children(double tree, double children) => tree * children;
 
-        [FeatureCalculator("Ref")]
-        public static double Ref(double candidates, double k) => candidates * k;
+        [FeatureCalculator(nameof(Semantics.Ref))]
+        public static double Ref(double target) => target;
+
+        [FeatureCalculator("Target")]
+        public static double Target(double candidates, double k) => candidates * k;
 
         [FeatureCalculator("Find")]
         public static double Find(double constraint, double subtrees) => constraint * subtrees;
 
         [FeatureCalculator(nameof(Semantics.Sub))]
         public static double Sub(double ancestor) => ancestor;
+
+        [FeatureCalculator(nameof(Semantics.Just))]
+        public static double Just(double source) => 1;
 
         [FeatureCalculator(nameof(Semantics.AbsAncestor))]
         public static double AbsAncestor(double source, double k) => k;
@@ -77,9 +83,6 @@ namespace Prem.Transformer.LocLang
         public static double K(int k) => (k >= 0) ? 1.0 / (1 + k) : 1.0 / (1.1 - k); // <= 1
 
         [FeatureCalculator("label", Method = CalculationMethod.FromLiteral)]
-        public static double Label(string label) => 1;
-
-        [FeatureCalculator("type", Method = CalculationMethod.FromLiteral)]
-        public static double Type(int type) => 1;
+        public static double Label(int label) => 1;
     }
 }

@@ -39,18 +39,28 @@ namespace Prem.Transformer.LocLang {
             return null;
         }
 
-        public static IEnumerable<SyntaxNode> Sub(Node ancestor)
+        public static SyntaxNode Ref(SyntaxNode target)
         {
-            return ancestor.GetDescendants();
+            return target; // TODO: clone
         }
 
-        public static Node AbsAncestor(SyntaxNode source, int k)
+        public static IEnumerable<SyntaxNode> Sub(SyntaxNode ancestor)
+        {
+            return ancestor.GetSubtrees();
+        }
+
+        public static SyntaxNode Just(SyntaxNode source)
+        {
+            return source;
+        }
+
+        public static SyntaxNode AbsAncestor(SyntaxNode source, int k)
         {
             Debug.Assert(k >= 0);
             return source.GetAncestor(k);
         }
 
-        public static Node RelAncestor(SyntaxNode source, Record<int, int>? labelK)
+        public static SyntaxNode RelAncestor(SyntaxNode source, Record<int, int>? labelK)
         {
             if (labelK == null) return null;
 
