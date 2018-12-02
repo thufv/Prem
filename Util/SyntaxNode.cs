@@ -65,6 +65,12 @@ namespace Prem.Util
         public string code { get; }
 
         /// <summary>
+        /// A hash value for the entire tree/subtree.
+        /// </summary>
+        /// <value>The tree hash value.</value>
+        public int treeHash { get; protected set; }
+
+        /// <summary>
         /// Parent node.
         /// </summary>
         /// <value>The parent node, null if `this` is the root.</value>
@@ -195,16 +201,23 @@ namespace Prem.Util
             }
         }
 
+        public List<SyntaxNode> matches { get; set; }
+
+        public abstract bool IdenticalTo(SyntaxNode that);
+
         abstract public void PrintTo(IndentPrinter printer);
     }
 
     public class Token : SyntaxNode
     {
-        Pos pos;
+        public Pos pos { get; }
 
-        public Token(SyntaxNodeContext context, int depth, int label, string name, string code = "")
+        public Token(SyntaxNodeContext context, int depth, int label, string name, string code,
+            Pos pos)
             : base(SyntaxKind.TOKEN, context, depth, label, name, code)
         {
+            this.pos = pos;
+            this.treeHash = Hash.Combine(name.GetHashCode(), code.GetHashCode());
         }
 
         public static Func<SyntaxNodeContext, int, SyntaxNode> JSONBuilder(JObject obj)
@@ -214,19 +227,11 @@ namespace Prem.Util
                 var label = (int)obj["label"];
                 var name = (string)obj["name"];
                 var code = (string)obj["code"];
+                var line = (int)obj["line"];
+                var pos = (int)obj["pos"];
 
-                return new Token(context, depth, label, name, code);
+                return new Token(context, depth, label, name, code, new Pos(line, pos));
             };
-        }
-
-        public override string ToString()
-        {
-            return $"({id}) {name} \"{code}\" @ {pos}";
-        }
-
-        public override void PrintTo(IndentPrinter printer)
-        {
-            printer.PrintLine(ToString());
         }
 
         public override bool Equals(Object obj)
@@ -249,29 +254,13 @@ namespace Prem.Util
         {
             return (context, depth) =>
             {
-                return new Token(context, depth, label, name);
+                return new Token(context, depth, label, name, code, pos);
             };
         }
-    }
 
-    public class Error : SyntaxNode
-    {
-        Pos pos;
-
-        public Error(SyntaxNodeContext context, int depth, int label, string code = "")
-            : base(SyntaxKind.ERROR, context, depth, label, "<error>", code)
+        public override bool IdenticalTo(SyntaxNode that)
         {
-        }
-
-        public static Func<SyntaxNodeContext, int, SyntaxNode> JSONBuilder(JObject obj)
-        {
-            return (context, depth) =>
-            {
-                var label = (int)obj["label"];
-                var code = (string)obj["code"];
-
-                return new Error(context, depth, label, code);
-            };
+            return that.kind == SyntaxKind.TOKEN && label == that.label && code == that.code;
         }
 
         public override string ToString()
@@ -281,7 +270,33 @@ namespace Prem.Util
 
         public override void PrintTo(IndentPrinter printer)
         {
-            printer.PrintLine(ToString());
+            printer.Print(ToString());
+            printer.PrintLine($" <{treeHash}>");
+        }
+    }
+
+    public class Error : SyntaxNode
+    {
+        Pos pos;
+
+        public Error(SyntaxNodeContext context, int depth, int label, string code, Pos pos)
+            : base(SyntaxKind.ERROR, context, depth, label, "<error>", code)
+        {
+            this.pos = pos;
+            this.treeHash = Hash.Combine(name.GetHashCode(), code.GetHashCode());
+        }
+
+        public static Func<SyntaxNodeContext, int, SyntaxNode> JSONBuilder(JObject obj)
+        {
+            return (context, depth) =>
+            {
+                var label = (int)obj["label"];
+                var code = (string)obj["code"];
+                var line = (int)obj["line"];
+                var offset = (int)obj["pos"];
+
+                return new Error(context, depth, label, code, new Pos(line, offset));
+            };
         }
 
         public override bool Equals(Object obj)
@@ -304,8 +319,24 @@ namespace Prem.Util
         {
             return (context, depth) =>
             {
-                return new Token(context, depth, label, name);
+                return new Error(context, depth, label, code, pos);
             };
+        }
+
+        public override bool IdenticalTo(SyntaxNode that)
+        {
+            return that.kind == SyntaxKind.ERROR && label == that.label && code == that.code;
+        }
+
+        public override string ToString()
+        {
+            return $"({id}) {name} \"{code}\" @ {pos}";
+        }
+
+        public override void PrintTo(IndentPrinter printer)
+        {
+            printer.Print(ToString());
+            printer.PrintLine($" <{treeHash}>");
         }
     }
 
@@ -346,22 +377,10 @@ namespace Prem.Util
         {
             this.children = builders.Select(f => f(context, depth + 1)).ToList();
             this.children.ForEach(x => x.parent = this);
+            this.treeHash = Hash.Combine(name.GetHashCode(), children.Select(x => x.treeHash));
         }
 
         public override int GetNumChildren() => children.Count;
-
-        public override string ToString()
-        {
-            return $"({id}) {name}";
-        }
-
-        public override void PrintTo(IndentPrinter printer)
-        {
-            printer.PrintLine(ToString());
-            printer.IncIndent();
-            children.ForEach(x => x.PrintTo(printer));
-            printer.DecIndent();
-        }
 
         public override bool Equals(Object obj)
         {
@@ -414,6 +433,30 @@ namespace Prem.Util
 
                 return new Node(context, depth, label, name, builders, code);
             };
+        }
+
+        public override bool IdenticalTo(SyntaxNode that)
+        {
+            if (that.kind != SyntaxKind.NODE || GetNumChildren() != that.GetNumChildren()) 
+            {
+                return false;
+            }
+
+            return GetChildren().Zip(that.GetChildren(), (x, y) => x.IdenticalTo(y)).All(b => b);
+        }
+
+        public override string ToString()
+        {
+            return $"({id}) {name}";
+        }
+
+        public override void PrintTo(IndentPrinter printer)
+        {
+            printer.Print(ToString());
+            printer.PrintLine($" <{treeHash}>");
+            printer.IncIndent();
+            children.ForEach(x => x.PrintTo(printer));
+            printer.DecIndent();
         }
     }
 }

@@ -6,7 +6,8 @@ using System.Linq;
 namespace Prem.Util
 {
     /// <summary>
-    /// Compare two syntax trees of type `SyntaxNode`.
+    /// Compare two syntax trees of type `SyntaxNode`,
+    /// finding an edit which could transform the one to the other.
     /// </summary>
     public class SyntaxNodeComparer
     {

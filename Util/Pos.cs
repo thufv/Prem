@@ -4,8 +4,8 @@ namespace Prem.Util
 {
     public class Pos
     {
-        int line;
-        int offset;
+        public int line { get; }
+        public int offset { get; }
 
         public Pos(int line, int pos)
         {

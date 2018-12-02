@@ -96,19 +96,30 @@ namespace Prem.Util
         /// Format: <code>[level] msg</code>.
         /// </summary>
         /// <param name="Level">The log level.</param>
-        /// <param name="msg">The log message.</param>
-        public void Log(LogLevel level, string msg)
+        /// <param name="text">The plain text.</param>
+        public void LogRaw(LogLevel level, string text)
         {
             // check priority
             if (level > DisplayLevel) return;
 
-            // display message
-            var fullMessage = "[" + LevelString(level) + "] " + msg;
+            // display text
             if (ShowColor) {
-                Colorful.Console.WriteLine(fullMessage, LevelColor(level));
+                Colorful.Console.WriteLine(text, LevelColor(level));
             } else {
-                Console.WriteLine(fullMessage);
+                Console.WriteLine(text);
             }
+        }
+
+        /// <summary>
+        /// Display message.
+        /// Format: <code>[level] msg</code>.
+        /// </summary>
+        /// <param name="Level">The log level.</param>
+        /// <param name="msg">The log message.</param>
+        public void Log(LogLevel level, string msg)
+        {
+            var fullMessage = "[" + LevelString(level) + "] " + msg;
+            LogRaw(level, fullMessage);
         }
 
         /// <summary>
@@ -120,19 +131,9 @@ namespace Prem.Util
         /// <param name="args"></param>
         public void Log(LogLevel level, string format, params object[] args)
         {
-            // check priority
-            if (level > DisplayLevel) return;
-
-            // format string
             var msg = String.Format(format, args);
-
-            // display message
             var fullMessage = "[" + LevelString(level) + "] " + msg;
-            if (ShowColor) {
-                Colorful.Console.WriteLine(fullMessage, LevelColor(level));
-            } else {
-                Console.WriteLine(fullMessage);
-            }
+            LogRaw(level, fullMessage);
         }
 
         /// <summary>
@@ -259,6 +260,42 @@ namespace Prem.Util
         public void Fine(string format, params object[] args)
         {
             Log(LogLevel.FINE, format, args);
+        }
+
+        /// <summary>
+        /// Display <code>DEBUG</code> messages. 
+        /// A Simpler call of <code>Log(LogLevel.DEBUG, msg)</code>.
+        /// </summary>
+        public void DebugRaw(string msg)
+        {
+            LogRaw(LogLevel.DEBUG, msg);
+        }
+
+        /// <summary>
+        /// Display <code>DEBUG</code> messages, with variable arguments supported.
+        /// A Simpler call of <code>Log(LogLevel.DEBUG, format, args)</code>.
+        /// </summary>
+        public void DebugRaw(string format, params object[] args)
+        {
+            DebugRaw(String.Format(format, args));
+        }
+
+        /// <summary>
+        /// Display a raw <code>FINE</code> messages. 
+        /// A Simpler call of <code>Log(LogLevel.FINE, msg)</code>.
+        /// </summary>
+        public void FineRaw(string msg)
+        {
+            LogRaw(LogLevel.FINE, msg);
+        }
+
+        /// <summary>
+        /// Display <code>FINE</code> messages, with variable arguments supported.
+        /// A Simpler call of <code>Log(LogLevel.FINE, format, args)</code>.
+        /// </summary>
+        public void FineRaw(string format, params object[] args)
+        {
+            FineRaw(String.Format(format, args));
         }
 
         /// <summary>

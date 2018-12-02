@@ -18,10 +18,12 @@ namespace Prem
 
     internal class Program
     {
+        private static Logger Log = Logger.Instance;
+
         static void Main(string[] args)
         {
-            Logger.Instance.DisplayLevel = LogLevel.FINE;
-            Logger.Instance.ShowColor = true;
+            Log.DisplayLevel = LogLevel.FINE;
+            Log.ShowColor = true;
             run("/Users/paul/Workspace/prem/1.json", "/Users/paul/Workspace/prem/upd.json");
             // run("/Users/paul/Workspace/prem/1.json", "/Users/paul/Workspace/prem/del.json");
             // run("/Users/paul/Workspace/prem/1.json", "/Users/paul/Workspace/prem/ins.json");
@@ -35,19 +37,11 @@ namespace Prem
 
             var ctx1 = SyntaxNodeContext.FromJSON(json1);
             var ctx2 = SyntaxNodeContext.FromJSON(json2);
-
-            var printer = new IndentPrinter();
-            ctx1.root.PrintTo(printer);
-            var errNode = ctx1.FindNode(9);
-
-            ctx1.DoComparison(ctx2.root);
-
-            var example = new LocExample(ctx1.root, errNode, ctx2.root);
-            var t = new LocTransformer();
-            var programs = t.LearnPrograms(IEnumerableExt.SingleItemAsEnumerable(example), 10);
-            foreach (var prog in programs) {
-                Console.WriteLine(prog.ToString());
-            }
+            var errPos = new Pos(1, 10);
+            
+            var example = new Example(ctx1, ctx2, errPos, "<no msg>");
+            var synthesizer = new Synthesizer(example);
+            synthesizer.SynthesizeTransformers();
         }
     }
 }
