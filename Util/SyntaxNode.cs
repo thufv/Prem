@@ -1,7 +1,10 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Newtonsoft.Json.Linq;
+using Optional;
 
 namespace Prem.Util
 {
@@ -124,6 +127,36 @@ namespace Prem.Util
             kind == SyntaxKind.NODE ? ((Node)this).children.ToList() : new List<SyntaxNode>();
 
         public virtual int GetNumChildren() => 0;
+
+        public Option<SyntaxNode> GetAncestorWhere(Predicate<SyntaxNode> predicate, int k)
+        {
+            Debug.Assert(k > 0);
+            SyntaxNode node = this;
+            
+            while (true)
+            {
+                if (node.parent != null)
+                {
+                    node = node.parent;
+                }
+                else
+                {
+                    return Option.None<SyntaxNode>();
+                }
+
+                if (predicate(node))
+                {
+                    if (k == 1) return Option.Some<SyntaxNode>(node);
+                    k--;
+                }
+            }
+        }
+
+        public Option<SyntaxNode> GetAncestor(int k)
+        {
+            return GetAncestorWhere(_ => true, k);
+        }
+
         public List<SyntaxNode> GetDescendantsDFS()
         {
             var nodes = DFS<SyntaxNode>(x => x);
@@ -138,33 +171,6 @@ namespace Prem.Util
         }
 
         abstract public List<T> DFS<T>(Func<SyntaxNode, T> visit);
-
-        public Node GetAncestorWhere(Func<Node, bool> predicate, int k)
-        {
-            Node node = parent;
-            while (true)
-            {
-                if (predicate(node))
-                {
-                    if (k == 0) return node;
-                    k--;
-                }
-
-                if (node.HasParent())
-                {
-                    node = node.parent;
-                }
-                else
-                {
-                    return null;
-                }
-            }
-        }
-
-        public Node GetAncestor(int k)
-        {
-            return GetAncestorWhere(_ => true, k);
-        }
 
         // including itself        
         public List<SyntaxNode> GetAncestors()
@@ -182,9 +188,9 @@ namespace Prem.Util
             return ancestors;
         }
 
-        public int CountAncestorWhere(Func<Node, bool> predicate, int until)
+        public int CountAncestorWhere(Func<SyntaxNode, bool> predicate, int until)
         {
-            Node node = parent;
+            var node = this;
             int count = 0;
             while (true)
             {
@@ -232,17 +238,6 @@ namespace Prem.Util
 
                 return new Token(context, depth, label, name, code, new Pos(line, pos));
             };
-        }
-
-        public override bool Equals(Object obj)
-        {
-            if ((obj == null) || !this.GetType().Equals(obj.GetType()))
-            {
-                return false;
-            }
-
-            var that = (Token)obj;
-            return label == that.label && code == that.code;
         }
 
         public override List<T> DFS<T>(Func<SyntaxNode, T> visitor)
@@ -297,17 +292,6 @@ namespace Prem.Util
 
                 return new Error(context, depth, label, code, new Pos(line, offset));
             };
-        }
-
-        public override bool Equals(Object obj)
-        {
-            if ((obj == null) || !this.GetType().Equals(obj.GetType()))
-            {
-                return false;
-            }
-
-            var that = (Error)obj;
-            return code == that.code;
         }
 
         public override List<T> DFS<T>(Func<SyntaxNode, T> visitor)
@@ -381,22 +365,6 @@ namespace Prem.Util
         }
 
         public override int GetNumChildren() => children.Count;
-
-        public override bool Equals(Object obj)
-        {
-            if ((obj == null) || !this.GetType().Equals(obj.GetType()))
-            {
-                return false;
-            }
-
-            var that = (Node)obj;
-            if (name == that.name && GetNumChildren() == that.GetNumChildren())
-            {
-                var zip = children.Zip(that.children, (a, b) => a.Equals(b));
-                return zip.All(x => x);
-            }
-            return false;
-        }
 
         public override List<T> DFS<T>(Func<SyntaxNode, T> visit)
         {

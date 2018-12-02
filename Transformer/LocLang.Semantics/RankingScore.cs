@@ -4,7 +4,7 @@ using System.Linq;
 using Microsoft.ProgramSynthesis;
 using Microsoft.ProgramSynthesis.AST;
 using Microsoft.ProgramSynthesis.Features;
-
+using Prem.Util;
 using MyLogger = Prem.Util.Logger;
 
 namespace Prem.Transformer.LocLang
@@ -28,6 +28,12 @@ namespace Prem.Transformer.LocLang
         [FeatureCalculator(nameof(Semantics.Upd))]
         public static double Upd(double dst, double tree) => dst * tree;
 
+        [FeatureCalculator(nameof(Semantics.Copy))]
+        public static double Copy(double target) => 1;
+
+        [FeatureCalculator(nameof(Semantics.ConstToken))]
+        public static double ConstToken(double token) => token;
+
         [FeatureCalculator(nameof(Semantics.TreeNode))]
         public static double TreeNode(double label, double children) => children;
 
@@ -36,9 +42,6 @@ namespace Prem.Transformer.LocLang
 
         [FeatureCalculator(nameof(Semantics.Children))]
         public static double Children(double tree, double children) => tree * children;
-
-        [FeatureCalculator(nameof(Semantics.Ref))]
-        public static double Ref(double target) => target;
 
         [FeatureCalculator("Target")]
         public static double Target(double candidates, double k) => candidates * k;
@@ -84,5 +87,8 @@ namespace Prem.Transformer.LocLang
 
         [FeatureCalculator("label", Method = CalculationMethod.FromLiteral)]
         public static double Label(int label) => 1;
+
+        [FeatureCalculator("token", Method = CalculationMethod.FromLiteral)]
+        public static double Token(Token token) => 0.5;
     }
 }

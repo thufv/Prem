@@ -10,11 +10,14 @@ using Microsoft.ProgramSynthesis.Utils;
 using MyLogger = Prem.Util.Logger;
 using Prem.Util;
 
-namespace Prem.Transformer.LocLang {
-    public class WitnessFunctions : DomainLearningLogic {
+namespace Prem.Transformer.LocLang
+{
+    public class WitnessFunctions : DomainLearningLogic
+    {
         private static MyLogger Log = MyLogger.Instance;
 
-        private static void ShowList<T>(IEnumerable<T> list) {
+        private static void ShowList<T>(IEnumerable<T> list)
+        {
             Log.Fine("Candidates: " + String.Join(", ", list.Select(x => x.ToString())));
         }
 
@@ -27,7 +30,7 @@ namespace Prem.Transformer.LocLang {
 
         private SyntaxNode GetSource(State input)
         {
-            return (SyntaxNode) input[_inputSymbol];
+            return (SyntaxNode)input[_inputSymbol];
         }
 
         private Result GetResult(State input)
@@ -36,11 +39,11 @@ namespace Prem.Transformer.LocLang {
         }
 
         [WitnessFunction(nameof(Semantics.Ins), 0)]
-        public ExampleSpec InsRef(GrammarRule rule, ExampleSpec spec)
+        public ExampleSpec InsTarget(GrammarRule rule, ExampleSpec spec)
         {
-            // Obtain the `ref` for `Insert(ref, k, tree)` based on tree comparison result.
+            // Obtain the `target` for `Insert(target, k, tree)` based on tree comparison result.
 #if DEBUG
-            Log.Fine("Ins.ref |- {0}", spec);
+            Log.Fine("Ins.target |- {0}", spec);
 #endif
             var refDict = new Dictionary<State, object>();
             foreach (var input in spec.ProvidedInputs)
@@ -104,9 +107,9 @@ namespace Prem.Transformer.LocLang {
         [WitnessFunction(nameof(Semantics.Del), 0)]
         public ExampleSpec DelRef(GrammarRule rule, ExampleSpec spec)
         {
-            // Obtain the `ref` for `Del(ref)` based on tree comparison result.
+            // Obtain the `target` for `Del(target)` based on tree comparison result.
 #if DEBUG
-            Log.Fine("Del.ref |- {0}", spec);
+            Log.Fine("Del.target |- {0}", spec);
 #endif
             var refDict = new Dictionary<State, object>();
             foreach (var input in spec.ProvidedInputs)
@@ -126,9 +129,9 @@ namespace Prem.Transformer.LocLang {
         [WitnessFunction(nameof(Semantics.Upd), 0)]
         public ExampleSpec UpdRef(GrammarRule rule, ExampleSpec spec)
         {
-            // Obtain the `ref` for `Update(ref, tree)` based on tree comparison result.
+            // Obtain the `target` for `Update(target, tree)` based on tree comparison result.
 #if DEBUG
-            Log.Fine("Upd.ref |- {0}", spec);
+            Log.Fine("Upd.target |- {0}", spec);
 #endif
             var refDict = new Dictionary<State, object>();
             foreach (var input in spec.ProvidedInputs)
@@ -138,7 +141,9 @@ namespace Prem.Transformer.LocLang {
                 {
                     return null;
                 }
-
+#if DEBUG
+                Log.Fine("Candidate: {0}", ((Update)result).oldNode);
+#endif
                 refDict[input] = ((Update)result).oldNode;
             }
 
@@ -167,6 +172,48 @@ namespace Prem.Transformer.LocLang {
             return new ExampleSpec(treeDict);
         }
 
+        [WitnessFunction(nameof(Semantics.Copy), 0)]
+        public DisjunctiveExamplesSpec Copy(GrammarRule rule, ExampleSpec spec)
+        {
+            // Find all `target`s s.t. `Copy(target) = ref`.
+#if DEBUG
+            Log.Fine("Copy.target |- {0}", spec);
+#endif
+            var targetsDict = new Dictionary<State, IEnumerable<object>>();
+            foreach (var input in spec.ProvidedInputs)
+            {
+                var refTree = (SyntaxNode)spec.Examples[input];
+                ShowList(refTree.matches);
+                targetsDict[input] = refTree.matches;
+            }
+
+            return new DisjunctiveExamplesSpec(targetsDict);
+        }
+
+        [WitnessFunction(nameof(Semantics.ConstToken), 0)]
+        public ExampleSpec ConstToken(GrammarRule rule, ExampleSpec spec)
+        {
+            // Find the `token` s.t. `ConstToken(token) = tree`.
+#if DEBUG
+            Log.Fine("ConstToken.token |- {0}", spec);
+#endif
+            var tokenDict = new Dictionary<State, object>();
+            foreach (var input in spec.ProvidedInputs)
+            {
+                var tree = (SyntaxNode)spec.Examples[input];
+                if (tree.kind != SyntaxKind.TOKEN) // `ConstToken` can only construct tokens.
+                {
+                    return null;
+                }
+
+                var token = (Token)tree;
+                Log.Fine("Candidate: {0}", token);
+                tokenDict[input] = token;
+            }
+
+            return new ExampleSpec(tokenDict);
+        }
+
         [WitnessFunction(nameof(Semantics.TreeNode), 0)]
         public ExampleSpec TreeNodeLabel(GrammarRule rule, ExampleSpec spec)
         {
@@ -191,15 +238,7 @@ namespace Prem.Transformer.LocLang {
             return new ExampleSpec(labelDict);
         }
 
-        [WitnessFunction(nameof(Semantics.Ref), 0)]
-        public DisjunctiveExamplesSpec RefTarget(GrammarRule rule, DisjunctiveExamplesSpec spec)
-        {
-            // Find all `target`s s.t. `Ref(target) = ref`.
-#if DEBUG
-            Log.Fine("Ref.target |- {0}", spec);
-#endif
-            return null;
-        }
+        // TODO: children list
 
         [WitnessFunction(nameof(Semantics.TokenMatch), 1)]
         public ExampleSpec TokenMatchLabel(GrammarRule rule, DisjunctiveExamplesSpec spec)
@@ -267,7 +306,7 @@ namespace Prem.Transformer.LocLang {
             {
                 var positive = spec.PositiveExamples[input].Select(x => (SyntaxNode)x).ToList();
                 // var negative = (List<Tree.SyntaxNodeContext>) spec.NegativeExamples[input];
-                
+
                 var source = GetSource(input);
                 var candidates = CommonAncestor.CommonAncestors(source, positive);
                 ShowList(candidates);
@@ -291,9 +330,9 @@ namespace Prem.Transformer.LocLang {
             {
                 var source = GetSource(input);
                 var ancestors = spec.DisjunctiveExamples[input].Select(a => (SyntaxNode)a).ToList();
-                var candidates = ancestors.FindAll(a => a.id != source.id)
-                    .Select(a => source.depth - a.depth - 1)
-                    .Select(a => (object)a);
+                var candidates = ancestors.Select(a => source.depth - a.depth)
+                    .Where(k => k > 0)
+                    .Select(k => (object)k);
                 ShowList(candidates);
 
                 ks[input] = candidates;
@@ -303,7 +342,7 @@ namespace Prem.Transformer.LocLang {
         }
 
         [WitnessFunction(nameof(Semantics.RelAncestor), 1)]
-        public DisjunctiveExamplesSpec RelAncestorLabelK(GrammarRule rule,     
+        public DisjunctiveExamplesSpec RelAncestorLabelK(GrammarRule rule,
             DisjunctiveExamplesSpec spec)
         {
             // Find all `labelK` s.t. `RelAncestor(source, labelK) = a`.
@@ -317,11 +356,11 @@ namespace Prem.Transformer.LocLang {
             {
                 var source = GetSource(input);
                 var ancestors = spec.DisjunctiveExamples[input].Select(a => (SyntaxNode)a).ToList();
-                var candidates = ancestors.FindAll(a => a.id != source.id)
+                var candidates = ancestors.Where(a => a.id != source.id)
                     .Select(a => Record.Create(
-                        a.name, source.CountAncestorWhere(x => x.name == a.name, a.id) - 1))
-                    .Select(a => (object)a);
-                
+                        a.label, source.CountAncestorWhere(x => x.label == a.label, a.id)))
+                    .Select(k => (object)k);
+
                 ShowList(candidates);
                 labelKs[input] = candidates;
             }

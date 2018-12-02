@@ -4,11 +4,15 @@ using System.Diagnostics;
 using Microsoft.ProgramSynthesis.Utils;
 
 using Prem.Util;
+using Logger = Prem.Util.Logger;
 
-namespace Prem.Transformer.LocLang {
+namespace Prem.Transformer.LocLang
+{
     public static class Semantics
     {
-        public static SyntaxNode Ins(SyntaxNode oldNodeParent, int childIndex, 
+        private static Logger Log = Logger.Instance;
+
+        public static SyntaxNode Ins(SyntaxNode oldNodeParent, int childIndex,
                                         SyntaxNode newNode)
         {
             return new Insert(oldNodeParent, childIndex, newNode).GetTransformed();
@@ -22,6 +26,11 @@ namespace Prem.Transformer.LocLang {
         public static SyntaxNode Upd(SyntaxNode oldNode, SyntaxNode newNode)
         {
             return new Update(oldNode, newNode).GetTransformed();
+        }
+
+        public static SyntaxNode ConstToken(Token token)
+        {
+            return token;
         }
 
         public static SyntaxNode TreeNode(int label, IEnumerable<SyntaxNode> children)
@@ -39,7 +48,7 @@ namespace Prem.Transformer.LocLang {
             return null;
         }
 
-        public static SyntaxNode Ref(SyntaxNode target)
+        public static SyntaxNode Copy(SyntaxNode target)
         {
             return target; // TODO: clone
         }
@@ -56,8 +65,7 @@ namespace Prem.Transformer.LocLang {
 
         public static SyntaxNode AbsAncestor(SyntaxNode source, int k)
         {
-            Debug.Assert(k >= 0);
-            return source.GetAncestor(k);
+            return source.GetAncestor(k).ValueOr(source);
         }
 
         public static SyntaxNode RelAncestor(SyntaxNode source, Record<int, int>? labelK)
@@ -66,8 +74,7 @@ namespace Prem.Transformer.LocLang {
 
             var label = labelK.Value.Item1;
             var k = labelK.Value.Item2;
-            Debug.Assert(k >= 0);
-            return source.GetAncestorWhere(x => x.label == label, k);
+            return source.GetAncestorWhere(x => x.label == label, k).ValueOr(source);
         }
 
         public static bool Any(SyntaxNode _) => true;
