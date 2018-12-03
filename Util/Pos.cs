@@ -28,5 +28,10 @@ namespace Prem.Util
             var that = (Pos)obj;
             return line == that.line && offset == that.offset;
         }
+
+        public override int GetHashCode()
+        {
+            return Hash.Combine(line.GetHashCode(), offset.GetHashCode());
+        }
     }
 }

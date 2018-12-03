@@ -86,7 +86,7 @@ namespace Prem.Transformer.LocLang
         public static double K(int k) => (k >= 0) ? 1.0 / (1 + k) : 1.0 / (1.1 - k); // <= 1
 
         [FeatureCalculator("label", Method = CalculationMethod.FromLiteral)]
-        public static double Label(int label) => 1;
+        public static double Label(Label label) => 1;
 
         [FeatureCalculator("token", Method = CalculationMethod.FromLiteral)]
         public static double Token(Token token) => 0.5;

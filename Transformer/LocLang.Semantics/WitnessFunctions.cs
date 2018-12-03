@@ -16,9 +16,14 @@ namespace Prem.Transformer.LocLang
     {
         private static MyLogger Log = MyLogger.Instance;
 
-        private static void ShowList<T>(IEnumerable<T> list)
+        private static void Show<T>(T item)
         {
-            Log.Fine("Candidates: " + String.Join(", ", list.Select(x => x.ToString())));
+            Log.Fine("Candidate: {0}", item);
+        }
+
+        private static void ShowMany<T>(IEnumerable<T> list)
+        {
+            Log.Fine("Candidates: {0}", String.Join(", ", list.Select(x => x.ToString())));
         }
 
         private Symbol _inputSymbol;
@@ -183,7 +188,15 @@ namespace Prem.Transformer.LocLang
             foreach (var input in spec.ProvidedInputs)
             {
                 var refTree = (SyntaxNode)spec.Examples[input];
-                ShowList(refTree.matches);
+
+                if (!refTree.matches.Any())
+                // `Copy` can only reference nodes in the old tree.
+                {
+                    return null;
+                }
+#if DEBUG
+                ShowMany(refTree.matches);
+#endif
                 targetsDict[input] = refTree.matches;
             }
 
@@ -207,7 +220,9 @@ namespace Prem.Transformer.LocLang
                 }
 
                 var token = (Token)tree;
-                Log.Fine("Candidate: {0}", token);
+#if DEBUG
+                Show(token);
+#endif
                 tokenDict[input] = token;
             }
 
@@ -229,10 +244,10 @@ namespace Prem.Transformer.LocLang
                 {
                     return null;
                 }
-
-                var node = (Node)tree;
-                Log.Fine("Candidate: {0}={1}", node.label, node.name);
-                labelDict[input] = node.label;
+#if DEBUG
+                Show(tree.label);
+#endif
+                labelDict[input] = tree.label;
             }
 
             return new ExampleSpec(labelDict);
@@ -254,7 +269,7 @@ namespace Prem.Transformer.LocLang
                     return null;
                 }
 #if DEBUG
-                ShowList(tree.GetChildren());
+                ShowMany(tree.GetChildren());
 #endif
                 childrenDict[input] = tree.GetChildren();
             }
@@ -279,7 +294,9 @@ namespace Prem.Transformer.LocLang
                 }
 
                 var tree = children.First();
-                Log.Fine("Candidate: {0}", tree);
+#if DEBUG
+                Show(tree);
+#endif
                 treeDict[input] = tree;
             }
 
@@ -303,7 +320,9 @@ namespace Prem.Transformer.LocLang
                 }
 
                 var first = children.First();
-                Log.Fine("Candidate: {0}", first);
+#if DEBUG
+                Show(first);
+#endif
                 headDict[input] = first;
             }
 
@@ -327,7 +346,9 @@ namespace Prem.Transformer.LocLang
                 }
 
                 var tail = children.Skip(1);
-                ShowList(tail);
+#if DEBUG
+                ShowMany(tail);
+#endif
                 tailDict[input] = tail;
             }
 
@@ -350,7 +371,7 @@ namespace Prem.Transformer.LocLang
                 var source = GetSource(input);
                 var candidates = CommonAncestor.CommonAncestors(source, positive);
 #if DEBUG
-                ShowList(candidates);
+                ShowMany(candidates);
 #endif
                 ancestors[input] = candidates;
             }
@@ -375,7 +396,7 @@ namespace Prem.Transformer.LocLang
                     .Where(k => k > 0)
                     .Select(k => (object)k);
 #if DEBUG
-                ShowList(candidates);
+                ShowMany(candidates);
 #endif
                 ks[input] = candidates;
             }
@@ -403,11 +424,7 @@ namespace Prem.Transformer.LocLang
                         a.label, source.CountAncestorWhere(x => x.label == a.label, a.id)))
                     .Select(k => (object)k);
 #if DEBUG
-                var cs = ancestors.Where(a => a.id != source.id)
-                    .Select(a => Record.Create(
-                        a.name, source.CountAncestorWhere(x => x.label == a.label, a.id)))
-                    .Select(k => (object)k);
-                ShowList(cs);
+                ShowMany(candidates);
 #endif
                 labelKs[input] = candidates;
             }
@@ -431,7 +448,7 @@ namespace Prem.Transformer.LocLang
                     return null;
                 }
 #if DEBUG
-                Log.Fine("Candidates: {0}={1}", x.label, x.name);
+                Show(x.label);
 #endif
                 labelDict[input] = x.label;
             }
@@ -455,7 +472,7 @@ namespace Prem.Transformer.LocLang
                     return null;
                 }
 #if DEBUG
-                Log.Fine("Candidates: {0}={1}", x.label, x.name);
+                Show(x.label);
 #endif
                 labelDict[input] = x.label;
             }

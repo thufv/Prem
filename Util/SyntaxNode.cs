@@ -45,21 +45,15 @@ namespace Prem.Util
         public int depth { get; }
 
         /// <summary>
-        /// Node label id.
+        /// Node label.
         /// In a syntax tree, a label could signify a nonterminal symbol (for `Node`),
         /// a terminal symbol (for `Token`), 
         /// or a special symbol indicating syntax error (for `Error`).
         /// 
         /// For a specified programming language, each label must be mapped into a unique id.
         /// </summary>
-        /// <value>The label id.</value>
-        public int label { get; }
-
-        /// <summary>
-        /// Node label name, for humans to read.
-        /// </summary>
-        /// <value>The name for the `label`.</value>
-        public string name { get; }
+        /// <value>The label.</value>
+        public Label label { get; }
 
         /// <summary>
         /// A string representing the source code fragment of the node.
@@ -107,15 +101,15 @@ namespace Prem.Util
         /// <param name="name"></param>
         /// <param name="code"></param>
         protected SyntaxNode(SyntaxKind kind, SyntaxNodeContext context, int depth, 
-            int label, string name, string code = "")
+            Label label, string code = "")
         {
             this.kind = kind;
             this.context = context;
             this.depth = depth;
             this.label = label;
-            this.name = name;
             this.id = context.AllocateId();
             this.code = code;
+            this.matches = new List<SyntaxNode>();
         }
 
         public SyntaxNode AddChild(int k)
@@ -218,25 +212,22 @@ namespace Prem.Util
     {
         public Pos pos { get; }
 
-        public Token(SyntaxNodeContext context, int depth, int label, string name, string code,
-            Pos pos)
-            : base(SyntaxKind.TOKEN, context, depth, label, name, code)
+        public Token(SyntaxNodeContext context, int depth, Label label, string code, Pos pos)
+            : base(SyntaxKind.TOKEN, context, depth, label, code)
         {
             this.pos = pos;
-            this.treeHash = Hash.Combine(name.GetHashCode(), code.GetHashCode());
+            this.treeHash = Hash.Combine(label.GetHashCode(), code.GetHashCode());
         }
 
         public static Func<SyntaxNodeContext, int, SyntaxNode> JSONBuilder(JObject obj)
         {
             return (context, depth) =>
             {
-                var label = (int)obj["label"];
-                var name = (string)obj["name"];
+                var label = new Label((int)obj["label"], (string)obj["name"]);
                 var code = (string)obj["code"];
-                var line = (int)obj["line"];
-                var pos = (int)obj["pos"];
+                var pos = new Pos((int)obj["line"], (int)obj["pos"]);
 
-                return new Token(context, depth, label, name, code, new Pos(line, pos));
+                return new Token(context, depth, label, code, pos);
             };
         }
 
@@ -249,18 +240,18 @@ namespace Prem.Util
         {
             return (context, depth) =>
             {
-                return new Token(context, depth, label, name, code, pos);
+                return new Token(context, depth, label, code, pos);
             };
         }
 
         public override bool IdenticalTo(SyntaxNode that)
         {
-            return that.kind == SyntaxKind.TOKEN && label == that.label && code == that.code;
+            return that.kind == SyntaxKind.TOKEN && that.label.Equals(label) && that.code == code;
         }
 
         public override string ToString()
         {
-            return $"({id}) {name} \"{code}\" @ {pos}";
+            return $"({id}) {label} \"{code}\" @ {pos}";
         }
 
         public override void PrintTo(IndentPrinter printer)
@@ -274,23 +265,22 @@ namespace Prem.Util
     {
         Pos pos;
 
-        public Error(SyntaxNodeContext context, int depth, int label, string code, Pos pos)
-            : base(SyntaxKind.ERROR, context, depth, label, "<error>", code)
+        public Error(SyntaxNodeContext context, int depth, Label label, string code, Pos pos)
+            : base(SyntaxKind.ERROR, context, depth, label, code)
         {
             this.pos = pos;
-            this.treeHash = Hash.Combine(name.GetHashCode(), code.GetHashCode());
+            this.treeHash = Hash.Combine(label.GetHashCode(), code.GetHashCode());
         }
 
         public static Func<SyntaxNodeContext, int, SyntaxNode> JSONBuilder(JObject obj)
         {
             return (context, depth) =>
             {
-                var label = (int)obj["label"];
+                var label = new Label((int)obj["label"], "ERROR");
                 var code = (string)obj["code"];
-                var line = (int)obj["line"];
-                var offset = (int)obj["pos"];
+                var pos = new Pos((int)obj["line"], (int)obj["pos"]);
 
-                return new Error(context, depth, label, code, new Pos(line, offset));
+                return new Error(context, depth, label, code, pos);
             };
         }
 
@@ -309,13 +299,10 @@ namespace Prem.Util
 
         public override bool IdenticalTo(SyntaxNode that)
         {
-            return that.kind == SyntaxKind.ERROR && label == that.label && code == that.code;
+            return that.kind == SyntaxKind.ERROR && that.label.Equals(label) && that.code == code;
         }
 
-        public override string ToString()
-        {
-            return $"({id}) {name} \"{code}\" @ {pos}";
-        }
+        public override string ToString() => $"({id}) {label} \"{code}\" @ {pos}";
 
         public override void PrintTo(IndentPrinter printer)
         {
@@ -355,13 +342,13 @@ namespace Prem.Util
             return list;
         }
 
-        public Node(SyntaxNodeContext context, int depth, int label, string name,
+        public Node(SyntaxNodeContext context, int depth, Label label,
             IEnumerable<Func<SyntaxNodeContext, int, SyntaxNode>> builders, string code = "")
-            : base(SyntaxKind.NODE, context, depth, label, name, code)
+            : base(SyntaxKind.NODE, context, depth, label, code)
         {
             this.children = builders.Select(f => f(context, depth + 1)).ToList();
             this.children.ForEach(x => x.parent = this);
-            this.treeHash = Hash.Combine(name.GetHashCode(), children.Select(x => x.treeHash));
+            this.treeHash = Hash.Combine(label.GetHashCode(), children.Select(x => x.treeHash));
         }
 
         public override int GetNumChildren() => children.Count;
@@ -376,18 +363,14 @@ namespace Prem.Util
         public override Func<SyntaxNodeContext, int, SyntaxNode> CloneBuilder()
         {
             return (context, depth) =>
-            {
-                return new Node(context, depth, label, name,
-                    children.Select(x => x.CloneBuilder()));
-            };
+                new Node(context, depth, label, children.Select(x => x.CloneBuilder()));
         }
 
         public static Func<SyntaxNodeContext, int, SyntaxNode> JSONBuilder(JObject obj)
         {
             return (context, depth) =>
             {
-                var label = (int)obj["label"];
-                var name = (string)obj["name"];
+                var label = new Label((int)obj["label"], (string)obj["name"]);
                 var code = (string)obj["code"];
                 var builders = obj["children"]
                     .Select(t => (JObject)t)
@@ -399,13 +382,14 @@ namespace Prem.Util
                                 : Error.JSONBuilder(o);
                         });
 
-                return new Node(context, depth, label, name, builders, code);
+                return new Node(context, depth, label, builders, code);
             };
         }
 
         public override bool IdenticalTo(SyntaxNode that)
         {
-            if (that.kind != SyntaxKind.NODE || GetNumChildren() != that.GetNumChildren()) 
+            if (that.kind != SyntaxKind.NODE || !that.label.Equals(label) || 
+                that.GetNumChildren() != GetNumChildren())
             {
                 return false;
             }
@@ -413,10 +397,7 @@ namespace Prem.Util
             return GetChildren().Zip(that.GetChildren(), (x, y) => x.IdenticalTo(y)).All(b => b);
         }
 
-        public override string ToString()
-        {
-            return $"({id}) {name}";
-        }
+        public override string ToString() => $"({id}) {label}";
 
         public override void PrintTo(IndentPrinter printer)
         {

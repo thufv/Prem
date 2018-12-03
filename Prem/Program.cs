@@ -7,15 +7,6 @@ namespace Prem
     using Prem.Transformer;
     using Util;
 
-    public static class IEnumerableExt
-    {
-        // usage: someObject.SingleItemAsEnumerable();
-        public static IEnumerable<T> SingleItemAsEnumerable<T>(this T item)
-        {
-            yield return item;
-        }
-    }
-
     internal class Program
     {
         private static Logger Log = Logger.Instance;

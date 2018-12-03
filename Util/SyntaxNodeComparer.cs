@@ -25,7 +25,7 @@ namespace Prem.Util
 
         protected Result Compare(SyntaxNode oldNode, SyntaxNode newNode)
         {
-            if (oldNode.kind != newNode.kind || oldNode.label != newNode.label)
+            if (oldNode.kind != newNode.kind || !oldNode.label.Equals(newNode.label))
             {
                 // These two nodes are totally different.
                 return new Update(oldNode, newNode);
@@ -193,7 +193,7 @@ namespace Prem.Util
         {
             double score = 0;
             if (node1.code == node2.code) score += 0.5;
-            if (node1.label == node2.label) score += 0.5;
+            if (node1.label.Equals(node2.label)) score += 0.5;
 
             return score;
         }
@@ -248,19 +248,18 @@ namespace Prem.Util
             return (context, depth) =>
             {
                 var label = node.label;
-                var name = node.name;
 
                 if (node.id == oldNodeParent.id) // Do insertion.
                 {
                     var builders = node.GetChildren()
                         .Select(x => x.CloneBuilder()).ToList(); // Clone old children.
                     builders.Insert(k, newNode.CloneBuilder()); // Insert `newNode` at `k`.
-                    return new Node(context, depth, label, name, builders);
+                    return new Node(context, depth, label, builders);
                 }
 
                 Debug.Assert(node.kind == SyntaxKind.NODE);
                 // Insertion shall be done later.
-                return new Node(context, depth, label, name, node.GetChildren()
+                return new Node(context, depth, label, node.GetChildren()
                     .Select(x => Builder(x)).ToList()); // Insertion builder must be used here.
             };
         }
@@ -285,11 +284,10 @@ namespace Prem.Util
             return (context, depth) =>
             {
                 var label = node.label;
-                var name = node.name;
 
                 if (node.id == oldNode.parent.id) // Do deletion.
                 {
-                    return new Node(context, depth, label, name, node.GetChildren()
+                    return new Node(context, depth, label, node.GetChildren()
                         .FindAll(x => x.id != oldNode.id) // Filter all children but the `oldNode`.
                         .Select(x => x.CloneBuilder()).ToList() // Clone them.
                     );
@@ -297,7 +295,7 @@ namespace Prem.Util
 
                 Debug.Assert(node.kind == SyntaxKind.NODE);
                 // Deletion shall be done later.
-                return new Node(context, depth, label, name, node.GetChildren()
+                return new Node(context, depth, label, node.GetChildren()
                     .Select(x => Builder(x)).ToList()); // Deletion builder must be used here.
             };
         }
@@ -326,11 +324,10 @@ namespace Prem.Util
             return (context, depth) =>
             {
                 var label = node.label;
-                var name = node.name;
 
                 if (node.id == oldNode.parent.id) // Do update.
                 {
-                    return new Node(context, depth, label, name, node.GetChildren()
+                    return new Node(context, depth, label, node.GetChildren()
                         .Select(x => x.id == oldNode.id ? newNode.CloneBuilder() // Use `newNode`.
                             : x.CloneBuilder()).ToList() // Use old.
                     );
@@ -338,7 +335,7 @@ namespace Prem.Util
 
                 Debug.Assert(node.kind == SyntaxKind.NODE);
                 // Update shall be done later.
-                return new Node(context, depth, label, name, node.GetChildren()
+                return new Node(context, depth, label, node.GetChildren()
                     .Select(x => Builder(x)).ToList()); // Update builder must be used here.
             };
         }

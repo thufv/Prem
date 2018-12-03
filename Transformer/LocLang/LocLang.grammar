@@ -27,7 +27,7 @@ IEnumerable<SyntaxNode> subtrees := Sub(ancestor);
 
 SyntaxNode ancestor := Just(source) | AbsAncestor(source, k) | RelAncestor(source, labelK);
 
-Record<int, int>? labelK := LabelK(label, k) = Pair(label, k);
+Record<Label, int>? labelK := LabelK(label, k) = Pair(label, k);
 
 bool constraint := Any(x)
                  | AnyError(x)
@@ -35,5 +35,5 @@ bool constraint := Any(x)
                  | AnyNode(x) | NodeMatch(x, label);
 
 int k;
-int label;
+Label label;
 Token token;
