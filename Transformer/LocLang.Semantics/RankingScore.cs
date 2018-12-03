@@ -28,14 +28,17 @@ namespace Prem.Transformer.LocLang
         [FeatureCalculator(nameof(Semantics.Upd))]
         public static double Upd(double dst, double tree) => dst * tree;
 
+        [FeatureCalculator(nameof(Semantics.New))]
+        public static double New(double tree) => tree;
+
         [FeatureCalculator(nameof(Semantics.Copy))]
         public static double Copy(double target) => 1;
 
         [FeatureCalculator(nameof(Semantics.ConstToken))]
-        public static double ConstToken(double token) => token;
+        public static double ConstToken(double label, double code) => label * code;
 
-        [FeatureCalculator(nameof(Semantics.TreeNode))]
-        public static double TreeNode(double label, double children) => children;
+        [FeatureCalculator(nameof(Semantics.Tree))]
+        public static double Tree(double label, double children) => children;
 
         [FeatureCalculator(nameof(Semantics.Child))]
         public static double Child(double tree) => tree;
@@ -88,7 +91,7 @@ namespace Prem.Transformer.LocLang
         [FeatureCalculator("label", Method = CalculationMethod.FromLiteral)]
         public static double Label(Label label) => 1;
 
-        [FeatureCalculator("token", Method = CalculationMethod.FromLiteral)]
-        public static double Token(Token token) => 0.5;
+        [FeatureCalculator("code", Method = CalculationMethod.FromLiteral)]
+        public static double Code(string code) => 1;
     }
 }

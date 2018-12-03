@@ -38,7 +38,7 @@ namespace Prem.Util
                 pivot = CommonAncestorOf(pivot, node);
             }
 
-            return pivot.GetAncestors();
+            return pivot.GetAncestors().ToList();
         }
     }
 }

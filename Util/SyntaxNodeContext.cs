@@ -1,6 +1,7 @@
 using Optional;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Linq;
 
 namespace Prem.Util
 {
@@ -31,20 +32,13 @@ namespace Prem.Util
         {
             var context = new SyntaxNodeContext();
             JObject obj = JObject.Parse(json);
-            context.root = Node.CreatePartialFromJSON(obj)(context, 0);
+            context.root = Node.CreatePartialFromJSON(obj).Instantiate(context, 0);
 
             return context;
         }
 
-        public SyntaxNode FindNodeWhere(Predicate<SyntaxNode> predicate)
-        {
-            return root.GetDescendantsDFS().Find(predicate);
-        }
-
-        public SyntaxNode FindNode(int id)
-        {
-            return FindNodeWhere(x => x.id == id);
-        }
+        public SyntaxNode FindNodeWhere(Func<SyntaxNode, bool> predicate) =>
+            root.GetSubtrees().First(predicate);
 
         public void DoComparison(SyntaxNode target)
         {

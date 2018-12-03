@@ -22,17 +22,24 @@ namespace Prem.Transformer.LocLang
         public static SyntaxNode Upd(SyntaxNode oldNode, SyntaxNode newNode) =>
             new Update(oldNode, newNode).GetTransformed();
 
-        public static SyntaxNode ConstToken(Token token) => token;
+        public static SyntaxNode New(PartialNode tree)
+        {
+            var context = new SyntaxNodeContext();
+            return tree.Instantiate(context, 0);
+        }
 
-        public static SyntaxNode TreeNode(Label label, IEnumerable<SyntaxNode> children) =>
-            null;
+        public static PartialNode Copy(SyntaxNode target) => target.ToPartial();
 
-        public static IEnumerable<SyntaxNode> Child(SyntaxNode tree) => tree.Yield();
+        public static PartialNode ConstToken(Label label, string code) =>
+            Token.CreatePartial(label, code);
 
-        public static IEnumerable<SyntaxNode> Children(SyntaxNode head,
-            IEnumerable<SyntaxNode> tail) => head.Yield().Concat(tail);
+        public static PartialNode Tree(Label label, IEnumerable<PartialNode> children) =>
+            Node.CreatePartial(label, children);
 
-        public static SyntaxNode Copy(SyntaxNode target) => target; // TODO: clone
+        public static IEnumerable<PartialNode> Child(PartialNode tree) => tree.Yield();
+
+        public static IEnumerable<PartialNode> Children(PartialNode head,
+            IEnumerable<PartialNode> tail) => head.Yield().Concat(tail);
 
         public static IEnumerable<SyntaxNode> Sub(SyntaxNode ancestor) => ancestor.GetSubtrees();
 

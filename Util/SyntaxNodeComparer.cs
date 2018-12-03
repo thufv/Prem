@@ -219,7 +219,8 @@ namespace Prem.Util
             this.oldTree = oldTree;
         }
 
-        public SyntaxNode GetTransformed() => Transform(oldTree)(new SyntaxNodeContext(), 0);
+        public SyntaxNode GetTransformed() =>
+            Transform(oldTree).Instantiate(new SyntaxNodeContext(), 0);
 
         protected abstract PartialNode Transform(SyntaxNode node);
     }
@@ -283,7 +284,7 @@ namespace Prem.Util
             if (node.id == oldNode.parent.id) // Do deletion.
             {
                 return Node.CreatePartial(label, node.GetChildren()
-                    .FindAll(x => x.id != oldNode.id) // Filter all children but the `oldNode`.
+                    .Where(x => x.id != oldNode.id) // Filter all children but the `oldNode`.
                     .Select(x => x.ToPartial()).ToList() // Clone them.
                 );
             }

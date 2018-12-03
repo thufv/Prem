@@ -177,6 +177,26 @@ namespace Prem.Transformer.LocLang
             return new ExampleSpec(treeDict);
         }
 
+        [WitnessFunction(nameof(Semantics.New), 0)]
+        public ExampleSpec New(GrammarRule rule, ExampleSpec spec)
+        {
+            // Find the `tree` s.t. `New(tree) = newTree`.
+#if DEBUG
+            Log.Fine("New.tree |- {0}", spec);
+#endif
+            var treeDict = new Dictionary<State, object>();
+            foreach (var input in spec.ProvidedInputs)
+            {
+                var newTree = (SyntaxNode)spec.Examples[input];
+#if DEBUG
+                Show(newTree.ToPartial());
+#endif
+                treeDict[input] = newTree.ToPartial();
+            }
+
+            return new ExampleSpec(treeDict);
+        }
+
         [WitnessFunction(nameof(Semantics.Copy), 0)]
         public DisjunctiveExamplesSpec Copy(GrammarRule rule, ExampleSpec spec)
         {
@@ -187,10 +207,9 @@ namespace Prem.Transformer.LocLang
             var targetsDict = new Dictionary<State, IEnumerable<object>>();
             foreach (var input in spec.ProvidedInputs)
             {
-                var refTree = (SyntaxNode)spec.Examples[input];
+                var refTree = ((PartialNode)spec.Examples[input]).orig;
 
-                if (!refTree.matches.Any())
-                // `Copy` can only reference nodes in the old tree.
+                if (!refTree.matches.Any()) // `Copy` can only reference nodes in the old tree.
                 {
                     return null;
                 }
@@ -204,42 +223,64 @@ namespace Prem.Transformer.LocLang
         }
 
         [WitnessFunction(nameof(Semantics.ConstToken), 0)]
-        public ExampleSpec ConstToken(GrammarRule rule, ExampleSpec spec)
+        public ExampleSpec ConstTokenLabel(GrammarRule rule, ExampleSpec spec)
         {
-            // Find the `token` s.t. `ConstToken(token) = tree`.
+            // Find the `label` s.t. `ConstToken(label, code) = tree`.
 #if DEBUG
-            Log.Fine("ConstToken.token |- {0}", spec);
+            Log.Fine("ConstToken.label |- {0}", spec);
 #endif
             var tokenDict = new Dictionary<State, object>();
             foreach (var input in spec.ProvidedInputs)
             {
-                var tree = (SyntaxNode)spec.Examples[input];
+                var tree = ((PartialNode)spec.Examples[input]).orig;
                 if (tree.kind != SyntaxKind.TOKEN) // `ConstToken` can only construct tokens.
                 {
                     return null;
                 }
-
-                var token = (Token)tree;
 #if DEBUG
-                Show(token);
+                Show(tree.label);
 #endif
-                tokenDict[input] = token;
+                tokenDict[input] = tree.label;
             }
 
             return new ExampleSpec(tokenDict);
         }
 
-        [WitnessFunction(nameof(Semantics.TreeNode), 0)]
-        public ExampleSpec TreeNodeLabel(GrammarRule rule, ExampleSpec spec)
+        [WitnessFunction(nameof(Semantics.ConstToken), 1)]
+        public ExampleSpec ConstTokenCode(GrammarRule rule, ExampleSpec spec)
         {
-            // Find the `label` s.t. `TreeNode(label, children) = tree`.
+            // Find the `code` s.t. `ConstToken(label, code) = tree`.
 #if DEBUG
-            Log.Fine("TreeNode.label |- {0}", spec);
+            Log.Fine("ConstToken.code |- {0}", spec);
+#endif
+            var tokenDict = new Dictionary<State, object>();
+            foreach (var input in spec.ProvidedInputs)
+            {
+                var tree = ((PartialNode)spec.Examples[input]).orig;
+                if (tree.kind != SyntaxKind.TOKEN) // `ConstToken` can only construct tokens.
+                {
+                    return null;
+                }
+#if DEBUG
+                Show(tree.code);
+#endif
+                tokenDict[input] = tree.code;
+            }
+
+            return new ExampleSpec(tokenDict);
+        }
+
+        [WitnessFunction(nameof(Semantics.Tree), 0)]
+        public ExampleSpec TreeLabel(GrammarRule rule, ExampleSpec spec)
+        {
+            // Find the `label` s.t. `Tree(label, children) = tree`.
+#if DEBUG
+            Log.Fine("Tree.label |- {0}", spec);
 #endif
             var labelDict = new Dictionary<State, object>();
             foreach (var input in spec.ProvidedInputs)
             {
-                var tree = (SyntaxNode)spec.Examples[input];
+                var tree = ((PartialNode)spec.Examples[input]).orig;
                 if (tree.kind != SyntaxKind.NODE) // `TreeNode` can only construct nodes.
                 {
                     return null;
@@ -253,25 +294,27 @@ namespace Prem.Transformer.LocLang
             return new ExampleSpec(labelDict);
         }
 
-        [WitnessFunction(nameof(Semantics.TreeNode), 1)]
-        public ExampleSpec TreeNodeChildren(GrammarRule rule, ExampleSpec spec)
+        [WitnessFunction(nameof(Semantics.Tree), 1)]
+        public ExampleSpec TreeChildren(GrammarRule rule, ExampleSpec spec)
         {
-            // Find the `children` s.t. `TreeNode(label, children) = tree`.
+            // Find the `children` s.t. `Tree(label, children) = tree`.
 #if DEBUG
-            Log.Fine("TreeNode.children |- {0}", spec);
+            Log.Fine("Tree.children |- {0}", spec);
 #endif
             var childrenDict = new Dictionary<State, object>();
             foreach (var input in spec.ProvidedInputs)
             {
-                var tree = (SyntaxNode)spec.Examples[input];
-                if (tree.kind != SyntaxKind.NODE) // `TreeNode` can only construct nodes.
+                var tree = ((PartialNode)spec.Examples[input]).orig;
+                if (tree.kind != SyntaxKind.NODE) // `Tree` can only construct nodes.
                 {
                     return null;
                 }
+
+                var children = tree.GetChildren().Select(t => t.ToPartial()).ToList();
 #if DEBUG
-                ShowMany(tree.GetChildren());
+                ShowMany(children);
 #endif
-                childrenDict[input] = tree.GetChildren();
+                childrenDict[input] = children;
             }
 
             return new ExampleSpec(childrenDict);
@@ -287,7 +330,7 @@ namespace Prem.Transformer.LocLang
             var treeDict = new Dictionary<State, object>();
             foreach (var input in spec.ProvidedInputs)
             {
-                var children = (List<SyntaxNode>)spec.Examples[input];
+                var children = (List<PartialNode>)spec.Examples[input];
                 if (children.Count != 1) // `Child` can construct a single child.
                 {
                     return null;
@@ -313,7 +356,7 @@ namespace Prem.Transformer.LocLang
             var headDict = new Dictionary<State, object>();
             foreach (var input in spec.ProvidedInputs)
             {
-                var children = (List<SyntaxNode>)spec.Examples[input];
+                var children = (List<PartialNode>)spec.Examples[input];
                 if (children.Count < 2) // `Children` constructs at two children.
                 {
                     return null;
@@ -339,7 +382,7 @@ namespace Prem.Transformer.LocLang
             var tailDict = new Dictionary<State, object>();
             foreach (var input in spec.ProvidedInputs)
             {
-                var children = (List<SyntaxNode>)spec.Examples[input];
+                var children = (List<PartialNode>)spec.Examples[input];
                 if (children.Count < 2) // `Children` constructs at two children.
                 {
                     return null;

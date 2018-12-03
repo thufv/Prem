@@ -12,11 +12,13 @@ language LocLang;
 
 @input SyntaxNode source;
 
-@start SyntaxNode program := Ins(target, k, tree) | Del(target) | Upd(target, tree);
+@start SyntaxNode program := Ins(target, k, newTree) | Del(target) | Upd(target, newTree);
 
-SyntaxNode tree := Copy(target) | ConstToken(token) | TreeNode(label, children);
+SyntaxNode newTree := New(tree);
 
-IEnumerable<SyntaxNode> children := Child(tree) | Children(tree, children);
+PartialNode tree := Copy(target) | ConstToken(label, code) | Tree(label, children);
+
+IEnumerable<PartialNode> children := Child(tree) | Children(tree, children);
 
 SyntaxNode target := Target(candidates, k) = Kth(candidates, k);
 
@@ -36,4 +38,4 @@ bool constraint := Any(x)
 
 int k;
 Label label;
-Token token;
+string code;

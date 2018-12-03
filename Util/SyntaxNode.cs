@@ -8,12 +8,7 @@ using Optional;
 
 namespace Prem.Util
 {
-    public enum SyntaxKind
-    {
-        TOKEN,
-        NODE,
-        ERROR
-    }
+    using PartialFunc = Func<SyntaxNodeContext, int, SyntaxNode>;
 
     /// <summary>
     /// The `SyntaxNode` declared below is a concrete syntax node,
@@ -28,13 +23,35 @@ namespace Prem.Util
     /// which only stores the information of the node itself and its children,
     /// but not the depth and the associated tree context.
     /// 
-    /// A partial node is implemented as a partial function:
+    /// A partial node contains a partial function:
     /// once it takes a context and a depth as parameters, then it becomes a concrete syntax node.
     /// To instantiate a partial node, a top-down construction has to be processed.
     /// The instantiation process is realized as the constructors, as we see later.
     /// </summary>
     /// <returns>The partial node.</returns>
-    public delegate SyntaxNode PartialNode(SyntaxNodeContext context, int depth);
+    public class PartialNode
+    {
+        public SyntaxNode orig { get; }
+
+        private PartialFunc func;
+
+        public PartialNode(SyntaxNode original, PartialFunc func)
+        {
+            this.orig = original;
+            this.func = func;
+        }
+
+        public SyntaxNode Instantiate(SyntaxNodeContext context, int depth) => func(context, depth);
+
+        public override string ToString() => orig == null ? "<PartialNode>" : $"<{orig}>";
+    }
+
+    public enum SyntaxKind
+    {
+        TOKEN,
+        NODE,
+        ERROR
+    }
 
     /// <summary>
     /// A tree structure representing a concrete syntax tree.
@@ -126,12 +143,7 @@ namespace Prem.Util
             this.matches = new List<SyntaxNode>();
         }
 
-        public SyntaxNode AddChild(int k)
-        {
-            return null;
-        }
-
-        public List<SyntaxNode> GetChildren() =>
+        public IEnumerable<SyntaxNode> GetChildren() =>
             kind == SyntaxKind.NODE ? ((Node)this).children.ToList() : new List<SyntaxNode>();
 
         public virtual int GetNumChildren() => 0;
@@ -165,23 +177,12 @@ namespace Prem.Util
             return GetAncestorWhere(_ => true, k);
         }
 
-        public List<SyntaxNode> GetDescendantsDFS()
-        {
-            var nodes = DFS<SyntaxNode>(x => x);
-            nodes.RemoveAt(0);
-            Log.Debug("des for {0}: {1}", this, Show.L(nodes));
-            return nodes;
-        }
-
-        public List<SyntaxNode> GetSubtrees()
-        {
-            return DFS<SyntaxNode>(x => x);
-        }
+        public IEnumerable<SyntaxNode> GetSubtrees() => DFS<SyntaxNode>(x => x);
 
         abstract public List<T> DFS<T>(Func<SyntaxNode, T> visit);
 
         // including itself        
-        public List<SyntaxNode> GetAncestors()
+        public IEnumerable<SyntaxNode> GetAncestors()
         {
             var ancestors = new List<SyntaxNode>();
             var node = this;
@@ -233,8 +234,8 @@ namespace Prem.Util
             this.treeHash = Hash.Combine(label.GetHashCode(), code.GetHashCode());
         }
 
-        public override PartialNode ToPartial() =>
-            (context, depth) => new Token(context, depth, label, code, pos);
+        public override PartialNode ToPartial() => new PartialNode(this,
+            (context, depth) => new Token(context, depth, label, code, pos));
 
         /// <summary>
         /// This group of functions can be regarded as the constructors of partial nodes,
@@ -244,8 +245,8 @@ namespace Prem.Util
         /// <param name="code"></param>
         /// <param name="pos"></param>
         /// <returns></returns>
-        public static PartialNode CreatePartial(Label label, string code, Pos pos) =>
-            (context, depth) => new Token(context, depth, label, code, pos);
+        public static PartialNode CreatePartial(Label label, string code, Pos pos = null) =>
+            new PartialNode(null, (context, depth) => new Token(context, depth, label, code, pos));
 
         /// <summary>
         /// This group of functions are handy constructors of partial nodes,
@@ -274,13 +275,13 @@ namespace Prem.Util
 
         public override string ToString()
         {
-            return $"({id}) {label} \"{code}\" @ {pos}";
+            return $"({id}) {label} \"{code}\"";
         }
 
         public override void PrintTo(IndentPrinter printer)
         {
             printer.Print(ToString());
-            printer.PrintLine($" <{treeHash}>");
+            printer.PrintLine($" #{treeHash}");
         }
     }
 
@@ -295,11 +296,11 @@ namespace Prem.Util
             this.treeHash = Hash.Combine(label.GetHashCode(), code.GetHashCode());
         }
 
-        public override PartialNode ToPartial() =>
-            (context, depth) => new Error(context, depth, label, code, pos);
+        public override PartialNode ToPartial() => new PartialNode(this,
+            (context, depth) => new Error(context, depth, label, code, pos));
 
         public static PartialNode CreatePartial(Label label, string code, Pos pos) =>
-            (context, depth) => new Error(context, depth, label, code, pos);
+            new PartialNode(null, (context, depth) => new Error(context, depth, label, code, pos));
 
         public static PartialNode CreatePartialFromJSON(JObject obj)
         {
@@ -325,7 +326,7 @@ namespace Prem.Util
         public override void PrintTo(IndentPrinter printer)
         {
             printer.Print(ToString());
-            printer.PrintLine($" <{treeHash}>");
+            printer.PrintLine($" #{treeHash}");
         }
     }
 
@@ -361,21 +362,22 @@ namespace Prem.Util
         }
 
         public Node(SyntaxNodeContext context, int depth, Label label,
-            IEnumerable<PartialNode> builders, string code = "")
+            IEnumerable<PartialNode> children, string code = "")
             : base(SyntaxKind.NODE, context, depth, label, code)
         {
-            this.children = builders.Select(f => f(context, depth + 1)).ToList();
-            this.children.ForEach(x => x.parent = this);
-            this.treeHash = Hash.Combine(label.GetHashCode(), children.Select(x => x.treeHash));
+            this.children = children.Select(t => t.Instantiate(context, depth + 1)).ToList();
+            this.children.ForEach(t => t.parent = this);
+            this.treeHash = Hash.Combine(label.GetHashCode(), 
+                this.children.Select(t => t.treeHash));
         }
 
-        public override PartialNode ToPartial() =>
+        public override PartialNode ToPartial() => new PartialNode(this,
             (context, depth) => new Node(context, depth, label, 
-                children.Select(x => x.ToPartial()));
+                children.Select(t => t.ToPartial())));
 
         public static PartialNode CreatePartial(Label label, 
-            IEnumerable<PartialNode> builders, string code = "") =>
-            (context, depth) => new Node(context, depth, label, builders, code);
+            IEnumerable<PartialNode> builders, string code = "") => new PartialNode(null,
+            (context, depth) => new Node(context, depth, label, builders, code));
 
         public static PartialNode CreatePartialFromJSON(JObject obj)
         {
@@ -419,7 +421,7 @@ namespace Prem.Util
         public override void PrintTo(IndentPrinter printer)
         {
             printer.Print(ToString());
-            printer.PrintLine($" <{treeHash}>");
+            printer.PrintLine($" #{treeHash}");
             printer.IncIndent();
             children.ForEach(x => x.PrintTo(printer));
             printer.DecIndent();
