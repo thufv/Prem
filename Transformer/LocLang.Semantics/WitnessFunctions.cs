@@ -217,7 +217,7 @@ namespace Prem.Transformer.LocLang
         [WitnessFunction(nameof(Semantics.TreeNode), 0)]
         public ExampleSpec TreeNodeLabel(GrammarRule rule, ExampleSpec spec)
         {
-            // Find the `label` s.t. `TreeNode(label, children) = tree` for some `children`.
+            // Find the `label` s.t. `TreeNode(label, children) = tree`.
 #if DEBUG
             Log.Fine("TreeNode.label |- {0}", spec);
 #endif
@@ -238,60 +238,100 @@ namespace Prem.Transformer.LocLang
             return new ExampleSpec(labelDict);
         }
 
-        // TODO: children list
-
-        [WitnessFunction(nameof(Semantics.TokenMatch), 1)]
-        public ExampleSpec TokenMatchLabel(GrammarRule rule, DisjunctiveExamplesSpec spec)
+        [WitnessFunction(nameof(Semantics.TreeNode), 1)]
+        public ExampleSpec TreeNodeChildren(GrammarRule rule, ExampleSpec spec)
         {
-            // Find the `label` s.t. `TokenMatch(x, label) = true`.
+            // Find the `children` s.t. `TreeNode(label, children) = tree`.
 #if DEBUG
-            Log.Fine("TokenMatch.label |- {0}", spec);
+            Log.Fine("TreeNode.children |- {0}", spec);
 #endif
-            var labelDict = new Dictionary<State, object>();
+            var childrenDict = new Dictionary<State, object>();
             foreach (var input in spec.ProvidedInputs)
             {
-                var x = (SyntaxNode)input[rule.Body[0]];
-                if (x.kind == SyntaxKind.TOKEN)
+                var tree = (SyntaxNode)spec.Examples[input];
+                if (tree.kind != SyntaxKind.NODE) // `TreeNode` can only construct nodes.
                 {
-                    var label = ((Token)x).label;
-                    Log.Fine("Candidates: {0}", label);
-                    labelDict[input] = label;
-                }
-                else
-                {
-                    Log.Fine("Candidate is not a leaf: {0}", x);
                     return null;
                 }
+#if DEBUG
+                ShowList(tree.GetChildren());
+#endif
+                childrenDict[input] = tree.GetChildren();
             }
 
-            return new ExampleSpec(labelDict);
+            return new ExampleSpec(childrenDict);
         }
 
-        [WitnessFunction(nameof(Semantics.NodeMatch), 1)]
-        public ExampleSpec NodeMatchLabel(GrammarRule rule, DisjunctiveExamplesSpec spec)
+        [WitnessFunction(nameof(Semantics.Child), 0)]
+        public ExampleSpec Child(GrammarRule rule, ExampleSpec spec)
         {
-            // Find the `label` s.t. `NodeMatch(x, label) = true`.
+            // Find the `tree` s.t. `Child(tree) = children`.
 #if DEBUG
-            Log.Fine("NodeMatch.label |- {0}", spec);
+            Log.Fine("Child.tree |- {0}", spec);
 #endif
-            var types = new Dictionary<State, object>();
+            var treeDict = new Dictionary<State, object>();
             foreach (var input in spec.ProvidedInputs)
             {
-                var x = (SyntaxNode)input[rule.Body[0]];
-                if (x.kind == SyntaxKind.NODE)
+                var children = (List<SyntaxNode>)spec.Examples[input];
+                if (children.Count != 1) // `Child` can construct a single child.
                 {
-                    var label = ((Node)x).name;
-                    Log.Fine("Candidates: {0}", label);
-                    types[input] = label;
-                }
-                else
-                {
-                    Log.Fine("Candidates is not a node: {0}", x);
                     return null;
                 }
+
+                var tree = children.First();
+                Log.Fine("Candidate: {0}", tree);
+                treeDict[input] = tree;
             }
 
-            return new ExampleSpec(types);
+            return new ExampleSpec(treeDict);
+        }
+
+        [WitnessFunction(nameof(Semantics.Children), 0)]
+        public ExampleSpec ChildrenHead(GrammarRule rule, ExampleSpec spec)
+        {
+            // Find the `head` s.t. `Children(head, tail) = children`.
+#if DEBUG
+            Log.Fine("Children.head |- {0}", spec);
+#endif
+            var headDict = new Dictionary<State, object>();
+            foreach (var input in spec.ProvidedInputs)
+            {
+                var children = (List<SyntaxNode>)spec.Examples[input];
+                if (children.Count < 2) // `Children` constructs at two children.
+                {
+                    return null;
+                }
+
+                var first = children.First();
+                Log.Fine("Candidate: {0}", first);
+                headDict[input] = first;
+            }
+
+            return new ExampleSpec(headDict);
+        }
+
+        [WitnessFunction(nameof(Semantics.Children), 1)]
+        public ExampleSpec ChildrenTail(GrammarRule rule, ExampleSpec spec)
+        {
+            // Find the `tail` s.t. `Children(head, tail) = children`.
+#if DEBUG
+            Log.Fine("Children.tail |- {0}", spec);
+#endif
+            var tailDict = new Dictionary<State, object>();
+            foreach (var input in spec.ProvidedInputs)
+            {
+                var children = (List<SyntaxNode>)spec.Examples[input];
+                if (children.Count < 2) // `Children` constructs at two children.
+                {
+                    return null;
+                }
+
+                var tail = children.Skip(1);
+                ShowList(tail);
+                tailDict[input] = tail;
+            }
+
+            return new ExampleSpec(tailDict);
         }
 
         [WitnessFunction(nameof(Semantics.Sub), 0)]
@@ -309,8 +349,9 @@ namespace Prem.Transformer.LocLang
 
                 var source = GetSource(input);
                 var candidates = CommonAncestor.CommonAncestors(source, positive);
+#if DEBUG
                 ShowList(candidates);
-
+#endif
                 ancestors[input] = candidates;
             }
 
@@ -333,8 +374,9 @@ namespace Prem.Transformer.LocLang
                 var candidates = ancestors.Select(a => source.depth - a.depth)
                     .Where(k => k > 0)
                     .Select(k => (object)k);
+#if DEBUG
                 ShowList(candidates);
-
+#endif
                 ks[input] = candidates;
             }
 
@@ -360,12 +402,65 @@ namespace Prem.Transformer.LocLang
                     .Select(a => Record.Create(
                         a.label, source.CountAncestorWhere(x => x.label == a.label, a.id)))
                     .Select(k => (object)k);
-
-                ShowList(candidates);
+#if DEBUG
+                var cs = ancestors.Where(a => a.id != source.id)
+                    .Select(a => Record.Create(
+                        a.name, source.CountAncestorWhere(x => x.label == a.label, a.id)))
+                    .Select(k => (object)k);
+                ShowList(cs);
+#endif
                 labelKs[input] = candidates;
             }
 
             return new DisjunctiveExamplesSpec(labelKs);
+        }
+
+        [WitnessFunction(nameof(Semantics.TokenMatch), 1)]
+        public ExampleSpec TokenMatchLabel(GrammarRule rule, DisjunctiveExamplesSpec spec)
+        {
+            // Find the `label` s.t. `TokenMatch(x, label) = true`.
+#if DEBUG
+            Log.Fine("TokenMatch.label |- {0}", spec);
+#endif
+            var labelDict = new Dictionary<State, object>();
+            foreach (var input in spec.ProvidedInputs)
+            {
+                var x = (SyntaxNode)input[rule.Body[0]];
+                if (x.kind != SyntaxKind.TOKEN) // `TokenMatch` can only match tokens.
+                {
+                    return null;
+                }
+#if DEBUG
+                Log.Fine("Candidates: {0}={1}", x.label, x.name);
+#endif
+                labelDict[input] = x.label;
+            }
+
+            return new ExampleSpec(labelDict);
+        }
+
+        [WitnessFunction(nameof(Semantics.NodeMatch), 1)]
+        public ExampleSpec NodeMatchLabel(GrammarRule rule, DisjunctiveExamplesSpec spec)
+        {
+            // Find the `label` s.t. `NodeMatch(x, label) = true`.
+#if DEBUG
+            Log.Fine("NodeMatch.label |- {0}", spec);
+#endif
+            var labelDict = new Dictionary<State, object>();
+            foreach (var input in spec.ProvidedInputs)
+            {
+                var x = (SyntaxNode)input[rule.Body[0]];
+                if (x.kind != SyntaxKind.NODE) // `NodeMatch` can only match nodes.
+                {
+                    return null;
+                }
+#if DEBUG
+                Log.Fine("Candidates: {0}={1}", x.label, x.name);
+#endif
+                labelDict[input] = x.label;
+            }
+
+            return new ExampleSpec(labelDict);
         }
     }
 }

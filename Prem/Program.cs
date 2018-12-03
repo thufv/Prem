@@ -24,9 +24,9 @@ namespace Prem
         {
             Log.DisplayLevel = LogLevel.FINE;
             Log.ShowColor = true;
-            run("/Users/paul/Workspace/prem/1.json", "/Users/paul/Workspace/prem/upd.json");
+            // run("/Users/paul/Workspace/prem/1.json", "/Users/paul/Workspace/prem/upd.json");
             // run("/Users/paul/Workspace/prem/1.json", "/Users/paul/Workspace/prem/del.json");
-            // run("/Users/paul/Workspace/prem/1.json", "/Users/paul/Workspace/prem/ins.json");
+            run("/Users/paul/Workspace/prem/1.json", "/Users/paul/Workspace/prem/ins.json");
             // run("/Users/paul/Workspace/prem/del.json", "/Users/paul/Workspace/prem/ins.json");
         }
 
