@@ -16,6 +16,27 @@ namespace Prem.Util
     }
 
     /// <summary>
+    /// The `SyntaxNode` declared below is a concrete syntax node,
+    /// say it must be associated with a context (which stores some global information of the tree)
+    /// and initialized with an integer representing its depth/level in the tree.
+    /// Building a tree in a top-down manner best suits this situation, 
+    /// as we can increase the depth of a node throughout the entire process, recursively.
+    /// 
+    /// However, there are situations where trees must be built bottom-up.
+    /// In this way, depths for each node are unknown until the entire tree completes the process.
+    /// To achieve this, we introduce a `PartialNode`,
+    /// which only stores the information of the node itself and its children,
+    /// but not the depth and the associated tree context.
+    /// 
+    /// A partial node is implemented as a partial function:
+    /// once it takes a context and a depth as parameters, then it becomes a concrete syntax node.
+    /// To instantiate a partial node, a top-down construction has to be processed.
+    /// The instantiation process is realized as the constructors, as we see later.
+    /// </summary>
+    /// <returns>The partial node.</returns>
+    public delegate SyntaxNode PartialNode(SyntaxNodeContext context, int depth);
+
+    /// <summary>
     /// A tree structure representing a concrete syntax tree.
     /// `Node` is an internal node,
     /// `Token` and `Error` are leaf nodes.
@@ -79,17 +100,10 @@ namespace Prem.Util
         }
 
         /// <summary>
-        /// Building a tree is not easy: we have to handle a couple of things carefully,
-        /// including allocating ids, computing depths and associating parents.
-        /// Instead of specifying complex constructors, we use a more flexible way, 
-        /// namely a builder, which is actually a function of type 
-        /// `SyntaxNodeContext * int -> SyntaxNode`.
-        /// It takes a context and depth as input, and returns a node as the constrution result.
-        /// 
-        /// A clone builder is a builder where it simply returns a copy of `this` node.
+        /// Transform a concrete node to a partial node, by removing the context and depth.
         /// </summary>
-        /// <returns>The clone builder.</returns>
-        public abstract Func<SyntaxNodeContext, int, SyntaxNode> CloneBuilder();
+        /// <returns>The corresponding partial node.</returns>
+        public abstract PartialNode ToPartial();
 
         /// <summary>
         /// Internal base constructor.
@@ -219,29 +233,38 @@ namespace Prem.Util
             this.treeHash = Hash.Combine(label.GetHashCode(), code.GetHashCode());
         }
 
-        public static Func<SyntaxNodeContext, int, SyntaxNode> JSONBuilder(JObject obj)
-        {
-            return (context, depth) =>
-            {
-                var label = new Label((int)obj["label"], (string)obj["name"]);
-                var code = (string)obj["code"];
-                var pos = new Pos((int)obj["line"], (int)obj["pos"]);
+        public override PartialNode ToPartial() =>
+            (context, depth) => new Token(context, depth, label, code, pos);
 
-                return new Token(context, depth, label, code, pos);
-            };
+        /// <summary>
+        /// This group of functions can be regarded as the constructors of partial nodes,
+        /// which takes necessary information and returns a partial node.
+        /// </summary>
+        /// <param name="label"></param>
+        /// <param name="code"></param>
+        /// <param name="pos"></param>
+        /// <returns></returns>
+        public static PartialNode CreatePartial(Label label, string code, Pos pos) =>
+            (context, depth) => new Token(context, depth, label, code, pos);
+
+        /// <summary>
+        /// This group of functions are handy constructors of partial nodes,
+        /// extracting necessary information from a JSON object.
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        public static PartialNode CreatePartialFromJSON(JObject obj)
+        {
+            var label = new Label((int)obj["label"], (string)obj["name"]);
+            var code = (string)obj["code"];
+            var pos = new Pos((int)obj["line"], (int)obj["pos"]);
+
+            return CreatePartial(label, code, pos);
         }
 
         public override List<T> DFS<T>(Func<SyntaxNode, T> visitor)
         {
             return new List<T> { visitor(this) };
-        }
-
-        public override Func<SyntaxNodeContext, int, SyntaxNode> CloneBuilder()
-        {
-            return (context, depth) =>
-            {
-                return new Token(context, depth, label, code, pos);
-            };
         }
 
         public override bool IdenticalTo(SyntaxNode that)
@@ -272,29 +295,24 @@ namespace Prem.Util
             this.treeHash = Hash.Combine(label.GetHashCode(), code.GetHashCode());
         }
 
-        public static Func<SyntaxNodeContext, int, SyntaxNode> JSONBuilder(JObject obj)
-        {
-            return (context, depth) =>
-            {
-                var label = new Label((int)obj["label"], "ERROR");
-                var code = (string)obj["code"];
-                var pos = new Pos((int)obj["line"], (int)obj["pos"]);
+        public override PartialNode ToPartial() =>
+            (context, depth) => new Error(context, depth, label, code, pos);
 
-                return new Error(context, depth, label, code, pos);
-            };
+        public static PartialNode CreatePartial(Label label, string code, Pos pos) =>
+            (context, depth) => new Error(context, depth, label, code, pos);
+
+        public static PartialNode CreatePartialFromJSON(JObject obj)
+        {
+            var label = new Label((int)obj["label"], "ERROR");
+            var code = (string)obj["code"];
+            var pos = new Pos((int)obj["line"], (int)obj["pos"]);
+
+            return CreatePartial(label, code, pos);
         }
 
         public override List<T> DFS<T>(Func<SyntaxNode, T> visitor)
         {
             return new List<T> { visitor(this) };
-        }
-
-        public override Func<SyntaxNodeContext, int, SyntaxNode> CloneBuilder()
-        {
-            return (context, depth) =>
-            {
-                return new Error(context, depth, label, code, pos);
-            };
         }
 
         public override bool IdenticalTo(SyntaxNode that)
@@ -343,12 +361,37 @@ namespace Prem.Util
         }
 
         public Node(SyntaxNodeContext context, int depth, Label label,
-            IEnumerable<Func<SyntaxNodeContext, int, SyntaxNode>> builders, string code = "")
+            IEnumerable<PartialNode> builders, string code = "")
             : base(SyntaxKind.NODE, context, depth, label, code)
         {
             this.children = builders.Select(f => f(context, depth + 1)).ToList();
             this.children.ForEach(x => x.parent = this);
             this.treeHash = Hash.Combine(label.GetHashCode(), children.Select(x => x.treeHash));
+        }
+
+        public override PartialNode ToPartial() =>
+            (context, depth) => new Node(context, depth, label, 
+                children.Select(x => x.ToPartial()));
+
+        public static PartialNode CreatePartial(Label label, 
+            IEnumerable<PartialNode> builders, string code = "") =>
+            (context, depth) => new Node(context, depth, label, builders, code);
+
+        public static PartialNode CreatePartialFromJSON(JObject obj)
+        {
+            var label = new Label((int)obj["label"], (string)obj["name"]);
+            var code = (string)obj["code"];
+            var builders = obj["children"]
+                .Select(t => (JObject)t)
+                .Select(o =>
+                    {
+                        var kind = (string)o["kind"];
+                        return kind == "node" ? Node.CreatePartialFromJSON(o)
+                            : kind == "leaf" ? Token.CreatePartialFromJSON(o)
+                            : Error.CreatePartialFromJSON(o);
+                    });
+
+            return CreatePartial(label, builders, code);
         }
 
         public override int GetNumChildren() => children.Count;
@@ -358,32 +401,6 @@ namespace Prem.Util
             var results = new List<T> { visit(this) };
             children.ForEach(x => results.AddRange(x.DFS(visit)));
             return results;
-        }
-
-        public override Func<SyntaxNodeContext, int, SyntaxNode> CloneBuilder()
-        {
-            return (context, depth) =>
-                new Node(context, depth, label, children.Select(x => x.CloneBuilder()));
-        }
-
-        public static Func<SyntaxNodeContext, int, SyntaxNode> JSONBuilder(JObject obj)
-        {
-            return (context, depth) =>
-            {
-                var label = new Label((int)obj["label"], (string)obj["name"]);
-                var code = (string)obj["code"];
-                var builders = obj["children"]
-                    .Select(t => (JObject)t)
-                    .Select(o =>
-                        {
-                            var kind = (string)o["kind"];
-                            return kind == "node" ? Node.JSONBuilder(o)
-                                : kind == "leaf" ? Token.JSONBuilder(o)
-                                : Error.JSONBuilder(o);
-                        });
-
-                return new Node(context, depth, label, builders, code);
-            };
         }
 
         public override bool IdenticalTo(SyntaxNode that)

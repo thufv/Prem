@@ -31,7 +31,7 @@ namespace Prem.Util
         {
             var context = new SyntaxNodeContext();
             JObject obj = JObject.Parse(json);
-            context.root = Node.JSONBuilder(obj)(context, 0);
+            context.root = Node.CreatePartialFromJSON(obj)(context, 0);
 
             return context;
         }

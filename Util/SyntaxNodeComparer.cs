@@ -219,9 +219,9 @@ namespace Prem.Util
             this.oldTree = oldTree;
         }
 
-        public SyntaxNode GetTransformed() => Builder(oldTree)(new SyntaxNodeContext(), 0);
+        public SyntaxNode GetTransformed() => Transform(oldTree)(new SyntaxNodeContext(), 0);
 
-        protected abstract Func<SyntaxNodeContext, int, SyntaxNode> Builder(SyntaxNode node);
+        protected abstract PartialNode Transform(SyntaxNode node);
     }
 
     /// <summary>
@@ -243,25 +243,22 @@ namespace Prem.Util
 
         public override string ToString() => $"Insert: {oldNodeParent} @child {k} -> {newNode}";
 
-        protected override Func<SyntaxNodeContext, int, SyntaxNode> Builder(SyntaxNode node)
+        protected override PartialNode Transform(SyntaxNode node)
         {
-            return (context, depth) =>
+            var label = node.label;
+
+            if (node.id == oldNodeParent.id) // Do insertion.
             {
-                var label = node.label;
+                var builders = node.GetChildren()
+                    .Select(x => x.ToPartial()).ToList(); // Clone old children.
+                builders.Insert(k, newNode.ToPartial()); // Insert `newNode` at `k`.
+                return Node.CreatePartial(label, builders);
+            }
 
-                if (node.id == oldNodeParent.id) // Do insertion.
-                {
-                    var builders = node.GetChildren()
-                        .Select(x => x.CloneBuilder()).ToList(); // Clone old children.
-                    builders.Insert(k, newNode.CloneBuilder()); // Insert `newNode` at `k`.
-                    return new Node(context, depth, label, builders);
-                }
-
-                Debug.Assert(node.kind == SyntaxKind.NODE);
-                // Insertion shall be done later.
-                return new Node(context, depth, label, node.GetChildren()
-                    .Select(x => Builder(x)).ToList()); // Insertion builder must be used here.
-            };
+            Debug.Assert(node.kind == SyntaxKind.NODE);
+            // Insertion shall be done later.
+            return Node.CreatePartial(label, node.GetChildren()
+                .Select(Transform).ToList()); // Insertion builder must be used here.
         }
     }
 
@@ -279,25 +276,22 @@ namespace Prem.Util
 
         override public string ToString() => $"Delete: {oldNode}";
 
-        protected override Func<SyntaxNodeContext, int, SyntaxNode> Builder(SyntaxNode node)
+        protected override PartialNode Transform(SyntaxNode node)
         {
-            return (context, depth) =>
+            var label = node.label;
+
+            if (node.id == oldNode.parent.id) // Do deletion.
             {
-                var label = node.label;
+                return Node.CreatePartial(label, node.GetChildren()
+                    .FindAll(x => x.id != oldNode.id) // Filter all children but the `oldNode`.
+                    .Select(x => x.ToPartial()).ToList() // Clone them.
+                );
+            }
 
-                if (node.id == oldNode.parent.id) // Do deletion.
-                {
-                    return new Node(context, depth, label, node.GetChildren()
-                        .FindAll(x => x.id != oldNode.id) // Filter all children but the `oldNode`.
-                        .Select(x => x.CloneBuilder()).ToList() // Clone them.
-                    );
-                }
-
-                Debug.Assert(node.kind == SyntaxKind.NODE);
-                // Deletion shall be done later.
-                return new Node(context, depth, label, node.GetChildren()
-                    .Select(x => Builder(x)).ToList()); // Deletion builder must be used here.
-            };
+            Debug.Assert(node.kind == SyntaxKind.NODE);
+            // Deletion shall be done later.
+            return Node.CreatePartial(label, node.GetChildren()
+                .Select(Transform).ToList()); // Deletion builder must be used here.
         }
     }
 
@@ -319,25 +313,22 @@ namespace Prem.Util
 
         override public string ToString() => $"Update: {oldNode} -> {newNode}";
 
-        protected override Func<SyntaxNodeContext, int, SyntaxNode> Builder(SyntaxNode node)
+        protected override PartialNode Transform(SyntaxNode node)
         {
-            return (context, depth) =>
+            var label = node.label;
+
+            if (node.id == oldNode.parent.id) // Do update.
             {
-                var label = node.label;
+                return Node.CreatePartial(label, node.GetChildren()
+                    .Select(x => x.id == oldNode.id ? newNode.ToPartial() // Use `newNode`.
+                        : x.ToPartial()).ToList() // Use old.
+                );
+            }
 
-                if (node.id == oldNode.parent.id) // Do update.
-                {
-                    return new Node(context, depth, label, node.GetChildren()
-                        .Select(x => x.id == oldNode.id ? newNode.CloneBuilder() // Use `newNode`.
-                            : x.CloneBuilder()).ToList() // Use old.
-                    );
-                }
-
-                Debug.Assert(node.kind == SyntaxKind.NODE);
-                // Update shall be done later.
-                return new Node(context, depth, label, node.GetChildren()
-                    .Select(x => Builder(x)).ToList()); // Update builder must be used here.
-            };
+            Debug.Assert(node.kind == SyntaxKind.NODE);
+            // Update shall be done later.
+            return Node.CreatePartial(label, node.GetChildren()
+                .Select(Transform).ToList()); // Update builder must be used here.
         }
     }
 
@@ -350,9 +341,6 @@ namespace Prem.Util
 
         override public string ToString() => "Identical";
 
-        protected override Func<SyntaxNodeContext, int, SyntaxNode> Builder(SyntaxNode node)
-        {
-            return node.CloneBuilder();
-        }
+        protected override PartialNode Transform(SyntaxNode node) => node.ToPartial();
     }
 }
