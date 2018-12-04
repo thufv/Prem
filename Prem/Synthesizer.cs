@@ -55,7 +55,7 @@ namespace Prem
 
         public void SynthesizeTransformers()
         {
-            var locExamples = new List<TExample>();
+            var tExamples = new List<TExample>();
 
             var printer = new IndentPrinter();
             int i = 1;
@@ -90,15 +90,19 @@ namespace Prem
                     }
                 }
 
-                // 3. Append loc example
-                locExamples.Add(new TExample(example.oldTree.root, example.errNode, example.newTree.root));
+                // 3. Append examples
+                tExamples.Add(new TExample(example.oldTree.root, example.errNode, example.newTree.root));
             }
 
-            var t = new Transformer.Transformer();
-            var programs = t.LearnPrograms(locExamples, 10);
-            foreach (var prog in programs)
+            var t = new TLearner();
+            var programs = t.Learn(tExamples, 10);
+
+            Log.Debug("Programs:");
+            int j = 1;
+            foreach (var program in programs)
             {
-                Log.Debug(prog.ToString());
+                Log.DebugRaw("#{0} ({1:F3}) {2}", j, program.score, program.ToString());
+                j++;
             }
         }
     }

@@ -15,24 +15,66 @@ using Microsoft.ProgramSynthesis.Utils;
 
 using Prem.Transformer.TreeLang;
 using Prem.Util;
-using MyLogger = Prem.Util.Logger;
+using PremLogger = Prem.Util.Logger;
+using System.Diagnostics;
 
 namespace Prem.Transformer
 {
-    public class TExample
+    public class TInput
     {
         public SyntaxNode inputTree { get; }
 
         public SyntaxNode errNode { get; }
 
-        public SyntaxNode outputTree { get; }
-
-        public TExample(SyntaxNode inputTree, SyntaxNode errNode, SyntaxNode outputTree)
+        public TInput(SyntaxNode inputTree, SyntaxNode errNode)
         {
             this.inputTree = inputTree;
             this.errNode = errNode;
-            this.outputTree = outputTree;
         }
+    }
+
+    public class TExample
+    {
+        public TInput input { get; }
+
+        public SyntaxNode output { get; }
+
+        public TExample(SyntaxNode inputTree, SyntaxNode errNode, SyntaxNode outputTree)
+        {
+            this.input = new TInput(inputTree, errNode);
+            this.output = outputTree;
+        }
+
+        public TExample(TInput input, SyntaxNode outputTree)
+        {
+            this.input = input;
+            this.output = outputTree;
+        }
+    }
+
+    public class TProgram
+    {
+        private Symbol _inputSymbol;
+
+        protected ProgramNode _program;
+
+        public double score { get; }
+
+        public TProgram(ProgramNode program, double score, Symbol inputSymbol)
+        {
+            this._program = program;
+            this._inputSymbol = inputSymbol;
+            this.score = score;
+        }
+
+        public SyntaxNode Apply(TInput input)
+        {
+            var inputState = State.CreateForExecution(_inputSymbol, input.errNode);
+            return _program.Invoke(inputState) as SyntaxNode;
+        }
+
+        public override string ToString() =>
+            _program.PrintAST(ASTSerializationFormat.HumanReadable);
     }
 
 
@@ -40,67 +82,77 @@ namespace Prem.Transformer
     /// A tree transformer for synthesizing programs expressed with the `TreeLang` described in
     /// `Prem.Transformer.TreeLang`.
     /// </summary>
-    public class Transformer
+    public sealed class TLearner
     {
-        private static MyLogger Log = MyLogger.Instance;
+        private static PremLogger Log = PremLogger.Instance;
 
         private SynthesisEngine _engine;
-        private Symbol _inputSymbol, _refSymbol;
+        private Symbol _inputSymbol, _targetSymbol;
         private RankingScore _scorer;
 
-        public Transformer()
+        private Stopwatch _stopwatch = new Stopwatch();
+
+        public TLearner()
         {
-            // compile grammar
             var grammar = LoadGrammar("/Users/paul/Workspace/prem/Transformer/TreeLang/TreeLang.grammar",
                 CompilerReference.FromAssemblyFiles(
                     typeof(Semantics).GetTypeInfo().Assembly,
                     typeof(Record).GetTypeInfo().Assembly,
                     typeof(SyntaxNode).GetTypeInfo().Assembly));
-            if (grammar == null) {
-                Console.WriteLine("ST: Grammar not compiled.");
+            if (grammar == null)
+            {
+                Log.Error("Transformer: grammar not compiled.");
                 return;
             }
-            _inputSymbol = grammar.InputSymbol; // set input symbol
-            _refSymbol = grammar.Symbol("ref"); // set ref symbol
 
-            // set up engine
+            _inputSymbol = grammar.InputSymbol;
+            _targetSymbol = grammar.Symbol("target");
+
             var witnessFunctions = new WitnessFunctions(grammar);
             _scorer = new RankingScore(grammar);
             _engine = new SynthesisEngine(grammar, new SynthesisEngine.Config
             {
                 Strategies = new ISynthesisStrategy[]
                 {
-                    // new EnumerativeSynthesis(),
                     new DeductiveSynthesis(witnessFunctions)
                 },
                 UseThreads = false,
+#if DEBUG
                 LogListener = new LogListener(LogInfo.Witness),
+#endif
             });
 
-            Log.Debug("Synthesis engine is setup.");
+            Log.Debug("Transformer: synthesis engine is setup.");
         }
 
-        public ProgramNode[] LearnPrograms(IEnumerable<TExample> examples, int k)
+        public List<TProgram> Learn(IEnumerable<TExample> examples, int k)
         {
-            // examples
             var constraints = examples.ToDictionary(
-                e => State.CreateForLearning(_inputSymbol, e.errNode),
-                e => (object) e.outputTree
+                e => State.CreateForLearning(_inputSymbol, e.input.errNode),
+                e => (object)e.output
             );
             Spec spec = new ExampleSpec(constraints);
 
-            // learn
-            var programs = _engine.LearnGrammarTopK(spec, _scorer, k);
+            _stopwatch.Start();
+            var programSet = _engine.LearnGrammarTopK(spec, _scorer, k);
+#if DEBUG
             _engine.Configuration.LogListener.SaveLogToXML("learning.log.xml");
-            Log.Debug("{0} program(s) synthesized.", programs.Size);
-            
-            return programs.RealizedPrograms.Take(k).ToArray();
+#endif
+            _stopwatch.Stop();
+
+            Log.Info("Transformer: {0} program(s) synthesized, time elapsed {1} ms.",
+                programSet.Size, _stopwatch.ElapsedMilliseconds);
+
+            return programSet.RealizedPrograms.Take(k)
+                .Select(p => new TProgram(p, p.GetFeatureValue(_scorer), _inputSymbol))
+                .ToList();
         }
 
-        public static Grammar LoadGrammar(string grammarFile, IReadOnlyList<CompilerReference> assemblyReferences)
+        private static Grammar LoadGrammar(string file, IReadOnlyList<CompilerReference> assemblyReferences)
         {
-            var compilationResult = DSLCompiler.Compile(new CompilerOptions() {
-                InputGrammarText = File.ReadAllText(grammarFile),
+            var compilationResult = DSLCompiler.Compile(new CompilerOptions()
+            {
+                InputGrammarText = File.ReadAllText(file),
                 References = assemblyReferences
             });
 
@@ -108,13 +160,6 @@ namespace Prem.Transformer
             {
                 compilationResult.TraceDiagnostics();
                 return null;
-            }
-            if (compilationResult.Diagnostics.Count > 0)
-            {
-                Console.WriteLine("has Diagnostics");
-                foreach (var d in compilationResult.Diagnostics) {
-                    Console.WriteLine(d.ToString());
-                }
             }
 
             return compilationResult.Value;
