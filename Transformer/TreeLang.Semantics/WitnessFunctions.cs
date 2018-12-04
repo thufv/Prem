@@ -403,7 +403,7 @@ namespace Prem.Transformer.TreeLang
                     return null;
                 }
 
-                var tail = children.Skip(1);
+                var tail = children.Rest();
 #if DEBUG
                 ShowList(tail);
 #endif

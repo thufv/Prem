@@ -40,6 +40,9 @@ namespace Prem.Util
         public SyntaxNode FindNodeWhere(Func<SyntaxNode, bool> predicate) =>
             root.GetSubtrees().First(predicate);
 
+        public Token FindTokenWhere(Func<Token, bool> predicate) =>
+            FindNodeWhere(n => n.kind == SyntaxKind.TOKEN && predicate((Token)n)) as Token;
+
         public void DoComparison(SyntaxNode target)
         {
             _compareResult = new SyntaxNodeComparer().GetResult(root, target);

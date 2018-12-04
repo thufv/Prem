@@ -30,9 +30,9 @@ namespace Prem
             var ctx2 = SyntaxNodeContext.FromJSON(json2);
             var errPos = new Pos(1, 10);
             
-            var example = new Example(ctx1, ctx2, errPos, "<no msg>");
-            var synthesizer = new Synthesizer(example);
-            synthesizer.SynthesizeTransformers();
+            var example = new Example(new Input(ctx1, errPos, ""), ctx2);
+            var synthesizer = new Synthesizer();
+            synthesizer.Synthesize(example, 10);
         }
     }
 }
