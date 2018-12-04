@@ -10,7 +10,7 @@ using Microsoft.ProgramSynthesis.Utils;
 using MyLogger = Prem.Util.Logger;
 using Prem.Util;
 
-namespace Prem.Transformer.LocLang
+namespace Prem.Transformer.TreeLang
 {
     public class WitnessFunctions : DomainLearningLogic
     {

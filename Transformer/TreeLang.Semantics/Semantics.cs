@@ -7,7 +7,7 @@ using Microsoft.ProgramSynthesis.Utils;
 using Prem.Util;
 using Logger = Prem.Util.Logger;
 
-namespace Prem.Transformer.LocLang
+namespace Prem.Transformer.TreeLang
 {
     public static class Semantics
     {

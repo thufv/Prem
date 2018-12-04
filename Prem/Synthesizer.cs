@@ -55,7 +55,7 @@ namespace Prem
 
         public void SynthesizeTransformers()
         {
-            var locExamples = new List<LocExample>();
+            var locExamples = new List<TExample>();
 
             var printer = new IndentPrinter();
             int i = 1;
@@ -91,10 +91,10 @@ namespace Prem
                 }
 
                 // 3. Append loc example
-                locExamples.Add(new LocExample(example.oldTree.root, example.errNode, example.newTree.root));
+                locExamples.Add(new TExample(example.oldTree.root, example.errNode, example.newTree.root));
             }
 
-            var t = new LocTransformer();
+            var t = new Transformer.Transformer();
             var programs = t.LearnPrograms(locExamples, 10);
             foreach (var prog in programs)
             {

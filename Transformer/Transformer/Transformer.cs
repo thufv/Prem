@@ -13,13 +13,13 @@ using Microsoft.ProgramSynthesis.Learning.Strategies;
 using Microsoft.ProgramSynthesis.Learning.Logging;
 using Microsoft.ProgramSynthesis.Utils;
 
-using Prem.Transformer.LocLang;
+using Prem.Transformer.TreeLang;
 using Prem.Util;
 using MyLogger = Prem.Util.Logger;
 
 namespace Prem.Transformer
 {
-    public class LocExample
+    public class TExample
     {
         public SyntaxNode inputTree { get; }
 
@@ -27,7 +27,7 @@ namespace Prem.Transformer
 
         public SyntaxNode outputTree { get; }
 
-        public LocExample(SyntaxNode inputTree, SyntaxNode errNode, SyntaxNode outputTree)
+        public TExample(SyntaxNode inputTree, SyntaxNode errNode, SyntaxNode outputTree)
         {
             this.inputTree = inputTree;
             this.errNode = errNode;
@@ -37,11 +37,10 @@ namespace Prem.Transformer
 
 
     /// <summary>
-    /// A concrete string transformer developed by our own.
-    /// This class wraps some useful methods to interactive with the synthesizer.
-    /// See the base class <see ref="TransformerExample"/> for the functionality of the methods.
+    /// A tree transformer for synthesizing programs expressed with the `TreeLang` described in
+    /// `Prem.Transformer.TreeLang`.
     /// </summary>
-    public class LocTransformer
+    public class Transformer
     {
         private static MyLogger Log = MyLogger.Instance;
 
@@ -49,10 +48,10 @@ namespace Prem.Transformer
         private Symbol _inputSymbol, _refSymbol;
         private RankingScore _scorer;
 
-        public LocTransformer()
+        public Transformer()
         {
             // compile grammar
-            var grammar = LoadGrammar("/Users/paul/Workspace/prem/Transformer/LocLang/LocLang.grammar",
+            var grammar = LoadGrammar("/Users/paul/Workspace/prem/Transformer/TreeLang/TreeLang.grammar",
                 CompilerReference.FromAssemblyFiles(
                     typeof(Semantics).GetTypeInfo().Assembly,
                     typeof(Record).GetTypeInfo().Assembly,
@@ -81,7 +80,7 @@ namespace Prem.Transformer
             Log.Debug("Synthesis engine is setup.");
         }
 
-        public ProgramNode[] LearnPrograms(IEnumerable<LocExample> examples, int k)
+        public ProgramNode[] LearnPrograms(IEnumerable<TExample> examples, int k)
         {
             // examples
             var constraints = examples.ToDictionary(

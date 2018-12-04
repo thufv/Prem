@@ -1,17 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
 
   <!-- <ItemGroup>
-    <None Include="..\LocLang\LocLang.grammar" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\TreeLang\TreeLang.grammar" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup> -->
 
   <ItemGroup>
-    <ProjectReference Include="..\LocLang.Semantics\LocLang.Semantics.csproj" />
-    <ProjectReference Include="..\LocLang\LocLang.csproj" />
+    <ProjectReference Include="..\TreeLang.Semantics\TreeLang.Semantics.csproj" />
+    <ProjectReference Include="..\TreeLang\TreeLang.csproj" />
     
     <PackageReference Include="Microsoft.ProgramSynthesis" Version="6.9.0" />
     <PackageReference Include="Microsoft.ProgramSynthesis.Compiler" Version="6.9.0" />
   </ItemGroup>
+
 </Project>

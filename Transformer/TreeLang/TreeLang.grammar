@@ -1,14 +1,14 @@
 ﻿using System.Collections.Generic;
 using Prem.Util;
-using Prem.Transformer.LocLang;
+using Prem.Transformer.TreeLang;
 using Microsoft.ProgramSynthesis.Utils;
 
-using semantics Prem.Transformer.LocLang.Semantics;
-using learners Prem.Transformer.LocLang.WitnessFunctions;
+using semantics Prem.Transformer.TreeLang.Semantics;
+using learners Prem.Transformer.TreeLang.WitnessFunctions;
 
-language LocLang;
+language TreeLang;
 
-@complete feature double Score = Prem.Transformer.LocLang.RankingScore;
+@complete feature double Score = Prem.Transformer.TreeLang.RankingScore;
 
 @input SyntaxNode source;
 

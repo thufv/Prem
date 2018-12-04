@@ -7,7 +7,7 @@ using Microsoft.ProgramSynthesis.Features;
 using Prem.Util;
 using MyLogger = Prem.Util.Logger;
 
-namespace Prem.Transformer.LocLang
+namespace Prem.Transformer.TreeLang
 {
     public class RankingScore : Feature<double>
     {
