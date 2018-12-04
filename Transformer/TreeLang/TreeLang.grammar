@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
+
 using Prem.Util;
 using Prem.Transformer.TreeLang;
-using Microsoft.ProgramSynthesis.Utils;
 
 using semantics Prem.Transformer.TreeLang.Semantics;
 using learners Prem.Transformer.TreeLang.WitnessFunctions;
@@ -27,9 +27,7 @@ IEnumerable<SyntaxNode> candidates := Find(constraint, subtrees)
 
 IEnumerable<SyntaxNode> subtrees := Sub(ancestor);
 
-SyntaxNode ancestor := Just(source) | AbsAncestor(source, k) | RelAncestor(source, labelK);
-
-Record<Label, int>? labelK := LabelK(label, k) = Pair(label, k);
+SyntaxNode ancestor := Just(source) | AbsAncestor(source, k) | RelAncestor(source, label, k);
 
 bool constraint := Any(x)
                  | AnyError(x)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Diagnostics;
 using Microsoft.ProgramSynthesis;
 using Microsoft.ProgramSynthesis.AST;
 using Microsoft.ProgramSynthesis.Compiler;
@@ -11,12 +12,9 @@ using Microsoft.ProgramSynthesis.VersionSpace;
 using Microsoft.ProgramSynthesis.Learning;
 using Microsoft.ProgramSynthesis.Learning.Strategies;
 using Microsoft.ProgramSynthesis.Learning.Logging;
-using Microsoft.ProgramSynthesis.Utils;
 
 using Prem.Transformer.TreeLang;
 using Prem.Util;
-using PremLogger = Prem.Util.Logger;
-using System.Diagnostics;
 
 namespace Prem.Transformer
 {
@@ -84,7 +82,7 @@ namespace Prem.Transformer
     /// </summary>
     public sealed class TLearner
     {
-        private static PremLogger Log = PremLogger.Instance;
+        private static Logger Log = Logger.Instance;
 
         private SynthesisEngine _engine;
         private Symbol _inputSymbol, _targetSymbol;
@@ -97,7 +95,6 @@ namespace Prem.Transformer
             var grammar = LoadGrammar("/Users/paul/Workspace/prem/Transformer/TreeLang/TreeLang.grammar",
                 CompilerReference.FromAssemblyFiles(
                     typeof(Semantics).GetTypeInfo().Assembly,
-                    typeof(Record).GetTypeInfo().Assembly,
                     typeof(SyntaxNode).GetTypeInfo().Assembly));
             if (grammar == null)
             {

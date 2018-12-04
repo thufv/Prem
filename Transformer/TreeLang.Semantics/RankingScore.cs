@@ -4,8 +4,8 @@ using System.Linq;
 using Microsoft.ProgramSynthesis;
 using Microsoft.ProgramSynthesis.AST;
 using Microsoft.ProgramSynthesis.Features;
+
 using Prem.Util;
-using MyLogger = Prem.Util.Logger;
 
 namespace Prem.Transformer.TreeLang
 {
@@ -13,7 +13,7 @@ namespace Prem.Transformer.TreeLang
     {
         public RankingScore(Grammar grammar) : base(grammar, "Score") { }
 
-        private static MyLogger Log = MyLogger.Instance;
+        private static Logger Log = Logger.Instance;
 
         protected override double GetFeatureValueForVariable(VariableNode variable) => 0;
 
@@ -62,10 +62,7 @@ namespace Prem.Transformer.TreeLang
         public static double AbsAncestor(double source, double k) => k;
 
         [FeatureCalculator(nameof(Semantics.RelAncestor))]
-        public static double RelAncestor(double source, double labelK) => labelK;
-
-        [FeatureCalculator("LabelK")]
-        public static double LabelK(double label, double k) => label * k;
+        public static double RelAncestor(double source, double label, double k) => label + k;
 
         [FeatureCalculator(nameof(Semantics.Any))]
         public static double Any(double x) => 0.25;

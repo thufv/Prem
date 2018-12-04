@@ -1,20 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Diagnostics;
 using Microsoft.ProgramSynthesis;
 using Microsoft.ProgramSynthesis.Rules;
 using Microsoft.ProgramSynthesis.Specifications;
 using Microsoft.ProgramSynthesis.Learning;
-using Microsoft.ProgramSynthesis.Utils;
 
-using MyLogger = Prem.Util.Logger;
 using Prem.Util;
 
 namespace Prem.Transformer.TreeLang
 {
     public class WitnessFunctions : DomainLearningLogic
     {
-        private static MyLogger Log = MyLogger.Instance;
+        private static Logger Log = Logger.Instance;
 
         private static void Show<T>(T item)
         {
@@ -24,6 +23,11 @@ namespace Prem.Transformer.TreeLang
         private static void ShowMany<T>(IEnumerable<T> list)
         {
             Log.Fine("Candidates: {0}", String.Join(", ", list.Select(x => x.ToString())));
+        }
+
+        private static void ShowList<T>(IEnumerable<T> list)
+        {
+            Log.Fine("Candidate: [{0}]", String.Join(", ", list.Select(x => x.ToString())));
         }
 
         private Symbol _inputSymbol;
@@ -58,7 +62,9 @@ namespace Prem.Transformer.TreeLang
                 {
                     return null;
                 }
-
+#if DEBUG
+                Show(((Insert)result).oldNodeParent);
+#endif
                 refDict[input] = ((Insert)result).oldNodeParent;
             }
 
@@ -80,7 +86,9 @@ namespace Prem.Transformer.TreeLang
                 {
                     return null;
                 }
-
+#if DEBUG
+                Show(((Insert)result).k);
+#endif
                 kDict[input] = ((Insert)result).k;
             }
 
@@ -102,7 +110,9 @@ namespace Prem.Transformer.TreeLang
                 {
                     return null;
                 }
-
+#if DEBUG
+                Show(((Insert)result).newNode);
+#endif
                 treeDict[input] = ((Insert)result).newNode;
             }
 
@@ -124,7 +134,9 @@ namespace Prem.Transformer.TreeLang
                 {
                     return null;
                 }
-
+#if DEBUG
+                Show(((Delete)result).oldNode);
+#endif
                 refDict[input] = ((Delete)result).oldNode;
             }
 
@@ -147,7 +159,7 @@ namespace Prem.Transformer.TreeLang
                     return null;
                 }
 #if DEBUG
-                Log.Fine("Candidate: {0}", ((Update)result).oldNode);
+                Show(((Update)result).oldNode);
 #endif
                 refDict[input] = ((Update)result).oldNode;
             }
@@ -170,7 +182,9 @@ namespace Prem.Transformer.TreeLang
                 {
                     return null;
                 }
-
+#if DEBUG
+                Show(((Update)result).newNode);
+#endif
                 treeDict[input] = ((Update)result).newNode;
             }
 
@@ -311,8 +325,9 @@ namespace Prem.Transformer.TreeLang
                 }
 
                 var children = tree.GetChildren().Select(t => t.ToPartial()).ToList();
+                Debug.Assert(children.Any());
 #if DEBUG
-                ShowMany(children);
+                ShowList(children);
 #endif
                 childrenDict[input] = children;
             }
@@ -331,7 +346,7 @@ namespace Prem.Transformer.TreeLang
             foreach (var input in spec.ProvidedInputs)
             {
                 var children = (List<PartialNode>)spec.Examples[input];
-                if (children.Count != 1) // `Child` can construct a single child.
+                if (!children.Singleton()) // `Child` can construct a single child.
                 {
                     return null;
                 }
@@ -390,7 +405,7 @@ namespace Prem.Transformer.TreeLang
 
                 var tail = children.Skip(1);
 #if DEBUG
-                ShowMany(tail);
+                ShowList(tail);
 #endif
                 tailDict[input] = tail;
             }
@@ -409,7 +424,8 @@ namespace Prem.Transformer.TreeLang
             foreach (var input in spec.ProvidedInputs)
             {
                 var positive = spec.PositiveExamples[input].Select(x => (SyntaxNode)x).ToList();
-                // var negative = (List<Tree.SyntaxNodeContext>) spec.NegativeExamples[input];
+                var negative = spec.NegativeExamples[input];
+                Debug.Assert(!negative.Any());
 
                 var source = GetSource(input);
                 var candidates = CommonAncestor.CommonAncestors(source, positive);
@@ -448,35 +464,61 @@ namespace Prem.Transformer.TreeLang
         }
 
         [WitnessFunction(nameof(Semantics.RelAncestor), 1)]
-        public DisjunctiveExamplesSpec RelAncestorLabelK(GrammarRule rule,
+        public DisjunctiveExamplesSpec RelAncestorLabel(GrammarRule rule,
             DisjunctiveExamplesSpec spec)
         {
-            // Find all `labelK` s.t. `RelAncestor(source, labelK) = a`.
-            // where `a \in ancestors`.
-            // ASSUME every `a` is an ancestor of `source`.
+            // Find all `label` s.t. `RelAncestor(source, label, k) = ancestor`
+            // where `ancestor \in ancestors`.
 #if DEBUG
-            Log.Fine("RelAncestor.labelK |- {0}", spec);
+            Log.Fine("RelAncestor.label |- {0}", spec);
 #endif
-            var labelKs = new Dictionary<State, IEnumerable<object>>();
+            var labelsDict = new Dictionary<State, IEnumerable<object>>();
             foreach (var input in spec.ProvidedInputs)
             {
                 var source = GetSource(input);
-                var ancestors = spec.DisjunctiveExamples[input].Select(a => (SyntaxNode)a).ToList();
-                var candidates = ancestors.Where(a => a.id != source.id)
-                    .Select(a => Record.Create(
-                        a.label, source.CountAncestorWhere(x => x.label == a.label, a.id)))
-                    .Select(k => (object)k);
+                var ancestors = spec.DisjunctiveExamples[input].Select(a => (SyntaxNode)a);
+                var labels = ancestors.Where(a => a.id != source.id).Select(a => a.label);
+
+                if (!labels.Any()) return null;
 #if DEBUG
-                ShowMany(candidates);
+                ShowMany(labels);
 #endif
-                labelKs[input] = candidates;
+                labelsDict[input] = labels;
             }
 
-            return new DisjunctiveExamplesSpec(labelKs);
+            return new DisjunctiveExamplesSpec(labelsDict);
+        }
+
+        [WitnessFunction(nameof(Semantics.RelAncestor), 2, DependsOnParameters = new[]{ 1 })]
+        public DisjunctiveExamplesSpec RelAncestorK(GrammarRule rule, DisjunctiveExamplesSpec spec, 
+            ExampleSpec labelSpec)
+        {
+            // Find all `k` s.t. `RelAncestor(source, label, k) = ancestor` given the `label`.
+#if DEBUG
+            Log.Fine("RelAncestor.k |- {0}", spec);
+#endif
+            var ksDict = new Dictionary<State, IEnumerable<object>>();
+            foreach (var input in spec.ProvidedInputs)
+            {
+                var source = GetSource(input);
+                var label = (Label)labelSpec.Examples[input];
+                var ancestors = spec.DisjunctiveExamples[input].Select(a => (SyntaxNode)a);
+                var ks = ancestors.Where(a => a.id != source.id && a.label.Equals(label))
+                    .Select(a => source.CountAncestorWhere(n => n.label.Equals(label), a.id))
+                    .Select(k => (object)k);
+
+                if (!ks.Any()) return null;
+#if DEBUG
+                ShowMany(ks);
+#endif
+                ksDict[input] = ks;
+            }
+
+            return new DisjunctiveExamplesSpec(ksDict);
         }
 
         [WitnessFunction(nameof(Semantics.TokenMatch), 1)]
-        public ExampleSpec TokenMatchLabel(GrammarRule rule, DisjunctiveExamplesSpec spec)
+        public ExampleSpec TokenMatchLabel(GrammarRule rule, ExampleSpec spec)
         {
             // Find the `label` s.t. `TokenMatch(x, label) = true`.
 #if DEBUG
@@ -485,6 +527,7 @@ namespace Prem.Transformer.TreeLang
             var labelDict = new Dictionary<State, object>();
             foreach (var input in spec.ProvidedInputs)
             {
+                Debug.Assert((bool)spec.Examples[input]);
                 var x = (SyntaxNode)input[rule.Body[0]];
                 if (x.kind != SyntaxKind.TOKEN) // `TokenMatch` can only match tokens.
                 {
@@ -500,7 +543,7 @@ namespace Prem.Transformer.TreeLang
         }
 
         [WitnessFunction(nameof(Semantics.NodeMatch), 1)]
-        public ExampleSpec NodeMatchLabel(GrammarRule rule, DisjunctiveExamplesSpec spec)
+        public ExampleSpec NodeMatchLabel(GrammarRule rule, ExampleSpec spec)
         {
             // Find the `label` s.t. `NodeMatch(x, label) = true`.
 #if DEBUG
@@ -509,6 +552,7 @@ namespace Prem.Transformer.TreeLang
             var labelDict = new Dictionary<State, object>();
             foreach (var input in spec.ProvidedInputs)
             {
+                Debug.Assert((bool)spec.Examples[input]);
                 var x = (SyntaxNode)input[rule.Body[0]];
                 if (x.kind != SyntaxKind.NODE) // `NodeMatch` can only match nodes.
                 {

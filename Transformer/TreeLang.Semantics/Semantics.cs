@@ -2,10 +2,8 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using Microsoft.ProgramSynthesis.Utils;
 
 using Prem.Util;
-using Logger = Prem.Util.Logger;
 
 namespace Prem.Transformer.TreeLang
 {
@@ -48,14 +46,8 @@ namespace Prem.Transformer.TreeLang
         public static SyntaxNode AbsAncestor(SyntaxNode source, int k) =>
             source.GetAncestor(k).ValueOr(source);
 
-        public static SyntaxNode RelAncestor(SyntaxNode source, Record<Label, int>? labelK)
-        {
-            if (labelK == null) return null;
-
-            var label = labelK.Value.Item1;
-            var k = labelK.Value.Item2;
-            return source.GetAncestorWhere(x => x.label.Equals(label), k).ValueOr(source);
-        }
+        public static SyntaxNode RelAncestor(SyntaxNode source, Label label, int k) =>
+            source.GetAncestorWhere(x => x.label.Equals(label), k).ValueOr(source);
 
         public static bool Any(SyntaxNode _) => true;
 
