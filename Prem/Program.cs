@@ -30,7 +30,7 @@ namespace Prem
             var ctx2 = SyntaxNodeContext.FromJSON(json2);
             var errPos = new Pos(1, 10);
             
-            var example = new Example(new Input(ctx1, errPos, ""), ctx2);
+            var example = new Example(new Input(ctx1, errPos, "The variable `i' and 'j' seem to be wrong"), ctx2);
             var synthesizer = new Synthesizer();
             synthesizer.Synthesize(example, 10);
         }

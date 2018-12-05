@@ -15,6 +15,7 @@ using Microsoft.ProgramSynthesis.Learning.Logging;
 
 using Prem.Transformer.TreeLang;
 using Prem.Util;
+using Optional;
 
 namespace Prem.Transformer
 {
@@ -65,10 +66,12 @@ namespace Prem.Transformer
             this.score = score;
         }
 
-        public SyntaxNode Apply(TInput input)
+        public Option<SyntaxNode> Apply(TInput input)
         {
             var inputState = State.CreateForExecution(_inputSymbol, input.errNode);
-            return _program.Invoke(inputState) as SyntaxNode;
+            var result = _program.Invoke(inputState) as SyntaxNode;
+
+            return result == null ? Option.None<SyntaxNode>() : Option.Some(result);
         }
 
         public override string ToString() =>

@@ -69,6 +69,8 @@ namespace Prem
             return SynthesizeErrPattern(examples).Match(
                 some: pattern =>
                 {
+                    Log.Debug("Synthesized error pattern: {0}", pattern);
+
                     // 2. Compare and match.
                     foreach (var example in examples)
                     {
@@ -111,19 +113,40 @@ namespace Prem
         {
             var pattern = SynthesizeErrPattern(examples.First()).Some();
             return examples.Rest().Select(SynthesizeErrPattern).Aggregate(pattern,
-                (p1, p2) => p1.FlatMap(p => UnifyErrPatterns(p, p2)));
+                (p1, p2) => p1.FlatMap(p => UnifyErrPatterns(p, p2))).Map(p => {
+                    p.LabelVars();
+                    return p;
+                });
         }
 
         private ErrPattern SynthesizeErrPattern(Example example)
         {
-            return null;
+            var words = ErrPattern.Tokenize(example.input.errMessage);
+            var pattern = new ErrPattern();
+
+            foreach (var word in words)
+            {
+                var (pair, raw) = Var.Unquote(word);
+                if ((example.input.tree.root.code.Contains(raw) || 
+                    example.output.root.code.Contains(raw)))
+                {
+                    pattern.Append(new Var(pair));
+                }
+                else
+                {
+                    pattern.Append(new Const(word));
+                }
+            }
+
+            Log.Fine("Raw error pattern: {0}", pattern);
+            return pattern;
         }
 
         private Option<ErrPattern> UnifyErrPatterns(ErrPattern p1, ErrPattern p2) =>
             (p1.Length != p2.Length) ? Option.None<ErrPattern>() 
                 : Option.Some(p1.Map2(p2, UnifyMatcher));
 
-        private Matcher UnifyMatcher(Matcher m1, Matcher m2) => null;
+        private Matcher UnifyMatcher(Matcher m1, Matcher m2) => m1.Equals(m2) ? m1 : Matcher.Any;
 
         private List<TProgram> SynthesizeTransformers(IEnumerable<TExample> examples, int k)
         {
