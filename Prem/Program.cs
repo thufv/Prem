@@ -1,38 +1,59 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using CommandLine;
+
+using Prem.Util;
+using Prem.Transformer;
 
 namespace Prem
 {
-    using Prem.Transformer;
-    using Util;
-
     internal class Program
     {
         private static Logger Log = Logger.Instance;
 
-        static void Main(string[] args)
+        class Options
         {
-            Log.DisplayLevel = LogLevel.FINE;
-            Log.ShowColor = true;
-            // run("/Users/paul/Workspace/prem/1.json", "/Users/paul/Workspace/prem/upd.json");
-            // run("/Users/paul/Workspace/prem/1.json", "/Users/paul/Workspace/prem/del.json");
-            run("/Users/paul/Workspace/prem/1.json", "/Users/paul/Workspace/prem/ins.json");
-            // run("/Users/paul/Workspace/prem/del.json", "/Users/paul/Workspace/prem/ins.json");
+            [Option('l', "log-level", Default = LogLevel.FINE, HelpText = "Set log level.")]
+            public LogLevel LogDisplayLevel { get; set; }
+
+            [Option('c', "log-color", Default = true, HelpText = "Enable/disable log color.")]
+            public bool LogShowColor { get; set; }
+
+            [Option('L', "lang", Required = true, HelpText = "Specify language.")]
+            public string Lang { get; set; }
+
+            [Option('k', "top-k", Default = 1, HelpText = "Synthesize top-k rules.")]
+            public int TopK { get; set; }
+            
+            [Value(0, MetaName = "benchmark", HelpText = "Root folder for benchmark suite.")]
+            public string Folder { get; set; }
         }
 
-        static void run(string file1, string file2)
+        static void Main(string[] args)
         {
-            string json1 = File.ReadAllText(file1);
-            string json2 = File.ReadAllText(file2);
+            CommandLine.Parser.Default.ParseArguments<Options>(args)
+                .WithParsed<Options>(opts => Run(opts))
+                .WithNotParsed<Options>(errs => HandleErrors(errs));
+        }
 
-            var ctx1 = SyntaxNodeContext.FromJSON(json1);
-            var ctx2 = SyntaxNodeContext.FromJSON(json2);
-            var errPos = new Pos(1, 10);
-            
-            var example = new Example(new Input(ctx1, errPos, "The variable `i' and 'j' seem to be wrong"), ctx2);
-            var synthesizer = new Synthesizer();
-            synthesizer.Synthesize(example, 10);
+        static void Run(Options opts)
+        {
+            // 1. Configure log
+            Log.DisplayLevel = opts.LogDisplayLevel;
+            Log.ShowColor = opts.LogShowColor;
+
+            // 2. Start experiment
+            var experiment = new Experiment(opts.Lang, opts.Folder, opts.TopK);
+            experiment.Launch();
+        }
+
+        static void HandleErrors(IEnumerable<CommandLine.Error> errs)
+        {
+            foreach (var err in errs)
+            {
+                Console.WriteLine(err.ToString());
+            }
         }
     }
 }

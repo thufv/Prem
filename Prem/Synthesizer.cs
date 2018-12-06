@@ -143,7 +143,7 @@ namespace Prem
         }
 
         private Option<ErrPattern> UnifyErrPatterns(ErrPattern p1, ErrPattern p2) =>
-            (p1.Length != p2.Length) ? Option.None<ErrPattern>() 
+            (p1.Length != p2.Length) ? Option.None<ErrPattern>()
                 : Option.Some(p1.Map2(p2, UnifyMatcher));
 
         private Matcher UnifyMatcher(Matcher m1, Matcher m2) => m1.Equals(m2) ? m1 : Matcher.Any;

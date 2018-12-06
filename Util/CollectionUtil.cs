@@ -34,6 +34,16 @@ namespace Prem.Util
             return l;
         }
 
+        public static IEnumerable<U> MapIndex<T, U>(this IEnumerable<T> seq, Func<int, T, U> func)
+        {
+            int i = 0;
+            foreach (var elem in seq)
+            {
+                yield return func(i, elem);
+                i++;
+            }
+        }
+
         public static Option<int> FirstCount<T>(this IEnumerable<T> seq, Predicate<T> predicate)
         {
             int count = 1;

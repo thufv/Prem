@@ -10,4 +10,8 @@
         <ProjectReference Include="..\Transformer\Transformer\Transformer.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="CommandLineParser" Version="2.3.0" />
+    </ItemGroup>
+
 </Project>
