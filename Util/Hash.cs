@@ -20,7 +20,12 @@ namespace Prem.Util
 
         public static int Combine(int hash, IEnumerable<int> hashValues)
         {
-            return Combine(hash, Combine(hashValues));
+            if (hashValues.Any())
+            {
+                return Combine(hash, Combine(hashValues));
+            }
+
+            return hash;
         }
     }
 }

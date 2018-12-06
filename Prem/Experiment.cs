@@ -36,6 +36,7 @@ namespace Prem
         public void Launch()
         {
             var benchmarks = Directory.GetDirectories(_rootDir).ToList();
+            benchmarks.Sort();
             _num_benchmarks = benchmarks.Count;
 
             if (_num_benchmarks == 0)
@@ -45,16 +46,19 @@ namespace Prem
             else
             {
                 var results = benchmarks.MapIndex(RunBenchmark);
-                results.ToList().ForEach(Console.WriteLine);
+                results.ToList().ForEach(xs => 
+                    Console.WriteLine(String.Join(", ", xs.Select(x => x.ToString()))));
             }
         }
 
         private IEnumerable<Option<int>> RunBenchmark(int index, string benchmarkFolder)
         {
-            Log.Info("Running {0} ({1}/{2})", benchmarkFolder, index, _num_benchmarks);
-            var examples = Directory.GetDirectories(benchmarkFolder).Select(CreateExample).ToList();
-            var learningExamples = examples.First();
-            var testingExamples = examples.Rest();
+            Log.Info("Running {0} ({1}/{2})", benchmarkFolder, index + 1, _num_benchmarks);
+            var exampleDirs = Directory.GetDirectories(benchmarkFolder).ToList();
+            exampleDirs.Sort();
+            var examples = exampleDirs.Select(CreateExample);
+            var learningExamples = examples.ToList();
+            var testingExamples = new List<Example>();
 
             var ruleSet = _synthesizer.Synthesize(learningExamples, _k);
             return ruleSet.TestAllMany(testingExamples);
@@ -62,7 +66,7 @@ namespace Prem
 
         private Example CreateExample(string example)
         {
-            var fs = Directory.GetFiles(example, "*.txt", SearchOption.TopDirectoryOnly);
+            var fs = Directory.GetFiles(example, "[P]*", SearchOption.TopDirectoryOnly);
             if (fs.Length != 1)
             {
                 Log.Error("Multiple error info files found in {0}", example);
@@ -78,7 +82,7 @@ namespace Prem
             }
             var inputJSON = _parser.ParseProgramAsJSON(fs[0]);
 
-            fs = Directory.GetFiles(example, "[F]*", SearchOption.TopDirectoryOnly);
+            fs = Directory.GetFiles(example, "[C]*", SearchOption.TopDirectoryOnly);
             if (fs.Length != 1)
             {
                 Log.Error("Multiple output source found in {0}", example);

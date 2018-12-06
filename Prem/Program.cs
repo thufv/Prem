@@ -14,19 +14,20 @@ namespace Prem
 
         class Options
         {
-            [Option('l', "log-level", Default = LogLevel.FINE, HelpText = "Set log level.")]
+            [Option('L', "log-level", Default = LogLevel.DEBUG, HelpText = "Set log level.")]
             public LogLevel LogDisplayLevel { get; set; }
 
             [Option('c', "log-color", Default = true, HelpText = "Enable/disable log color.")]
             public bool LogShowColor { get; set; }
 
-            [Option('L', "lang", Required = true, HelpText = "Specify language.")]
+            [Option('l', "lang", Required = true, HelpText = "Specify language.")]
             public string Lang { get; set; }
 
             [Option('k', "top-k", Default = 1, HelpText = "Synthesize top-k rules.")]
             public int TopK { get; set; }
             
-            [Value(0, MetaName = "benchmark", HelpText = "Root folder for benchmark suite.")]
+            [Value(0, MetaName = "benchmark", Required = true, 
+            HelpText = "Root folder for benchmark suite.")]
             public string Folder { get; set; }
         }
 

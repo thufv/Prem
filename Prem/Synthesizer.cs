@@ -57,11 +57,17 @@ namespace Prem
             var printer = new IndentPrinter();
             examples.ForEachIndex((i, e) =>
             {
-                Log.Debug("Example #{0}", i);
-                Log.Debug("Input tree:");
-                e.input.tree.root.PrintTo(printer);
-                Log.Debug("Output tree:");
-                e.output.root.PrintTo(printer);
+                Log.Fine("Example #{0}", i);
+                Log.Fine("Input tree:");
+                if (Log.IsLoggable(LogLevel.FINE))
+                {
+                    e.input.tree.root.PrintTo(printer);
+                }
+                Log.Fine("Output tree:");
+                if (Log.IsLoggable(LogLevel.FINE))
+                {
+                    e.output.root.PrintTo(printer);
+                }
                 Log.Debug("Err node: {0}", e.input.errNode);
             });
 #endif
@@ -76,6 +82,11 @@ namespace Prem
                     {
                         example.input.tree.DoComparison(example.output.root);
                         var result = example.input.tree.GetResult();
+                        Log.Info("Compare result: {0}", result);
+                        if (Log.IsLoggable(LogLevel.DEBUG))
+                        {
+                            result.PrintTo(printer);
+                        }
 
                         var target = result.kind == ResultKind.INSERT ? ((Insert)result).newNode
                             : result.kind == ResultKind.UPDATE ? ((Update)result).newNode

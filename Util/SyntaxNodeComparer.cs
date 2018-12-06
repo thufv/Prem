@@ -223,6 +223,8 @@ namespace Prem.Util
             Transform(oldTree).Instantiate(new SyntaxNodeContext(), 0);
 
         protected abstract PartialNode Transform(SyntaxNode node);
+
+        public abstract void PrintTo(IndentPrinter printer);
     }
 
     /// <summary>
@@ -261,6 +263,13 @@ namespace Prem.Util
             return Node.CreatePartial(label, node.GetChildren()
                 .Select(Transform).ToList()); // Insertion builder must be used here.
         }
+
+        public override void PrintTo(IndentPrinter printer)
+        {
+            oldNodeParent.PrintTo(printer);
+            printer.PrintLine("<->");
+            newNode.PrintTo(printer);
+        }
     }
 
     /// <summary>
@@ -293,6 +302,11 @@ namespace Prem.Util
             // Deletion shall be done later.
             return Node.CreatePartial(label, node.GetChildren()
                 .Select(Transform).ToList()); // Deletion builder must be used here.
+        }
+
+        public override void PrintTo(IndentPrinter printer)
+        {
+            oldNode.PrintTo(printer);
         }
     }
 
@@ -331,6 +345,13 @@ namespace Prem.Util
             return Node.CreatePartial(label, node.GetChildren()
                 .Select(Transform).ToList()); // Update builder must be used here.
         }
+
+        public override void PrintTo(IndentPrinter printer)
+        {
+            oldNode.PrintTo(printer);
+            printer.PrintLine("<->");
+            newNode.PrintTo(printer);
+        }
     }
 
     /// <summary>
@@ -343,5 +364,9 @@ namespace Prem.Util
         override public string ToString() => "Identical";
 
         protected override PartialNode Transform(SyntaxNode node) => node.ToPartial();
+
+        public override void PrintTo(IndentPrinter printer)
+        {
+        }
     }
 }

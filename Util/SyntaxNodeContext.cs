@@ -46,7 +46,6 @@ namespace Prem.Util
         public void DoComparison(SyntaxNode target)
         {
             _compareResult = new SyntaxNodeComparer().GetResult(root, target);
-            Log.Info("Compare result: {0}", _compareResult);
         }
 
         public Result GetResult() => _compareResult;
