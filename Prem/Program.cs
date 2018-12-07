@@ -25,6 +25,15 @@ namespace Prem
 
             [Option('k', "top-k", Default = 1, HelpText = "Synthesize top-k rules.")]
             public int TopK { get; set; }
+
+            [Option('f', "flag", Default = false, HelpText = "Read flag.")]
+            public bool Flag { get; set; }
+
+            [Option('e', "equally", Default = false, HelpText = "Equally treated.")]
+            public bool Equally { get; set; }
+
+            [Option('n', "num-learning", Default = 1, HelpText = "Number of learning examples.")]
+            public int NumLearning { get; set; }
             
             [Value(0, MetaName = "benchmark", Required = true, 
             HelpText = "Root folder for benchmark suite.")]
@@ -45,7 +54,8 @@ namespace Prem
             Log.ShowColor = opts.LogShowColor;
 
             // 2. Start experiment
-            var experiment = new Experiment(opts.Lang, opts.Folder, opts.TopK);
+            var experiment = opts.Flag ? new Experiment(opts.Lang, opts.Folder, opts.TopK)
+                : new Experiment(opts.Lang, opts.Folder, opts.TopK, opts.NumLearning, opts.Equally);
             experiment.Launch();
         }
 

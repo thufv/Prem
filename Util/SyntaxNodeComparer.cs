@@ -258,10 +258,14 @@ namespace Prem.Util
                 return Node.CreatePartial(label, builders);
             }
 
-            Debug.Assert(node.kind == SyntaxKind.NODE);
-            // Insertion shall be done later.
-            return Node.CreatePartial(label, node.GetChildren()
-                .Select(Transform).ToList()); // Insertion builder must be used here.
+            if (node.kind == SyntaxKind.NODE)
+            {
+                // Insertion shall be done later.
+                return Node.CreatePartial(label, node.GetChildren()
+                    .Select(Transform).ToList()); // Insertion builder must be used here.
+            }
+
+            return node.ToPartial();
         }
 
         public override void PrintTo(IndentPrinter printer)
@@ -298,10 +302,14 @@ namespace Prem.Util
                 );
             }
 
-            Debug.Assert(node.kind == SyntaxKind.NODE);
-            // Deletion shall be done later.
-            return Node.CreatePartial(label, node.GetChildren()
-                .Select(Transform).ToList()); // Deletion builder must be used here.
+            if (node.kind == SyntaxKind.NODE)
+            {
+                // Deletion shall be done later.
+                return Node.CreatePartial(label, node.GetChildren()
+                    .Select(Transform).ToList()); // Deletion builder must be used here.
+            }
+
+            return node.ToPartial();
         }
 
         public override void PrintTo(IndentPrinter printer)
@@ -340,10 +348,14 @@ namespace Prem.Util
                 );
             }
 
-            Debug.Assert(node.kind == SyntaxKind.NODE);
-            // Update shall be done later.
-            return Node.CreatePartial(label, node.GetChildren()
-                .Select(Transform).ToList()); // Update builder must be used here.
+            if (node.kind == SyntaxKind.NODE)
+            {
+                // Update shall be done later.
+                return Node.CreatePartial(label, node.GetChildren()
+                    .Select(Transform).ToList()); // Update builder must be used here.
+            }
+
+            return node.ToPartial();
         }
 
         public override void PrintTo(IndentPrinter printer)

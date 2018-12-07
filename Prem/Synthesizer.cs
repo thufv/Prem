@@ -31,10 +31,13 @@ namespace Prem
 
         public SyntaxNodeContext output { get; }
 
-        public Example(Input input, SyntaxNodeContext outputTree)
+        public string name { get; }
+
+        public Example(Input input, SyntaxNodeContext outputTree, string name = "")
         {
             this.input = input;
             this.output = outputTree;
+            this.name = name;
         }
 
         public TExample AsTExample() => new TExample(input.AsTInput(), output.root);

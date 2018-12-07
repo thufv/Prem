@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using Optional;
@@ -22,6 +24,12 @@ namespace Prem
 
         private int _num_benchmarks;
 
+        private bool _read_example_flag;
+
+        private int _num_learning_examples;
+
+        private bool _equally_treated;
+
         public DateTime CreateTime { get; }
 
         public Experiment(string language, string suiteFolder, int k)
@@ -31,6 +39,22 @@ namespace Prem
             this._synthesizer = new Synthesizer();
             this._k = k;
             this.CreateTime = DateTime.Now;
+
+            this._read_example_flag = true;
+        }
+
+        public Experiment(string language, string suiteFolder, int k, 
+            int numLearningExamples, bool equallyTreated)
+        {
+            this._parser = new Parser(language);
+            this._rootDir = suiteFolder;
+            this._synthesizer = new Synthesizer();
+            this._k = k;
+            this.CreateTime = DateTime.Now;
+
+            this._read_example_flag = false;
+            this._num_learning_examples = numLearningExamples;
+            this._equally_treated = equallyTreated;
         }
 
         public void Launch()
@@ -57,11 +81,50 @@ namespace Prem
             var exampleDirs = Directory.GetDirectories(benchmarkFolder).ToList();
             exampleDirs.Sort();
             var examples = exampleDirs.Select(CreateExample);
-            var learningExamples = examples.ToList();
-            var testingExamples = new List<Example>();
 
-            var ruleSet = _synthesizer.Synthesize(learningExamples, _k);
-            return ruleSet.TestAllMany(testingExamples);
+            if (_read_example_flag)
+            {
+                var partition = examples.GroupBy(
+                    e => e.name.StartsWith("l", true, CultureInfo.InvariantCulture))
+                    .ToDictionary(g => g.Key, g => g.AsEnumerable());
+
+                var learningExamples = partition[true].ToList();
+                if (!learningExamples.Any())
+                {
+                    Log.Error("No learning examples in benchmark: {0}", benchmarkFolder);
+                    Environment.Exit(1);
+                }
+                var ruleSet = _synthesizer.Synthesize(learningExamples, _k);
+
+                var testingExamples = partition[false].ToList();
+                if (!testingExamples.Any())
+                {
+                    Log.Warning("No testing examples in benchmark: {0}", benchmarkFolder);
+                }
+                return ruleSet.TestAllMany(testingExamples);
+            }
+            
+            if (!_equally_treated)
+            {
+                var learningExamples = examples.Take(_num_learning_examples).ToList();
+                if (!learningExamples.Any())
+                {
+                    Log.Error("No learning examples in benchmark: {0}", benchmarkFolder);
+                    Environment.Exit(1);
+                }
+                var ruleSet = _synthesizer.Synthesize(learningExamples, _k);
+
+                var testingExamples = examples.Skip(_num_learning_examples).ToList();
+                if (!testingExamples.Any())
+                {
+                    Log.Warning("No testing examples in benchmark: {0}", benchmarkFolder);
+                }
+                return ruleSet.TestAllMany(testingExamples);
+            }
+
+            // _equally_treated
+            Debug.Assert(false);
+            return null;
         }
 
         private Example CreateExample(string example)
@@ -92,7 +155,8 @@ namespace Prem
 
             return new Example(
                 new Input(SyntaxNodeContext.FromJSON(inputJSON), info.pos, info.message),
-                SyntaxNodeContext.FromJSON(outputJSON)
+                SyntaxNodeContext.FromJSON(outputJSON),
+                example
             );
         }
     }

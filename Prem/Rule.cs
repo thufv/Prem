@@ -75,6 +75,7 @@ namespace Prem
 
         public static List<(string left, string right)> QUOTE_PAIRS =
             new List<(string left, string right)> {
+                ("‘", "’"),
                 ("`", "'"),
                 ("\"", "\""),
                 ("'", "'"),
