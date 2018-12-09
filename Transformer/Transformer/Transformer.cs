@@ -49,7 +49,7 @@ namespace Prem.Transformer
 
         public Option<SyntaxNode> Apply(TInput input)
         {
-            var inputState = State.CreateForExecution(_inputSymbol, input.errNode);
+            var inputState = State.CreateForExecution(_inputSymbol, input);
             var result = _program.Invoke(inputState) as SyntaxNode;
 
             return result == null ? Option.None<SyntaxNode>() : Option.Some(result);

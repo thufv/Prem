@@ -40,6 +40,8 @@ namespace Prem.Util
                 return new Update(oldNode, newNode);
             }
 
+            Debug.Assert(newNode.kind != SyntaxKind.ERROR);
+
             // Both must be nodes.
             var oldChildren = ((Node)oldNode).children;
             var newChildren = ((Node)newNode).children;

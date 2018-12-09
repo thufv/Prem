@@ -64,6 +64,8 @@ namespace Prem.Util
 
         public SyntaxKind kind { get; }
 
+        public bool isLeaf { get; }
+
         /// <summary>
         /// Associated tree context, which stores useful information about the entire tree.
         /// </summary>
@@ -135,6 +137,7 @@ namespace Prem.Util
             Label label, string code = "")
         {
             this.kind = kind;
+            this.isLeaf = kind != SyntaxKind.NODE;
             this.context = context;
             this.depth = depth;
             this.label = label;
@@ -223,15 +226,37 @@ namespace Prem.Util
         abstract public void PrintTo(IndentPrinter printer);
     }
 
-    public class Token : SyntaxNode
+    public abstract class Leaf : SyntaxNode
     {
         public Pos pos { get; }
 
-        public Token(SyntaxNodeContext context, int depth, Label label, string code, Pos pos)
-            : base(SyntaxKind.TOKEN, context, depth, label, code)
+        public Leaf(SyntaxKind kind, SyntaxNodeContext context, 
+            int depth, Label label, string code, Pos pos)
+            : base(kind, context, depth, label, code)
         {
             this.pos = pos;
             this.treeHash = Hash.Combine(label.GetHashCode(), code.GetHashCode());
+        }
+
+        public override List<T> DFS<T>(Func<SyntaxNode, T> visitor)
+        {
+            return new List<T> { visitor(this) };
+        }
+
+        public override string ToString() => $"({id}) {label} \"{code}\" @ {pos}";
+
+        public override void PrintTo(IndentPrinter printer)
+        {
+            printer.Print(ToString());
+            printer.PrintLine($" #{treeHash}");
+        }
+    }
+
+    public class Token : Leaf
+    {
+        public Token(SyntaxNodeContext context, int depth, Label label, string code, Pos pos)
+            : base(SyntaxKind.TOKEN, context, depth, label, code, pos)
+        {
         }
 
         public override PartialNode ToPartial() => new PartialNode(this,
@@ -263,37 +288,17 @@ namespace Prem.Util
             return CreatePartial(label, code, pos);
         }
 
-        public override List<T> DFS<T>(Func<SyntaxNode, T> visitor)
-        {
-            return new List<T> { visitor(this) };
-        }
-
         public override bool IdenticalTo(SyntaxNode that)
         {
             return that.kind == SyntaxKind.TOKEN && that.label.Equals(label) && that.code == code;
         }
-
-        public override string ToString()
-        {
-            return $"({id}) {label} \"{code}\"";
-        }
-
-        public override void PrintTo(IndentPrinter printer)
-        {
-            printer.Print(ToString());
-            printer.PrintLine($" #{treeHash}");
-        }
     }
 
-    public class Error : SyntaxNode
+    public class Error : Leaf
     {
-        Pos pos;
-
         public Error(SyntaxNodeContext context, int depth, Label label, string code, Pos pos)
-            : base(SyntaxKind.ERROR, context, depth, label, code)
+            : base(SyntaxKind.ERROR, context, depth, label, code, pos)
         {
-            this.pos = pos;
-            this.treeHash = Hash.Combine(label.GetHashCode(), code.GetHashCode());
         }
 
         public override PartialNode ToPartial() => new PartialNode(this,
@@ -311,22 +316,9 @@ namespace Prem.Util
             return CreatePartial(label, code, pos);
         }
 
-        public override List<T> DFS<T>(Func<SyntaxNode, T> visitor)
-        {
-            return new List<T> { visitor(this) };
-        }
-
         public override bool IdenticalTo(SyntaxNode that)
         {
             return that.kind == SyntaxKind.ERROR && that.label.Equals(label) && that.code == code;
-        }
-
-        public override string ToString() => $"({id}) {label} \"{code}\" @ {pos}";
-
-        public override void PrintTo(IndentPrinter printer)
-        {
-            printer.Print(ToString());
-            printer.PrintLine($" #{treeHash}");
         }
     }
 

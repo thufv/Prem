@@ -196,7 +196,9 @@ namespace Prem
 
         public static RuleSet Empty = new RuleSet();
 
-        public int Count => transformers.Count;
+        public int size => transformers.Count;
+
+        public bool isEmpty => !transformers.Any();
 
         public Option<SyntaxNode> ApplyTop(Input input)
         {

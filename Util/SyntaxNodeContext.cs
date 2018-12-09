@@ -31,11 +31,14 @@ namespace Prem.Util
             return context;
         }
 
-        public SyntaxNode FindNodeWhere(Func<SyntaxNode, bool> predicate) =>
-            root.GetSubtrees().First(predicate);
+        public Option<SyntaxNode> FindNodeWhere(Func<SyntaxNode, bool> predicate)
+        {
+            var node = root.GetSubtrees().FirstOrDefault(predicate);
+            return node == null ? Option.None<SyntaxNode>() : Option.Some<SyntaxNode>(node);
+        }
 
-        public Token FindTokenWhere(Func<Token, bool> predicate) =>
-            FindNodeWhere(n => n.kind == SyntaxKind.TOKEN && predicate((Token)n)) as Token;
+        public Option<SyntaxNode> FindLeafWhere(Func<Leaf, bool> predicate) =>
+            FindNodeWhere(n => n.isLeaf && predicate((Leaf)n));
     }
 
     public class Counter

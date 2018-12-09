@@ -90,12 +90,9 @@ namespace Prem
                 }
                 var ruleSet = _synthesizer.Synthesize(learningExamples, _k);
 
-                var testingExamples = partition[false].ToList();
-                if (!testingExamples.Any())
-                {
-                    Log.Warning("No testing examples in benchmark: {0}", benchmarkFolder);
-                }
-                ruleSet.TestAllMany(testingExamples);
+                var testingExamples = partition[false];
+                PrintResults(ruleSet.TestAllMany(testingExamples));
+                return;
             }
             
             if (!_equally_treated)
@@ -107,13 +104,14 @@ namespace Prem
                     Environment.Exit(1);
                 }
                 var ruleSet = _synthesizer.Synthesize(learningExamples, _k);
-
-                var testingExamples = examples.Skip(_num_learning_examples).ToList();
-                if (!testingExamples.Any())
+                if (ruleSet.isEmpty)
                 {
-                    Log.Warning("No testing examples in benchmark: {0}", benchmarkFolder);
+                    return;
                 }
-                ruleSet.TestAllMany(testingExamples);
+
+                var testingExamples = examples.Skip(_num_learning_examples);
+                PrintResults(ruleSet.TestAllMany(testingExamples));
+                return;
             }
 
             // _equally_treated
@@ -147,10 +145,15 @@ namespace Prem
             var outputJSON = _parser.ParseProgramAsJSON(fs[0]);
 
             return new Example(
-                new Input(SyntaxNodeContext.FromJSON(inputJSON), info.pos, info.message),
+                new Input(SyntaxNodeContext.FromJSON(inputJSON), info.pos, info.message, fs[0]),
                 SyntaxNodeContext.FromJSON(outputJSON),
                 example
             );
+        }
+
+        private void PrintResults(IEnumerable<Option<int>> results)
+        {
+            Log.Info("Result: {0}", Show.L(results.ToList()));
         }
     }
 }

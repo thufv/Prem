@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -13,16 +14,27 @@ namespace Prem
 
     public class Input
     {
+        protected static Logger Log = Logger.Instance;
+
         public SyntaxNodeContext tree { get; }
 
         public SyntaxNode errNode { get; }
 
         public string errMessage { get; }
 
-        public Input(SyntaxNodeContext inputTree, Pos errPos, string errMessage)
+        public string file { get; }
+
+        public Input(SyntaxNodeContext inputTree, Pos errPos, string errMessage, string file = "")
         {
             this.tree = inputTree;
-            this.errNode = inputTree.FindTokenWhere(n => n.pos.Equals(errPos));
+            this.errNode = inputTree.FindLeafWhere(n => n.pos.Equals(errPos)).Match(
+                some: token => token,
+                none: () => {
+                    Log.Error("Error position {0} not in {1}", errPos, file);
+                    Environment.Exit(1);
+                    return null;
+                }
+            );
             this.errMessage = errMessage;
         }
 
