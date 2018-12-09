@@ -12,37 +12,18 @@ using Microsoft.ProgramSynthesis.VersionSpace;
 using Microsoft.ProgramSynthesis.Learning;
 using Microsoft.ProgramSynthesis.Learning.Strategies;
 using Microsoft.ProgramSynthesis.Learning.Logging;
+using Optional;
 
 using Prem.Transformer.TreeLang;
 using Prem.Util;
-using Optional;
 
 namespace Prem.Transformer
 {
-    public class TInput
-    {
-        public SyntaxNode inputTree { get; }
-
-        public SyntaxNode errNode { get; }
-
-        public TInput(SyntaxNode inputTree, SyntaxNode errNode)
-        {
-            this.inputTree = inputTree;
-            this.errNode = errNode;
-        }
-    }
-
     public class TExample
     {
         public TInput input { get; }
 
         public SyntaxNode output { get; }
-
-        public TExample(SyntaxNode inputTree, SyntaxNode errNode, SyntaxNode outputTree)
-        {
-            this.input = new TInput(inputTree, errNode);
-            this.output = outputTree;
-        }
 
         public TExample(TInput input, SyntaxNode outputTree)
         {
@@ -88,7 +69,7 @@ namespace Prem.Transformer
         private static Logger Log = Logger.Instance;
 
         private SynthesisEngine _engine;
-        private Symbol _inputSymbol, _targetSymbol;
+        private Symbol _inputSymbol;
         private RankingScore _scorer;
 
         private Stopwatch _stopwatch = new Stopwatch();
@@ -106,7 +87,6 @@ namespace Prem.Transformer
             }
 
             _inputSymbol = grammar.InputSymbol;
-            _targetSymbol = grammar.Symbol("target");
 
             var witnessFunctions = new WitnessFunctions(grammar);
             _scorer = new RankingScore(grammar);
@@ -128,7 +108,7 @@ namespace Prem.Transformer
         public List<TProgram> Learn(IEnumerable<TExample> examples, int k)
         {
             var constraints = examples.ToDictionary(
-                e => State.CreateForLearning(_inputSymbol, e.input.errNode),
+                e => State.CreateForLearning(_inputSymbol, e.input),
                 e => (object)e.output
             );
             Spec spec = new ExampleSpec(constraints);

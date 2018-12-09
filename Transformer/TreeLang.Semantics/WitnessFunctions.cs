@@ -37,15 +37,12 @@ namespace Prem.Transformer.TreeLang
             this._inputSymbol = grammar.InputSymbol;
         }
 
-        private SyntaxNode GetSource(State input)
-        {
-            return (SyntaxNode)input[_inputSymbol];
-        }
+        private SyntaxNode GetSource(State input) => ((TInput)input[_inputSymbol]).errNode;
 
-        private Result GetResult(State input)
-        {
-            return GetSource(input).context.GetResult();
-        }
+        private Result GetResult(State input) => GetSource(input).context.result;
+
+        private int Find(State input, string s) =>
+            ((TInput)input[_inputSymbol]).Find(s).ValueOr(-1);
 
         [WitnessFunction(nameof(Semantics.Ins), 0)]
         public ExampleSpec InsTarget(GrammarRule rule, ExampleSpec spec)
@@ -236,38 +233,65 @@ namespace Prem.Transformer.TreeLang
             return new DisjunctiveExamplesSpec(targetsDict);
         }
 
-        [WitnessFunction(nameof(Semantics.ConstToken), 0)]
-        public ExampleSpec ConstTokenLabel(GrammarRule rule, ExampleSpec spec)
+        [WitnessFunction(nameof(Semantics.RefToken), 1)]
+        public ExampleSpec RefTokenIndex(GrammarRule rule, ExampleSpec spec)
         {
-            // Find the `label` s.t. `ConstToken(label, code) = tree`.
+            // Find the `i` s.t. `RefToken(source, i, label) = tree`.
 #if DEBUG
-            Log.Fine("ConstToken.label |- {0}", spec);
+            Log.Fine("RefToken.i |- {0}", spec);
 #endif
-            var tokenDict = new Dictionary<State, object>();
+            var indexDict = new Dictionary<State, object>();
             foreach (var input in spec.ProvidedInputs)
             {
                 var tree = ((PartialNode)spec.Examples[input]).orig;
-                if (tree.kind != SyntaxKind.TOKEN) // `ConstToken` can only construct tokens.
+                if (tree.kind != SyntaxKind.TOKEN) // `RefToken` can only construct tokens.
+                {
+                    return null;
+                }
+
+                var key = Find(input, tree.code);
+                if (key == -1) return null;
+#if DEBUG
+                Show(key);
+#endif
+                indexDict[input] = key;
+            }
+
+            return new ExampleSpec(indexDict);
+        }
+
+        [WitnessFunction(nameof(Semantics.RefToken), 2)]
+        public ExampleSpec RefTokenLabel(GrammarRule rule, ExampleSpec spec)
+        {
+            // Find the `label` s.t. `RefToken(source, i, label) = tree`.
+#if DEBUG
+            Log.Fine("RefToken.label |- {0}", spec);
+#endif
+            var labelDict = new Dictionary<State, object>();
+            foreach (var input in spec.ProvidedInputs)
+            {
+                var tree = ((PartialNode)spec.Examples[input]).orig;
+                if (tree.kind != SyntaxKind.TOKEN) // `RefToken` can only construct tokens.
                 {
                     return null;
                 }
 #if DEBUG
                 Show(tree.label);
 #endif
-                tokenDict[input] = tree.label;
+                labelDict[input] = tree.label;
             }
 
-            return new ExampleSpec(tokenDict);
+            return new ExampleSpec(labelDict);
         }
 
-        [WitnessFunction(nameof(Semantics.ConstToken), 1)]
+        [WitnessFunction(nameof(Semantics.ConstToken), 0)]
         public ExampleSpec ConstTokenCode(GrammarRule rule, ExampleSpec spec)
         {
-            // Find the `code` s.t. `ConstToken(label, code) = tree`.
+            // Find the `code` s.t. `ConstToken(code, label) = tree`.
 #if DEBUG
             Log.Fine("ConstToken.code |- {0}", spec);
 #endif
-            var tokenDict = new Dictionary<State, object>();
+            var codeDict = new Dictionary<State, object>();
             foreach (var input in spec.ProvidedInputs)
             {
                 var tree = ((PartialNode)spec.Examples[input]).orig;
@@ -278,10 +302,34 @@ namespace Prem.Transformer.TreeLang
 #if DEBUG
                 Show(tree.code);
 #endif
-                tokenDict[input] = tree.code;
+                codeDict[input] = tree.code;
             }
 
-            return new ExampleSpec(tokenDict);
+            return new ExampleSpec(codeDict);
+        }
+
+        [WitnessFunction(nameof(Semantics.ConstToken), 1)]
+        public ExampleSpec ConstTokenLabel(GrammarRule rule, ExampleSpec spec)
+        {
+            // Find the `label` s.t. `ConstToken(code, label) = tree`.
+#if DEBUG
+            Log.Fine("ConstToken.label |- {0}", spec);
+#endif
+            var labelDict = new Dictionary<State, object>();
+            foreach (var input in spec.ProvidedInputs)
+            {
+                var tree = ((PartialNode)spec.Examples[input]).orig;
+                if (tree.kind != SyntaxKind.TOKEN) // `ConstToken` can only construct tokens.
+                {
+                    return null;
+                }
+#if DEBUG
+                Show(tree.label);
+#endif
+                labelDict[input] = tree.label;
+            }
+
+            return new ExampleSpec(labelDict);
         }
 
         [WitnessFunction(nameof(Semantics.Tree), 0)]

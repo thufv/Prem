@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Optional;
+
 using Prem.Transformer;
 using Prem.Util;
 
@@ -193,7 +194,7 @@ namespace Prem
             this.transformers = programs;
         }
 
-        public static RuleSet Empty() => new RuleSet();
+        public static RuleSet Empty = new RuleSet();
 
         public int Count => transformers.Count;
 
@@ -202,7 +203,7 @@ namespace Prem
             var env = new Env();
             if (!errPattern.Match(input.errMessage, env)) return Option.None<SyntaxNode>();
 
-            return transformers.First().Apply(input.AsTInput());
+            return transformers.First().Apply(input.AsTInput(env));
         }
 
         public bool TestTop(Example example)
@@ -210,7 +211,7 @@ namespace Prem
             var env = new Env();
             if (!errPattern.Match(example.input.errMessage, env)) return false;
 
-            var input = example.input.AsTInput();
+            var input = example.input.AsTInput(env);
             var expected = example.output.root;
             return transformers.First().Apply(input).Exists(tree => tree.IdenticalTo(expected));
         }
@@ -223,7 +224,7 @@ namespace Prem
             var env = new Env();
             if (!errPattern.Match(example.input.errMessage, env)) return Option.None<int>();
 
-            var input = example.input.AsTInput();
+            var input = example.input.AsTInput(env);
             var expected = example.output.root;
             return transformers.FirstCount(t => 
                 t.Apply(input).Exists(tree => tree.IdenticalTo(expected)));

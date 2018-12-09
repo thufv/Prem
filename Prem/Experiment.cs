@@ -22,8 +22,6 @@ namespace Prem
 
         private int _k;
 
-        private int _num_benchmarks;
-
         private bool _read_example_flag;
 
         private int _num_learning_examples;
@@ -59,28 +57,24 @@ namespace Prem
 
         public void Launch()
         {
-            var benchmarks = Directory.GetDirectories(_rootDir).ToList();
-            benchmarks.Sort();
-            _num_benchmarks = benchmarks.Count;
+            var benchmarks = Directory.GetDirectories(_rootDir).Sorted().ToList();
 
-            if (_num_benchmarks == 0)
+            if (!benchmarks.Any())
             {
                 Log.Warning("No benchmarks found in: {0}", _rootDir);
             }
             else
             {
-                var results = benchmarks.MapIndex(RunBenchmark);
-                results.ToList().ForEach(xs => 
-                    Console.WriteLine(String.Join(", ", xs.Select(x => x.ToString()))));
+                benchmarks.ForEachC(RunBenchmark);
             }
         }
 
-        private IEnumerable<Option<int>> RunBenchmark(int index, string benchmarkFolder)
+        private void RunBenchmark(int index, int total, string benchmarkFolder)
         {
-            Log.Info("Running {0} ({1}/{2})", benchmarkFolder, index + 1, _num_benchmarks);
-            var exampleDirs = Directory.GetDirectories(benchmarkFolder).ToList();
-            exampleDirs.Sort();
-            var examples = exampleDirs.Select(CreateExample);
+            Log.Info("Running {0} ({1}/{2})", benchmarkFolder, index, total);
+            var examples = Directory.GetDirectories(benchmarkFolder)
+                .Sorted()
+                .Select(CreateExample);
 
             if (_read_example_flag)
             {
@@ -101,7 +95,7 @@ namespace Prem
                 {
                     Log.Warning("No testing examples in benchmark: {0}", benchmarkFolder);
                 }
-                return ruleSet.TestAllMany(testingExamples);
+                ruleSet.TestAllMany(testingExamples);
             }
             
             if (!_equally_treated)
@@ -119,12 +113,11 @@ namespace Prem
                 {
                     Log.Warning("No testing examples in benchmark: {0}", benchmarkFolder);
                 }
-                return ruleSet.TestAllMany(testingExamples);
+                ruleSet.TestAllMany(testingExamples);
             }
 
             // _equally_treated
             Debug.Assert(false);
-            return null;
         }
 
         private Example CreateExample(string example)

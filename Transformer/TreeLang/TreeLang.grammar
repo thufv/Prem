@@ -10,13 +10,16 @@ language TreeLang;
 
 @complete feature double Score = Prem.Transformer.TreeLang.RankingScore;
 
-@input SyntaxNode source;
+@input TInput source;
 
 @start SyntaxNode program := Ins(target, k, newTree) | Del(target) | Upd(target, newTree);
 
 SyntaxNode newTree := New(tree);
 
-PartialNode tree := Copy(target) | ConstToken(label, code) | Tree(label, children);
+PartialNode tree := Copy(target)
+                  | RefToken(source, i, label)
+                  | ConstToken(code, label)
+                  | Tree(label, children);
 
 IEnumerable<PartialNode> children := Child(tree) | Children(tree, children);
 
@@ -35,5 +38,6 @@ bool constraint := Any(x)
                  | AnyNode(x) | NodeMatch(x, label);
 
 int k;
+int i;
 Label label;
 string code;

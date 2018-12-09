@@ -11,7 +11,7 @@ namespace Prem.Util
 
         public SyntaxNode root;
 
-        protected Result _compareResult;
+        public Result result { get; set; }
 
         protected Counter _counter;
 
@@ -22,16 +22,10 @@ namespace Prem.Util
 
         public int AllocateId() => _counter.AllocateId();
 
-        public SyntaxNodeContext(string json)
-        {
-            var counter = new Counter();
-            
-        }
-
         public static SyntaxNodeContext FromJSON(string json)
         {
             var context = new SyntaxNodeContext();
-            JObject obj = JObject.Parse(json);
+            var obj = JObject.Parse(json);
             context.root = Node.CreatePartialFromJSON(obj).Instantiate(context, 0);
 
             return context;
@@ -42,13 +36,6 @@ namespace Prem.Util
 
         public Token FindTokenWhere(Func<Token, bool> predicate) =>
             FindNodeWhere(n => n.kind == SyntaxKind.TOKEN && predicate((Token)n)) as Token;
-
-        public void DoComparison(SyntaxNode target)
-        {
-            _compareResult = new SyntaxNodeComparer().GetResult(root, target);
-        }
-
-        public Result GetResult() => _compareResult;
     }
 
     public class Counter
@@ -57,7 +44,7 @@ namespace Prem.Util
 
         public int AllocateId()
         {
-            int id = _next_id;
+            var id = _next_id;
             _next_id++;
             return id;
         }

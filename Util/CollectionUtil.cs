@@ -16,16 +16,6 @@ namespace Prem.Util
 
         public static IEnumerable<T> Rest<T>(this IEnumerable<T> seq) => seq.Skip(1);
 
-        public static void ForEachIndex<T>(this IEnumerable<T> seq, Action<int, T> action)
-        {
-            int i = 0;
-            foreach (var elem in seq)
-            {
-                action(i, elem);
-                i++;
-            }
-        }
-
         public static List<V> Map2<T, U, V>(this List<T> list1, List<U> list2, Func<T, U, V> func)
         {
             int n = Math.Min(list1.Count, list2.Count);
@@ -34,14 +24,18 @@ namespace Prem.Util
             return l;
         }
 
-        public static IEnumerable<U> MapIndex<T, U>(this IEnumerable<T> seq, Func<int, T, U> func)
+        public static IEnumerable<U> MapI<T, U>(this IEnumerable<T> seq, Func<int, T, U> func) => seq.Zip(Enumerable.Range(0, int.MaxValue), (e, i) => func(i, e));
+
+        public static void ForEachC<T>(this List<T> list, Action<int, int, T> action)
         {
-            int i = 0;
-            foreach (var elem in seq)
-            {
-                yield return func(i, elem);
-                i++;
-            }
+            list.Zip(Enumerable.Range(1, int.MaxValue), (e, i) => (index: i, elem: e)).ToList()
+                .ForEach(p => action(p.index, list.Count, p.elem));
+        }
+
+        public static void ForEachI<T>(this List<T> list, Action<int, T> action)
+        {
+            list.Zip(Enumerable.Range(0, int.MaxValue), (e, i) => (index: i, elem: e)).ToList()
+                .ForEach(p => action(p.index, p.elem));
         }
 
         public static Option<int> FirstCount<T>(this IEnumerable<T> seq, Predicate<T> predicate)
@@ -55,5 +49,7 @@ namespace Prem.Util
 
             return Option.None<int>();
         }
+
+        public static IEnumerable<T> Sorted<T>(this IEnumerable<T> seq) => seq.OrderBy(x => x);
     }
 }

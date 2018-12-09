@@ -9,7 +9,7 @@ namespace Prem.Util
     /// Compare two syntax trees of type `SyntaxNode`,
     /// finding an edit which could transform the one to the other.
     /// </summary>
-    public class SyntaxNodeComparer
+    public static class SyntaxNodeComparer
     {
         private static Logger Log = Logger.Instance;
 
@@ -20,10 +20,7 @@ namespace Prem.Util
         /// <param name="oldNode">The old node.</param>
         /// <param name="newNode">The new node.</param>
         /// <returns>A transformation result.</returns>
-        public Result GetResult(SyntaxNode oldNode, SyntaxNode newNode) =>
-            Compare(oldNode, newNode);
-
-        protected Result Compare(SyntaxNode oldNode, SyntaxNode newNode)
+        public static Result Compare(SyntaxNode oldNode, SyntaxNode newNode)
         {
             if (oldNode.kind != newNode.kind || !oldNode.label.Equals(newNode.label))
             {
@@ -159,7 +156,7 @@ namespace Prem.Util
             return new Update(oldNode, newNode);
         }
 
-        protected List<int> HeuristicOrder(List<SyntaxNode> less, List<SyntaxNode> more)
+        private static List<int> HeuristicOrder(List<SyntaxNode> less, List<SyntaxNode> more)
         {
             int k = less.Count;
             Debug.Assert(more.Count == k + 1);
@@ -189,7 +186,7 @@ namespace Prem.Util
         /// <param name="node1">The first tree.</param>
         /// <param name="node2">The second tree.</param>
         /// <returns>A numeric value in range [0,1] presenting the similarity.</returns>
-        protected double EstimatedSimilarity(SyntaxNode node1, SyntaxNode node2)
+        private static double EstimatedSimilarity(SyntaxNode node1, SyntaxNode node2)
         {
             double score = 0;
             if (node1.code == node2.code) score += 0.5;

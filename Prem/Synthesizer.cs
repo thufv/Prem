@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Optional;
 
@@ -7,6 +8,9 @@ using Prem.Util;
 
 namespace Prem
 {
+    using TInput = Prem.Transformer.TreeLang.TInput;
+    using Env = Dictionary<int, string>;
+
     public class Input
     {
         public SyntaxNodeContext tree { get; }
@@ -22,7 +26,14 @@ namespace Prem
             this.errMessage = errMessage;
         }
 
-        public TInput AsTInput() => new TInput(tree.root, errNode);
+        public TInput AsTInput(ErrPattern pattern)
+        {
+            var env = new Env();
+            Debug.Assert(pattern.Match(errMessage, env));
+            return AsTInput(env);
+        }
+
+        public TInput AsTInput(Env env) => new TInput(tree.root, errNode, env);
     }
 
     public class Example
@@ -40,7 +51,8 @@ namespace Prem
             this.name = name;
         }
 
-        public TExample AsTExample() => new TExample(input.AsTInput(), output.root);
+        public TExample AsTExample(ErrPattern pattern) =>
+            new TExample(input.AsTInput(pattern), output.root);
     }
 
     public sealed class Synthesizer
@@ -54,11 +66,11 @@ namespace Prem
             this._learner = new TLearner();
         }
 
-        public RuleSet Synthesize(IEnumerable<Example> examples, int k = 1)
+        public RuleSet Synthesize(List<Example> examples, int k = 1)
         {
-#if DEBUG
+/*
             var printer = new IndentPrinter();
-            examples.ForEachIndex((i, e) =>
+            examples.ForEachI((i, e) =>
             {
                 Log.Fine("Example #{0}", i);
                 Log.Fine("Input tree:");
@@ -73,7 +85,7 @@ namespace Prem
                 }
                 Log.Debug("Err node: {0}", e.input.errNode);
             });
-#endif
+*/
             // 1. Synthesize error pattern.
             return SynthesizeErrPattern(examples).Match(
                 some: pattern =>
@@ -83,8 +95,10 @@ namespace Prem
                     // 2. Compare and match.
                     foreach (var example in examples)
                     {
-                        example.input.tree.DoComparison(example.output.root);
-                        var result = example.input.tree.GetResult();
+                        var result = SyntaxNodeComparer.Compare(example.input.tree.root, example.output.root);
+                        example.input.tree.result = result;
+
+                        var printer = new IndentPrinter();
                         Log.Info("Compare result: {0}", result);
                         if (Log.IsLoggable(LogLevel.DEBUG))
                         {
@@ -109,21 +123,22 @@ namespace Prem
                     }
 
                     // 3. Synthesize transformers.
-                    var trans = SynthesizeTransformers(examples.Select(e => e.AsTExample()), k);
+                    var trans = SynthesizeTransformers(examples.Select(e => e.AsTExample(pattern)), k);
                     return new RuleSet(pattern, trans);
                 },
 
                 none: () =>
                 {
                     Log.Error("Failed to synthesize error pattern.");
-                    return RuleSet.Empty();
+                    return RuleSet.Empty;
                 }
             );
         }
 
-        public RuleSet Synthesize(Example example, int k = 1) => Synthesize(example.Yield(), k);
+        public RuleSet Synthesize(Example example, int k = 1) =>
+            Synthesize(example.Yield().ToList(), k);
 
-        private Option<ErrPattern> SynthesizeErrPattern(IEnumerable<Example> examples)
+        private Option<ErrPattern> SynthesizeErrPattern(List<Example> examples)
         {
             var pattern = SynthesizeErrPattern(examples.First()).Some();
             return examples.Rest().Select(SynthesizeErrPattern).Aggregate(pattern,
@@ -167,7 +182,7 @@ namespace Prem
             var programs = _learner.Learn(examples, k);
 #if DEBUG
             Log.Debug("Top programs:");
-            programs.ForEachIndex((i, p) =>
+            programs.ForEachI((i, p) =>
                 Log.DebugRaw("#{0} ({1:F3}) {2}", i, p.score, p.ToString()));
 #endif
             return programs;

@@ -28,7 +28,10 @@ namespace Prem.Transformer.TreeLang
 
         public static PartialNode Copy(SyntaxNode target) => target.ToPartial();
 
-        public static PartialNode ConstToken(Label label, string code) =>
+        public static PartialNode RefToken(TInput input, int i, Label label) =>
+            Token.CreatePartial(label, input[i]);
+
+        public static PartialNode ConstToken(string code, Label label) =>
             Token.CreatePartial(label, code);
 
         public static PartialNode Tree(Label label, IEnumerable<PartialNode> children) =>
@@ -41,13 +44,13 @@ namespace Prem.Transformer.TreeLang
 
         public static IEnumerable<SyntaxNode> Sub(SyntaxNode ancestor) => ancestor.GetSubtrees();
 
-        public static SyntaxNode Just(SyntaxNode source) => source;
+        public static SyntaxNode Just(TInput input) => input.errNode;
 
-        public static SyntaxNode AbsAncestor(SyntaxNode source, int k) =>
-            source.GetAncestor(k).ValueOr(source);
+        public static SyntaxNode AbsAncestor(TInput input, int k) =>
+            input.errNode.GetAncestor(k).ValueOr(input.errNode);
 
-        public static SyntaxNode RelAncestor(SyntaxNode source, Label label, int k) =>
-            source.GetAncestorWhere(x => x.label.Equals(label), k).ValueOr(source);
+        public static SyntaxNode RelAncestor(TInput input, Label label, int k) =>
+            input.errNode.GetAncestorWhere(x => x.label.Equals(label), k).ValueOr(input.errNode);
 
         public static bool Any(SyntaxNode _) => true;
 
