@@ -113,7 +113,7 @@ namespace Prem.Transformer
             );
             Spec spec = new ExampleSpec(constraints);
 
-            _stopwatch.Start();
+            _stopwatch.Restart();
             var programSet = _engine.LearnGrammarTopK(spec, _scorer, k);
 #if DEBUG
             _engine.Configuration.LogListener.SaveLogToXML("learning.log.xml");

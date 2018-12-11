@@ -118,6 +118,9 @@ namespace Prem.Util
             return parent != null;
         }
 
+        public SyntaxNode left;
+        public SyntaxNode right;
+
         /// <summary>
         /// Transform a concrete node to a partial node, by removing the context and depth.
         /// </summary>

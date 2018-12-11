@@ -7,6 +7,8 @@ using Prem.Util;
 
 namespace Prem.Transformer.TreeLang
 {
+    using Pred = Func<SyntaxNode, bool>;
+
     public static class Semantics
     {
         private static Logger Log = Logger.Instance;
@@ -28,11 +30,8 @@ namespace Prem.Transformer.TreeLang
 
         public static PartialNode Copy(SyntaxNode target) => target.ToPartial();
 
-        public static PartialNode RefToken(TInput input, int i, Label label) =>
-            Token.CreatePartial(label, input[i]);
-
-        public static PartialNode ConstToken(string code, Label label) =>
-            Token.CreatePartial(label, code);
+        public static PartialNode Leaf(Label label, string token) =>
+            Token.CreatePartial(label, token);
 
         public static PartialNode Tree(Label label, IEnumerable<PartialNode> children) =>
             Node.CreatePartial(label, children);
@@ -42,28 +41,36 @@ namespace Prem.Transformer.TreeLang
         public static IEnumerable<PartialNode> Children(PartialNode head,
             IEnumerable<PartialNode> tail) => head.Yield().Concat(tail);
 
-        public static IEnumerable<SyntaxNode> Sub(SyntaxNode ancestor) => ancestor.GetSubtrees();
-
         public static SyntaxNode Just(TInput input) => input.errNode;
 
-        public static SyntaxNode AbsAncestor(TInput input, int k) =>
+        public static SyntaxNode AbsAnc(TInput input, int k) =>
             input.errNode.GetAncestor(k).ValueOr(input.errNode);
 
-        public static SyntaxNode RelAncestor(TInput input, Label label, int k) =>
+        public static SyntaxNode RelAnc(TInput input, Label label, int k) =>
             input.errNode.GetAncestorWhere(x => x.label.Equals(label), k).ValueOr(input.errNode);
 
-        public static bool Any(SyntaxNode _) => true;
+        public static SyntaxNode Find(SyntaxNode ancestor, Pred matcher) =>
+            ancestor.GetSubtrees().First(matcher);
 
-        public static bool AnyError(SyntaxNode x) => x.kind == SyntaxKind.ERROR;
+        public static Pred Match(Pred predicate, Pred siblingMatcher) =>
+            x => predicate(x) && siblingMatcher(x);
 
-        public static bool AnyNode(SyntaxNode x) => x.kind == SyntaxKind.NODE;
+        public static Pred MatchS(SiblingLocator locator, Pred predicate) =>
+            x => locator.GetSiblings(x).Any(predicate);
 
-        public static bool NodeMatch(SyntaxNode x, Label label) =>
-            x.kind == SyntaxKind.NODE && x.label.Equals(label);
+        public static Pred True() => x => true;
 
-        public static bool AnyToken(SyntaxNode x) => x.kind == SyntaxKind.TOKEN;
+        public static Pred And(Pred predicate1, Pred predicate2) =>
+            x => predicate1(x) && predicate2(x);
 
-        public static bool TokenMatch(SyntaxNode x, Label label) =>
-            x.kind == SyntaxKind.TOKEN && x.label.Equals(label);
+        public static Pred MatchL(Label label) => x => x.label.Equals(label);
+
+        public static Pred MatchT(string token) => x => x.isLeaf && x.code.Equals(token);
+
+        public static string Const(string s) => s;
+
+        public static string Var(TInput input, int key) => input[key];
+
+        public static string FindE(TInput input, Pred matcher) => "";
     }
 }

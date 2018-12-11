@@ -16,28 +16,27 @@ language TreeLang;
 
 SyntaxNode newTree := New(tree);
 
-PartialNode tree := Copy(target)
-                  | RefToken(source, i, label)
-                  | ConstToken(code, label)
-                  | Tree(label, children);
+PartialNode tree := Copy(target) | Leaf(label, token) | Tree(label, children);
 
 IEnumerable<PartialNode> children := Child(tree) | Children(tree, children);
 
-SyntaxNode target := Target(candidates, k) = Kth(candidates, k);
+SyntaxNode target := Just(source) | ancestor | Find(ancestor, matcher);
 
-IEnumerable<SyntaxNode> candidates := Find(constraint, subtrees)
-                                    = Filter(\x: SyntaxNode => constraint, subtrees);
+SyntaxNode ancestor := AbsAnc(source, k) | RelAnc(source, label, k);
 
-IEnumerable<SyntaxNode> subtrees := Sub(ancestor);
+Func<SyntaxNode, bool> matcher := Match(predicate, siblingMatcher);
 
-SyntaxNode ancestor := Just(source) | AbsAncestor(source, k) | RelAncestor(source, label, k);
+Func<SyntaxNode, bool> siblingMatcher := MatchS(locator, predicate);
 
-bool constraint := Any(x)
-                 | AnyError(x)
-                 | AnyToken(x) | TokenMatch(x, label)
-                 | AnyNode(x) | NodeMatch(x, label);
+Func<SyntaxNode, bool> predicate := True() | atom | And(atom, predicate);
+
+Func<SyntaxNode, bool> atom := MatchL(label) | MatchT(token);
+
+string token := Const(s) | Var(source, i) | FindE(source, matcher);
 
 int k;
 int i;
+string s;
+
 Label label;
-string code;
+SiblingLocator locator;

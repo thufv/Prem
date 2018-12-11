@@ -16,6 +16,8 @@ namespace Prem.Util
 
         public static IEnumerable<T> Rest<T>(this IEnumerable<T> seq) => seq.Skip(1);
 
+        public static bool Empty<T>(this List<T> list) => list.Count == 0;
+
         public static List<V> Map2<T, U, V>(this List<T> list1, List<U> list2, Func<T, U, V> func)
         {
             int n = Math.Min(list1.Count, list2.Count);
