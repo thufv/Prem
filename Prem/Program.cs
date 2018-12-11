@@ -29,11 +29,17 @@ namespace Prem
             [Option('f', "flag", Default = false, HelpText = "Read flag.")]
             public bool Flag { get; set; }
 
+            [Option('o', "only-learn", Default = false, HelpText = "Only learn.")]
+            public bool OnlyLearn { get; set; }
+
             [Option('e', "equally", Default = false, HelpText = "Equally treated.")]
             public bool Equally { get; set; }
 
             [Option('n', "num-learning", Default = 1, HelpText = "Number of learning examples.")]
             public int NumLearning { get; set; }
+
+            [Option('b', "benchmark", Default = false, HelpText = "Run one benchmark.")]
+            public bool OneBenchmark { get; set; }
             
             [Value(0, MetaName = "benchmark", Required = true, 
             HelpText = "Root folder for benchmark suite.")]
@@ -55,7 +61,12 @@ namespace Prem
 
             // 2. Start experiment
             var experiment = opts.Flag ? new Experiment(opts.Lang, opts.Folder, opts.TopK)
+                : opts.OnlyLearn ? new Experiment(opts.Lang, opts.Folder, opts.TopK, -1)
                 : new Experiment(opts.Lang, opts.Folder, opts.TopK, opts.NumLearning, opts.Equally);
+            if (opts.OneBenchmark)
+            {
+                experiment.SetOneBenchmark();
+            }
             experiment.Launch();
         }
 

@@ -24,7 +24,7 @@ namespace Prem
 
         public string file { get; }
 
-        public Input(SyntaxNodeContext inputTree, Pos errPos, string errMessage, string file = "")
+        public Input(SyntaxNodeContext inputTree, Pos errPos, string errMessage, string file)
         {
             this.tree = inputTree;
             this.errNode = inputTree.FindLeafWhere(n => n.pos.Equals(errPos)).Match(
@@ -36,6 +36,7 @@ namespace Prem
                 }
             );
             this.errMessage = errMessage;
+            this.file = file;
         }
 
         public TInput AsTInput(ErrPattern pattern)
@@ -111,7 +112,7 @@ namespace Prem
                         example.input.tree.result = result;
 
                         var printer = new IndentPrinter();
-                        Log.Info("Compare result: {0}", result);
+                        Log.Info("{0}: {1}", example.input.file, result);
                         if (Log.IsLoggable(LogLevel.DEBUG))
                         {
                             result.PrintTo(printer);

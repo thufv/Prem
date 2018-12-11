@@ -24,9 +24,15 @@ namespace Prem
 
         private bool _read_example_flag;
 
+        private bool _only_learn;
+
         private int _num_learning_examples;
 
         private bool _equally_treated;
+
+        private bool _one_benchmark;
+
+        public void SetOneBenchmark() { _one_benchmark = true; }
 
         public DateTime CreateTime { get; }
 
@@ -39,6 +45,18 @@ namespace Prem
             this.CreateTime = DateTime.Now;
 
             this._read_example_flag = true;
+            this._only_learn = false;
+        }
+
+        public Experiment(string language, string suiteFolder, int k, int x)
+        {
+            this._parser = new Parser(language);
+            this._rootDir = suiteFolder;
+            this._synthesizer = new Synthesizer();
+            this._k = k;
+            this.CreateTime = DateTime.Now;
+
+            this._only_learn = true;
         }
 
         public Experiment(string language, string suiteFolder, int k, 
@@ -51,12 +69,19 @@ namespace Prem
             this.CreateTime = DateTime.Now;
 
             this._read_example_flag = false;
+            this._only_learn = false;
             this._num_learning_examples = numLearningExamples;
             this._equally_treated = equallyTreated;
         }
 
         public void Launch()
         {
+            if (_one_benchmark)
+            {
+                RunBenchmark(1, 1, _rootDir);
+                return;
+            }
+
             var benchmarks = Directory.GetDirectories(_rootDir).Sorted().ToList();
 
             if (!benchmarks.Any())
@@ -92,6 +117,12 @@ namespace Prem
 
                 var testingExamples = partition[false];
                 PrintResults(ruleSet.TestAllMany(testingExamples));
+                return;
+            }
+
+            if (_only_learn)
+            {
+                _synthesizer.Synthesize(examples.ToList(), _k);
                 return;
             }
             
@@ -135,6 +166,7 @@ namespace Prem
                 return null;
             }
             var inputJSON = _parser.ParseProgramAsJSON(fs[0]);
+            var file = fs[0];
 
             fs = Directory.GetFiles(example, "[C]*", SearchOption.TopDirectoryOnly);
             if (fs.Length != 1)
@@ -145,7 +177,7 @@ namespace Prem
             var outputJSON = _parser.ParseProgramAsJSON(fs[0]);
 
             return new Example(
-                new Input(SyntaxNodeContext.FromJSON(inputJSON), info.pos, info.message, fs[0]),
+                new Input(SyntaxNodeContext.FromJSON(inputJSON), info.pos, info.message, file),
                 SyntaxNodeContext.FromJSON(outputJSON),
                 example
             );
