@@ -79,6 +79,7 @@ namespace Prem.Transformer
             var grammar = LoadGrammar("/Users/paul/Workspace/prem/Transformer/TreeLang/TreeLang.grammar",
                 CompilerReference.FromAssemblyFiles(
                     typeof(Semantics).GetTypeInfo().Assembly,
+                    typeof(Option).GetTypeInfo().Assembly,
                     typeof(SyntaxNode).GetTypeInfo().Assembly));
             if (grammar == null)
             {

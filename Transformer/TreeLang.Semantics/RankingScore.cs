@@ -57,26 +57,20 @@ namespace Prem.Transformer.TreeLang
         public static double RelAnc(double source, double label, double k) => k; // <= 0.5
 
         [FeatureCalculator(nameof(Semantics.Find))]
-        public static double Find(double ancestor, double matcher) => ancestor * matcher;
+        public static double Find(double ancestor, double label, double token, double matcher) =>
+            ancestor;
 
         [FeatureCalculator(nameof(Semantics.Match))]
-        public static double Match(double predicate, double siblingMatcher) =>
-            predicate * siblingMatcher;
+        public static double Match(double token) => token;
 
-        [FeatureCalculator(nameof(Semantics.MatchS))]
-        public static double MatchS(double locator, double predicate) => locator * predicate;
+        [FeatureCalculator(nameof(Semantics.Any))]
+        public static double Any() => 1;
 
-        [FeatureCalculator(nameof(Semantics.True))]
-        public static double True() => 1;
-        
-        [FeatureCalculator(nameof(Semantics.And))]
-        public static double And(double predicate1, double predicate2) => predicate1 + predicate2;
-        
-        [FeatureCalculator(nameof(Semantics.MatchL))]
-        public static double MatchL(double label) => label;
-        
-        [FeatureCalculator(nameof(Semantics.MatchT))]
-        public static double MatchT(double token) => token;
+        [FeatureCalculator(nameof(Semantics.Rel))]
+        public static double Rel(double locator, double label, double token) => locator;
+
+        [FeatureCalculator(nameof(Semantics.NoRel))]
+        public static double NoRel() => 1;
         
         [FeatureCalculator(nameof(Semantics.Const))]
         public static double Const(double s) => s;

@@ -20,19 +20,17 @@ PartialNode tree := Copy(target) | Leaf(label, token) | Tree(label, children);
 
 IEnumerable<PartialNode> children := Child(tree) | Children(tree, children);
 
-SyntaxNode target := Just(source) | ancestor | Find(ancestor, matcher);
+SyntaxNode target := Just(source) 
+                   | ancestor
+                   | Find(ancestor, label, tok, rel);
+
+Optional.Option<string> tok := Match(token) | Any();
 
 SyntaxNode ancestor := AbsAnc(source, k) | RelAnc(source, label, k);
 
-Func<SyntaxNode, bool> matcher := Match(predicate, siblingMatcher);
+Func<SyntaxNode, bool> rel := Rel(locator, label, token) | NoRel();
 
-Func<SyntaxNode, bool> siblingMatcher := MatchS(locator, predicate);
-
-Func<SyntaxNode, bool> predicate := True() | atom | And(atom, predicate);
-
-Func<SyntaxNode, bool> atom := MatchL(label) | MatchT(token);
-
-string token := Const(s) | Var(source, i) | FindE(source, matcher);
+string token := Const(s) | Var(source, i) | FindE(source, rel);
 
 int k;
 int i;

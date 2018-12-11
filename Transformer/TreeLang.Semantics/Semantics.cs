@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-
+using Optional;
 using Prem.Util;
 
 namespace Prem.Transformer.TreeLang
@@ -49,23 +49,23 @@ namespace Prem.Transformer.TreeLang
         public static SyntaxNode RelAnc(TInput input, Label label, int k) =>
             input.errNode.GetAncestorWhere(x => x.label.Equals(label), k).ValueOr(input.errNode);
 
-        public static SyntaxNode Find(SyntaxNode ancestor, Pred matcher) =>
-            ancestor.GetSubtrees().First(matcher);
+        public static SyntaxNode Find(SyntaxNode ancestor, Label label, 
+            Option<string> token, Pred matcher) =>
+            token.Match(
+                some: t => ancestor.GetSubtrees().First(n => n.label.Equals(label)
+                 && n.code == t && matcher(n)),
+                none: () => ancestor.GetSubtrees().First(n => n.label.Equals(label)
+                && matcher(n))
+            );
 
-        public static Pred Match(Pred predicate, Pred siblingMatcher) =>
-            x => predicate(x) && siblingMatcher(x);
+        public static Option<string> Match(string token) => Option.Some<string>(token);
 
-        public static Pred MatchS(SiblingLocator locator, Pred predicate) =>
-            x => locator.GetSiblings(x).Any(predicate);
+        public static Option<string> Any() => Option.None<string>();
 
-        public static Pred True() => x => true;
+        public static Pred Rel(SiblingLocator locator, Label label, string token) =>
+            x => locator.GetSiblings(x).Any(n => n.label.Equals(label) && n.code == token);
 
-        public static Pred And(Pred predicate1, Pred predicate2) =>
-            x => predicate1(x) && predicate2(x);
-
-        public static Pred MatchL(Label label) => x => x.label.Equals(label);
-
-        public static Pred MatchT(string token) => x => x.isLeaf && x.code.Equals(token);
+        public static Pred NoRel() => x => true;
 
         public static string Const(string s) => s;
 
