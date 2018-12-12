@@ -52,6 +52,51 @@ namespace Prem.Util
             return Option.None<int>();
         }
 
+        public static Option<int> IndexWhere<T>(this IEnumerable<T> seq, Predicate<T> predicate)
+        {
+            int index = 0;
+            foreach (var e in seq)
+            {
+                if (predicate(e)) return Option.Some(index);
+                index++;
+            }
+
+            return Option.None<int>();
+        }
+
+        public static Option<T> Find<T>(this IEnumerable<T> seq, Predicate<T> predicate, int k)
+        {
+            foreach (var e in seq)
+            {
+                if (predicate(e))
+                {
+                    k--;
+                    if (k < 0)
+                    {
+                        return Option.Some<T>(e);
+                    }
+                }
+            }
+
+            return Option.None<T>();
+        }
+
+        public static Option<List<T>> TakeUntil<T>(this IEnumerable<T> seq, Predicate<T> predicate)
+        {
+            var list = new List<T>();
+            foreach (var e in seq)
+            {
+                if (predicate(e))
+                {
+                    return list.Some();
+                }
+
+                list.Add(e);
+            }
+
+            return list.None();
+        }
+
         public static IEnumerable<T> Sorted<T>(this IEnumerable<T> seq) => seq.OrderBy(x => x);
     }
 }

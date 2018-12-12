@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Microsoft.ProgramSynthesis.Utils;
 
 using Prem.Util;
 using Prem.Transformer.TreeLang;
@@ -16,21 +17,22 @@ language TreeLang;
 
 SyntaxNode newTree := New(tree);
 
-PartialNode tree := Copy(target) | Leaf(label, token) | Tree(label, children);
+PartialNode tree := Copy(nodeRef) | Leaf(label, token) | Tree(label, children);
 
 IEnumerable<PartialNode> children := Child(tree) | Children(tree, children);
 
-SyntaxNode target := Just(source) 
-                   | ancestor
-                   | Find(ancestor, label, tok, rel);
-
-Optional.Option<string> tok := Match(token) | Any();
+SyntaxNode target := Just(source)
+                   | nodeRef;
+                   
+SyntaxNode nodeRef := ancestor
+                    | Find(ancestor, label, k)
+                    | FindRel(ancestor, label, locator, siblingFeature);
 
 SyntaxNode ancestor := AbsAnc(source, k) | RelAnc(source, label, k);
 
-Func<SyntaxNode, bool> rel := Rel(locator, label, token) | NoRel();
+Record<Label, string>? siblingFeature := Feature(label, token) = Pair(label, token);
 
-string token := Const(s) | Var(source, i) | FindE(source, rel);
+string token := Const(s) | Var(source, i) | FindToken(source, k, label, k);
 
 int k;
 int i;

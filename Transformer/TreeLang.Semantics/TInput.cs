@@ -57,6 +57,8 @@ namespace Prem.Transformer.TreeLang
         }
 
         protected abstract IEnumerable<SyntaxNode> Extract(SyntaxNode node);
+
+        public static SiblingLocator All = new LeftRight();
     }
 
     public class LeftK : SiblingLocator

@@ -13,6 +13,12 @@ using Optional;
 
 namespace Prem.Transformer.TreeLang
 {
+    using Record = Microsoft.ProgramSynthesis.Utils.Record;
+
+    using Feature = Microsoft.ProgramSynthesis.Utils.Record<Label, string>;
+
+    using Occurrence = Microsoft.ProgramSynthesis.Utils.Record<Label, int>;
+
     public class WitnessFunctions : DomainLearningLogic
     {
         private static Logger Log = Logger.Instance;
@@ -39,7 +45,9 @@ namespace Prem.Transformer.TreeLang
             this._inputSymbol = grammar.InputSymbol;
         }
 
-        private SyntaxNode GetSource(State input) => ((TInput)input[_inputSymbol]).errNode;
+        private TInput GetInput(State input) => (TInput)input[_inputSymbol];
+
+        private SyntaxNode GetSource(State input) => GetInput(input).errNode;
 
         private Result GetResult(State input) => GetSource(input).context.result;
 
@@ -294,6 +302,12 @@ namespace Prem.Transformer.TreeLang
             foreach (var input in spec.ProvidedInputs)
             {
                 var tree = ((PartialNode)spec.Examples[input]).orig;
+                
+                if (tree.matches.Any()) // Heuristic: We don't try this if the tree could be copied.
+                {
+                    return null;
+                }
+
                 if (tree.kind != SyntaxKind.NODE) // `TreeNode` can only construct nodes.
                 {
                     return null;
@@ -307,8 +321,8 @@ namespace Prem.Transformer.TreeLang
             return new ExampleSpec(labelDict);
         }
 
-        [WitnessFunction(nameof(Semantics.Tree), 1)]
-        public ExampleSpec TreeChildren(GrammarRule rule, ExampleSpec spec)
+        [WitnessFunction(nameof(Semantics.Tree), 1, DependsOnParameters = new[]{ 0 })]
+        public ExampleSpec TreeChildren(GrammarRule rule, ExampleSpec spec, ExampleSpec labelSpec)
         {
             // Find the `children` s.t. `Tree(label, children) = tree`.
 #if DEBUG
@@ -519,13 +533,9 @@ namespace Prem.Transformer.TreeLang
             return new DisjunctiveExamplesSpec(ksDict);
         }
 
-        [WitnessFunction(nameof(Semantics.Find), 0)]
-        public DisjunctiveExamplesSpec FindAncestor(GrammarRule rule, DisjunctiveExamplesSpec spec)
+        private DisjunctiveExamplesSpec GenAncestor(GrammarRule rule, DisjunctiveExamplesSpec spec)
         {
-#if DEBUG
-            Log.Fine("Find.ancestor |- {0}", spec);
-#endif
-            var ancestors = new Dictionary<State, IEnumerable<object>>();
+            var ancestorDict = new Dictionary<State, IEnumerable<object>>();
             foreach (var input in spec.ProvidedInputs)
             {
                 var source = GetSource(input);
@@ -534,31 +544,26 @@ namespace Prem.Transformer.TreeLang
                 foreach (var expected in spec.DisjunctiveExamples[input])
                 {
                     var target = (SyntaxNode)expected;
-                    if (source.GetAncestors().Any(x => x.id == target.id)) 
+                    if (!source.GetAncestors().Any(x => x.id == target.id))
                     {
-                        continue;
+                        // We only consider the lowest common ancestor of `source` and `target`.
+                        candidates.Add(CommonAncestor.CommonAncestors(source, target.Yield().ToList()).First());
                     }
-                    // We only consider the lowest common ancestor of `source` and `target`.
-                    candidates.Add(CommonAncestor.CommonAncestors(source, target.Yield().ToList()).First());
                 }
 
                 if (candidates.Empty()) return null;
 #if DEBUG
                 ShowMany(candidates);
 #endif
-                ancestors[input] = candidates;
+                ancestorDict[input] = candidates;
             }
 
-            return new DisjunctiveExamplesSpec(ancestors);
+            return new DisjunctiveExamplesSpec(ancestorDict);
         }
 
-        [WitnessFunction(nameof(Semantics.Find), 1, DependsOnParameters = new[]{ 0 })]
-        public DisjunctiveExamplesSpec FindLabel(GrammarRule rule, DisjunctiveExamplesSpec spec,
+        public DisjunctiveExamplesSpec GenLabel(GrammarRule rule, DisjunctiveExamplesSpec spec,
             ExampleSpec rootSpec)
         {
-#if DEBUG
-            Log.Fine("Find.label |- {0}", spec);
-#endif
             var labelDict = new Dictionary<State, IEnumerable<object>>();
             foreach (var input in spec.ProvidedInputs)
             {
@@ -568,7 +573,7 @@ namespace Prem.Transformer.TreeLang
                 foreach (var expected in spec.DisjunctiveExamples[input])
                 {
                     var target = (SyntaxNode)expected;
-                    if (ancestor.GetSubtrees().Any(n => n.id == target.id))
+                    if (ancestor.Descendants().Any(n => n.id == target.id))
                     {
                         // The candidate node must have the same label with target.
                         candidates.Add(target.label);
@@ -585,97 +590,274 @@ namespace Prem.Transformer.TreeLang
             return new DisjunctiveExamplesSpec(labelDict);
         }
 
-        [WitnessFunction(nameof(Semantics.Find), 2, DependsOnParameters = new []{ 0, 1 })]
-        public DisjunctiveExamplesSpec FindToken(GrammarRule rule, DisjunctiveExamplesSpec spec,
+        [WitnessFunction(nameof(Semantics.Find), 0)]
+        public DisjunctiveExamplesSpec FindAncestor(GrammarRule rule, DisjunctiveExamplesSpec spec)
+        {
+#if DEBUG
+            Log.Fine("Find.ancestor |- {0}", spec);
+#endif
+            return GenAncestor(rule, spec);
+        }
+
+        [WitnessFunction(nameof(Semantics.Find), 1, DependsOnParameters = new[]{ 0 })]
+        public DisjunctiveExamplesSpec FindLabel(GrammarRule rule, DisjunctiveExamplesSpec spec,
+            ExampleSpec rootSpec)
+        {
+#if DEBUG
+            Log.Fine("Find.label |- {0}", spec);
+#endif
+            return GenLabel(rule, spec, rootSpec);
+        }
+
+        [WitnessFunction(nameof(Semantics.Find), 2, DependsOnParameters = new[] { 0, 1 })]
+        public DisjunctiveExamplesSpec FindK(GrammarRule rule, DisjunctiveExamplesSpec spec,
             ExampleSpec rootSpec, ExampleSpec labelSpec)
         {
 #if DEBUG
-            Log.Fine("Find.token |- {0}", spec);
+            Log.Fine("Find.k |- {0}", spec);
 #endif
-            var tokenDict = new Dictionary<State, IEnumerable<object>>();
+            var kDict = new Dictionary<State, IEnumerable<object>>();
             foreach (var input in spec.ProvidedInputs)
             {
                 var ancestor = (SyntaxNode)rootSpec.Examples[input];
-                var candidates = new List<object>(); 
-                candidates.Add(Option.None<string>()); // No restriction is always OK, so far.
+                var label = (Label)labelSpec.Examples[input];
+                var candidates = new List<object>();
 
                 foreach (var expected in spec.DisjunctiveExamples[input])
                 {
                     var target = (SyntaxNode)expected;
-                    if (ancestor.GetSubtrees().Any(n => n.id == target.id) && target.kind == SyntaxKind.TOKEN)
-                    {
-                        // If we restrict the token, then it must be the target's.
-                        candidates.Add(Option.Some<string>(target.code));
-                    }
+                    ancestor.Descendants().Where(n => n.label.Equals(label)).IndexWhere(n => n.id == target.id)
+                        .MatchSome(k => candidates.Add(k));
                 }
 
                 if (candidates.Empty()) return null;
 #if DEBUG
                 ShowMany(candidates);
 #endif
-                tokenDict[input] = candidates;
+                kDict[input] = candidates;
             }
 
-            return new DisjunctiveExamplesSpec(tokenDict);
+            return new DisjunctiveExamplesSpec(kDict);
         }
 
-        [WitnessFunction(nameof(Semantics.Match), 0)]
-        public DisjunctiveExamplesSpec MatchToken(GrammarRule rule, DisjunctiveExamplesSpec spec)
+        [WitnessFunction(nameof(Semantics.FindRel), 0)]
+        public DisjunctiveExamplesSpec FindRelAncestor(GrammarRule rule, DisjunctiveExamplesSpec spec)
         {
 #if DEBUG
-            Log.Fine("Match.token |- {0}", spec);
+            Log.Fine("FindRel.ancestor |- {0}", spec);
 #endif
-            var tokenDict = new Dictionary<State, IEnumerable<object>>();
+            return GenAncestor(rule, spec);
+        }
+
+        [WitnessFunction(nameof(Semantics.FindRel), 1, DependsOnParameters = new[]{ 0 })]
+        public DisjunctiveExamplesSpec FindRelLabel(GrammarRule rule, DisjunctiveExamplesSpec spec,
+            ExampleSpec rootSpec)
+        {
+#if DEBUG
+            Log.Fine("FindRel.label |- {0}", spec);
+#endif
+            return GenLabel(rule, spec, rootSpec);
+        }
+
+        [WitnessFunction(nameof(Semantics.FindRel), 2, DependsOnParameters = new []{ 0, 1 })]
+        public DisjunctiveExamplesSpec FindRelLocator(GrammarRule rule, DisjunctiveExamplesSpec spec,
+            ExampleSpec rootSpec, ExampleSpec labelSpec)
+        {
+#if DEBUG
+            Log.Fine("FindRel.locator |- {0}", spec);
+#endif
+            var locatorDict = new Dictionary<State, IEnumerable<object>>();
             foreach (var input in spec.ProvidedInputs)
             {
-                // Only `Some` could be constructed by `Match`.
-                var candidates = spec.DisjunctiveExamples[input].Where(
-                    e => ((Option<string>)e).HasValue).ToList();
+                locatorDict[input] = new List<object>{ SiblingLocator.All };
+            }
+
+            return new DisjunctiveExamplesSpec(locatorDict);
+        }
+
+        private Feature Feature(Leaf leaf) => Record.Create(leaf.label, leaf.code);
+
+        private HashSet<Feature> FeatureSet(IEnumerable<Leaf> leaves)
+            => new HashSet<Feature>(leaves.Select(Feature));
+
+        [WitnessFunction(nameof(Semantics.FindRel), 3, DependsOnParameters = new[] { 0, 1, 2 })]
+        public DisjunctiveExamplesSpec FindRelCondition(GrammarRule rule, DisjunctiveExamplesSpec spec,
+            ExampleSpec rootSpec, ExampleSpec labelSpec, ExampleSpec locSpec)
+        {
+#if DEBUG
+            Log.Fine("FindRel.feature |- {0}", spec);
+#endif
+            var condDict = new Dictionary<State, IEnumerable<object>>();
+            foreach (var input in spec.ProvidedInputs)
+            {
+                var ancestor = (SyntaxNode)rootSpec.Examples[input];
+                var label = (Label)labelSpec.Examples[input];
+                var locator = (SiblingLocator)locSpec.Examples[input];
+                var candidates = new List<object>();
+
+                foreach (var expected in spec.DisjunctiveExamples[input])
+                {
+                    var target = (SyntaxNode)expected;
+                    ancestor.Descendants().Where(n => n.label.Equals(label)).TakeUntil(n => n.id == target.id)
+                        .MatchSome(competitors => {
+                            var condSet = FeatureSet(locator.GetSiblings(target).SelectMany(s => s.Leaves()));
+                            foreach (var competitor in competitors)
+                            {
+                                var cs = locator.GetSiblings(competitor).SelectMany(s => s.Leaves()).Select(Feature);
+                                condSet.ExceptWith(cs);
+                            }
+                            candidates.AddRange(condSet.AsEnumerable().Select(c => (object)c));
+                        });
+                }
+
                 if (candidates.Empty()) return null;
 #if DEBUG
                 ShowMany(candidates);
 #endif
-                tokenDict[input] = candidates;
+                condDict[input] = candidates;
             }
 
-            return new DisjunctiveExamplesSpec(tokenDict);
+            return new DisjunctiveExamplesSpec(condDict);
         }
 
-        [WitnessFunction(nameof(Semantics.Find), 3, DependsOnParameters = new[] { 0, 1, 2 })]
-        public DisjunctiveExamplesSpec FindRel(GrammarRule rule, DisjunctiveExamplesSpec spec,
-            ExampleSpec rootSpec, ExampleSpec labelSpec, ExampleSpec tokenSpec)
+        [WitnessFunction(nameof(Semantics.Const), 0)]
+        public DisjunctiveExamplesSpec Const(GrammarRule rule, DisjunctiveExamplesSpec spec)
         {
 #if DEBUG
-            Log.Fine("Find.rel |- {0}", spec);
+            Log.Fine("Const |- {0}", spec);
 #endif
-            var contextDict = new Dictionary<State, object>();
+            var strDict = new Dictionary<State, IEnumerable<object>>();
             foreach (var input in spec.ProvidedInputs)
             {
-                var source = GetSource(input);
-                var ancestor = (SyntaxNode)rootSpec.Examples[input];
-                var context = (
-                    ancestor: ancestor,
-                    label: (Label)labelSpec.Examples[input],
-                    token: (string)tokenSpec.Examples[input],
-                    targets: spec.DisjunctiveExamples[input].Select(t => (SyntaxNode)t)
-                        .Where(t => ancestor.GetSubtrees().Any(n => n.id == t.id)).ToList()
-                );
+                var candidates = new List<object>();   
+                foreach (var target in spec.DisjunctiveExamples[input])
+                {
+                    candidates.Add(target);
+                }
+
+                if (candidates.Empty()) return null;
 #if DEBUG
-                Show(context);
+                ShowMany(candidates);
 #endif
-                contextDict[input] = context;
+                strDict[input] = candidates;
             }
 
-            return new ExampleSpec(contextDict);
+            return new DisjunctiveExamplesSpec(strDict);
         }
 
-        [WitnessFunction(nameof(Semantics.Rel), 0)]
-        public DisjunctiveExamplesSpec RelLocator(GrammarRule rule, ExampleSpec spec)
+        [WitnessFunction(nameof(Semantics.Var), 1)]
+        public DisjunctiveExamplesSpec Var(GrammarRule rule, DisjunctiveExamplesSpec spec)
         {
 #if DEBUG
-            Log.Fine("Rel.loc |- {0}", spec);
+            Log.Fine("Var |- {0}", spec);
 #endif
-            return null;
+            var keyDict = new Dictionary<State, IEnumerable<object>>();
+            foreach (var input in spec.ProvidedInputs)
+            {
+                var tInput = GetInput(input);
+                var candidates = new List<object>();
+
+                foreach (var target in spec.DisjunctiveExamples[input])
+                {
+                    tInput.Find((string)target).MatchSome(key => candidates.Add(key));
+
+                }
+
+                if (candidates.Empty()) return null;
+#if DEBUG
+                ShowMany(candidates);
+#endif
+                keyDict[input] = candidates;
+            }
+
+            return new DisjunctiveExamplesSpec(keyDict);
+        }
+
+        [WitnessFunction(nameof(Semantics.FindToken), 1)]
+        public DisjunctiveExamplesSpec FindTokenChild(GrammarRule rule, DisjunctiveExamplesSpec spec)
+        {
+#if DEBUG
+            Log.Fine("FindToken.child |- {0}", spec);
+#endif
+            var childDict = new Dictionary<State, IEnumerable<object>>();
+            foreach (var input in spec.ProvidedInputs)
+            {
+                var root = GetSource(input).NormalizedParent();
+                var candidates = Enumerable.Range(0, root.GetNumChildren()).Select(x => (object)x).ToList();
+#if DEBUG
+                IndentPrinter printer = new IndentPrinter();
+                root.PrintTo(printer);
+                ShowMany(candidates);
+#endif
+                childDict[input] = candidates;
+            }
+
+            return new DisjunctiveExamplesSpec(childDict);
+        }
+
+        [WitnessFunction(nameof(Semantics.FindToken), 2, DependsOnParameters = new[]{ 1 })]
+        public DisjunctiveExamplesSpec FindTokenLabel(GrammarRule rule, DisjunctiveExamplesSpec spec,
+            ExampleSpec childSpec)
+        {
+#if DEBUG
+            Log.Fine("FindToken.label |- {0} -| {1}", spec, childSpec);
+#endif
+            var labelDict = new Dictionary<State, IEnumerable<object>>();
+            foreach (var input in spec.ProvidedInputs)
+            {
+                var root = GetSource(input).NormalizedParent();
+                var subtree = root.GetChild((int)childSpec.Examples[input]);
+                var candidates = new List<object>();
+
+                foreach (var expected in spec.DisjunctiveExamples[input])
+                {
+                    var target = (string)expected;
+                    // In the leaves of the `subtree`, the possible labels are those
+                    // which has the same token as the target.
+                    candidates.AddRange(
+                        subtree.Leaves().Where(l => l.code == target).Select(l => (object)l.label));
+                }
+
+                if (candidates.Empty()) return null;
+#if DEBUG
+                ShowMany(candidates);
+#endif
+                labelDict[input] = candidates;
+            }
+
+            return new DisjunctiveExamplesSpec(labelDict);
+        }
+
+        [WitnessFunction(nameof(Semantics.FindToken), 3, DependsOnParameters = new[] { 1, 2 })]
+        public DisjunctiveExamplesSpec FindTokenK(GrammarRule rule, DisjunctiveExamplesSpec spec,
+            ExampleSpec childSpec, ExampleSpec labelSpec)
+        {
+#if DEBUG
+            Log.Fine("FindToken.k |- {0} -| {1} & {2}", spec, childSpec, labelSpec);
+#endif
+            var kDict = new Dictionary<State, IEnumerable<object>>();
+            foreach (var input in spec.ProvidedInputs)
+            {
+                var root = GetSource(input).NormalizedParent();
+                var subtree = root.GetChild((int)childSpec.Examples[input]);
+                var label = (Label)labelSpec.Examples[input];
+                var candidates = new List<object>();
+
+                foreach (var expected in spec.DisjunctiveExamples[input])
+                {
+                    var target = (string)expected;
+                    subtree.Leaves().Where(l => l.label.Equals(label)).IndexWhere(l => l.code == target)
+                        .MatchSome(k => candidates.Add(k));
+                }
+
+                if (candidates.Empty()) return null;
+#if DEBUG
+                ShowMany(candidates);
+#endif
+                kDict[input] = candidates;
+            }
+
+            return new DisjunctiveExamplesSpec(kDict);
         }
     }
 }

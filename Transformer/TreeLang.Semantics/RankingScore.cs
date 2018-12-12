@@ -57,20 +57,13 @@ namespace Prem.Transformer.TreeLang
         public static double RelAnc(double source, double label, double k) => k; // <= 0.5
 
         [FeatureCalculator(nameof(Semantics.Find))]
-        public static double Find(double ancestor, double label, double token, double matcher) =>
-            ancestor;
+        public static double Find(double ancestor, double label) => ancestor;
 
-        [FeatureCalculator(nameof(Semantics.Match))]
-        public static double Match(double token) => token;
+        [FeatureCalculator(nameof(Semantics.FindRel))]
+        public static double FindRel(double ancestor, double label, double locator, double feature) => ancestor;
 
-        [FeatureCalculator(nameof(Semantics.Any))]
-        public static double Any() => 1;
-
-        [FeatureCalculator(nameof(Semantics.Rel))]
-        public static double Rel(double locator, double label, double token) => locator;
-
-        [FeatureCalculator(nameof(Semantics.NoRel))]
-        public static double NoRel() => 1;
+        [FeatureCalculator("Feature")]
+        public static double Feature(double label, double token) => token;
         
         [FeatureCalculator(nameof(Semantics.Const))]
         public static double Const(double s) => s;
@@ -78,8 +71,8 @@ namespace Prem.Transformer.TreeLang
         [FeatureCalculator(nameof(Semantics.Var))]
         public static double Var(double input, double key) => 1;
 
-        [FeatureCalculator(nameof(Semantics.FindE))]
-        public static double FindE(double input, double matcher) => matcher;
+        [FeatureCalculator(nameof(Semantics.FindToken))]
+        public static double FindToken(double input, double child, double label, double k) => k;
 
         // 0 < score(k) <= 1
         // When k > 0, 0 < score(k) <= 0.5

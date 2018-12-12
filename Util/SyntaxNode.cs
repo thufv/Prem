@@ -113,6 +113,18 @@ namespace Prem.Util
         /// <value>The parent node, null if `this` is the root.</value>
         public Node parent { get; set; }
 
+        public Node NormalizedParent()
+        {
+            var node = parent;
+            while (node != null)
+            {
+                if (node.GetNumChildren() > 1) return node;
+                node = node.parent;
+            }
+
+            return null;
+        }
+
         public bool HasParent()
         {
             return parent != null;
@@ -184,6 +196,10 @@ namespace Prem.Util
         }
 
         public IEnumerable<SyntaxNode> GetSubtrees() => DFS<SyntaxNode>(x => x);
+
+        public IEnumerable<SyntaxNode> Descendants() => GetSubtrees().Skip(1);
+
+        public IEnumerable<Leaf> Leaves() => GetSubtrees().Where(n => n.isLeaf).Select(n => (Leaf)n);
 
         abstract public List<T> DFS<T>(Func<SyntaxNode, T> visit);
 
