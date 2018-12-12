@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Optional;
 using Prem.Util;
@@ -44,6 +45,82 @@ namespace Prem.Transformer.TreeLang
         }
     }
 
+    public abstract class Cursor
+    {
+        public SyntaxNode source { get; set; }
+
+        public Node target { get; set; }
+
+        public string info { get; set; }
+
+        public abstract Option<Node> Apply(SyntaxNode source);
+    }
+
+    public class AbsCursor : Cursor
+    {
+        public int k { get; }
+
+        public AbsCursor(int k)
+        {
+            this.k = k;
+        }
+
+        public override Option<Node> Apply(SyntaxNode source) => source.GetAncestor(k);
+
+        public override string ToString() => $"{k}";
+
+        public override bool Equals(object obj)
+        {
+            if ((obj == null) || !this.GetType().Equals(obj.GetType()))
+            {
+                return false;
+            }
+
+            var that = (AbsCursor)obj;
+            return this.k == that.k;
+        }
+
+        public override int GetHashCode()
+        {
+            return k.GetHashCode();
+        }
+    }
+
+    public class RelCursor : Cursor
+    {
+        public Label label { get; }
+
+        public int k { get; }
+
+        public RelCursor(Label label, int k)
+        {
+            this.label = label;
+            this.k = k;
+        }
+
+        public override Option<Node> Apply(SyntaxNode source) =>
+            source.GetAncestorWhere(x => x.label.Equals(label), k);
+
+        public override string ToString() => $"{label}:{k}";
+
+        public override bool Equals(object obj)
+        {
+            if ((obj == null) || !this.GetType().Equals(obj.GetType()))
+            {
+                return false;
+            }
+
+            var that = (RelCursor)obj;
+            return this.label.Equals(that.label) && this.k == that.k;
+        }
+
+        public override int GetHashCode()
+        {
+            return Hash.Combine(k.GetHashCode(), label.GetHashCode());
+        }
+    }
+
+/* 
     public abstract class SiblingLocator
     {
         public IEnumerable<SyntaxNode> GetSiblings(SyntaxNode node)
@@ -144,4 +221,5 @@ namespace Prem.Transformer.TreeLang
             return node.parent.GetChildren();
         }
     }
+    */
 }

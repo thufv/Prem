@@ -50,17 +50,15 @@ namespace Prem.Transformer.TreeLang
         [FeatureCalculator(nameof(Semantics.Just))]
         public static double Just(double source) => 1; // <= 1
 
-        [FeatureCalculator(nameof(Semantics.AbsAnc))]
-        public static double AbsAnc(double source, double k) => -k; // < 0.5
-
-        [FeatureCalculator(nameof(Semantics.RelAnc))]
-        public static double RelAnc(double source, double label, double k) => k; // <= 0.5
+        [FeatureCalculator(nameof(Semantics.Move))]
+        public static double Move(double source, double cursor) => cursor; // <= 0.5
 
         [FeatureCalculator(nameof(Semantics.Find))]
-        public static double Find(double ancestor, double label) => ancestor;
+        public static double Find(double ancestor, double label, double k) => ancestor;
 
         [FeatureCalculator(nameof(Semantics.FindRel))]
-        public static double FindRel(double ancestor, double label, double locator, double feature) => ancestor;
+        public static double FindRel(double ancestor, double label, double cursor, double child, double feature) => 
+            cursor;
 
         [FeatureCalculator("Feature")]
         public static double Feature(double label, double token) => token;
@@ -72,7 +70,7 @@ namespace Prem.Transformer.TreeLang
         public static double Var(double input, double key) => 1;
 
         [FeatureCalculator(nameof(Semantics.FindToken))]
-        public static double FindToken(double input, double child, double label, double k) => k;
+        public static double FindToken(double input, double cursor, double child, double label, double k) => k;
 
         // 0 < score(k) <= 1
         // When k > 0, 0 < score(k) <= 0.5
@@ -81,8 +79,8 @@ namespace Prem.Transformer.TreeLang
         [FeatureCalculator("k", Method = CalculationMethod.FromLiteral)]
         public static double K(int k) => (k >= 0) ? 1.0 / (1 + k) : 1.0 / (1.1 - k);
 
-        [FeatureCalculator("i", Method = CalculationMethod.FromLiteral)]
-        public static double I(int i) => 1; // unused
+        [FeatureCalculator("child", Method = CalculationMethod.FromLiteral)]
+        public static double Child(int i) => 1; // unused
 
         [FeatureCalculator("s", Method = CalculationMethod.FromLiteral)]
         public static double S(string s) => 1;
@@ -90,7 +88,7 @@ namespace Prem.Transformer.TreeLang
         [FeatureCalculator("label", Method = CalculationMethod.FromLiteral)]
         public static double Label(Label label) => 1; // unused
 
-        [FeatureCalculator("locator", Method = CalculationMethod.FromLiteral)]
-        public static double Locator(SiblingLocator locator) => 1;
+        [FeatureCalculator("cursor", Method = CalculationMethod.FromLiteral)]
+        public static double Cursor(Cursor cursor) => 1;
     }
 }

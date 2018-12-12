@@ -6,26 +6,32 @@ namespace Prem.Util
 {
     public static class CommonAncestor
     {
-        public static SyntaxNode CommonAncestorOf(SyntaxNode t1, SyntaxNode t2)
+        /// <summary>
+        /// Lowest common ancestor of the two nodes in a same tree.
+        /// </summary>
+        /// <param name="node1">One node.</param>
+        /// <param name="node2">Another node.</param>
+        /// <returns>Their lowest common ancestor.</returns>
+        public static SyntaxNode LCA(SyntaxNode node1, SyntaxNode node2)
         {
             while (true)
             {
-                if (t1.depth > t2.depth)
+                if (node1.depth > node2.depth)
                 {
-                    t1 = t1.parent;
+                    node1 = node1.parent;
                 }
-                else if (t1.depth < t2.depth)
+                else if (node1.depth < node2.depth)
                 {
-                    t2 = t2.parent;
+                    node2 = node2.parent;
                 }
-                else if (t1.id == t2.id)
+                else if (node1.id == node2.id)
                 {
-                    return t1;
+                    return node1;
                 }
                 else
                 {
-                    t1 = t1.parent;
-                    t2 = t2.parent;
+                    node1 = node1.parent;
+                    node2 = node2.parent;
                 }
             }
         }
@@ -35,10 +41,10 @@ namespace Prem.Util
             var pivot = head;
             foreach (var node in tail)
             {
-                pivot = CommonAncestorOf(pivot, node);
+                pivot = LCA(pivot, node);
             }
 
-            return pivot.GetAncestors().ToList();
+            return pivot.UpPath().ToList();
         }
     }
 }

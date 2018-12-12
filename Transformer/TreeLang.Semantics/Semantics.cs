@@ -47,35 +47,40 @@ namespace Prem.Transformer.TreeLang
 
         public static SyntaxNode Just(TInput input) => input.errNode;
 
-        public static SyntaxNode AbsAnc(TInput input, int k) =>
-            input.errNode.GetAncestor(k).ValueOr(input.errNode);
-
-        public static SyntaxNode RelAnc(TInput input, Label label, int k) =>
-            input.errNode.GetAncestorWhere(x => x.label.Equals(label), k).ValueOr(input.errNode);
+        public static SyntaxNode Move(TInput input, Cursor cursor) =>
+            cursor.Apply(input.errNode).Map(v => (SyntaxNode)v).ValueOr(input.errNode);
 
         public static SyntaxNode Find(SyntaxNode ancestor, Label label, int k) =>
             ancestor.Descendants().First(n => n.label.Equals(label));
 
         public static SyntaxNode FindRel(SyntaxNode ancestor, Label label, 
-            SiblingLocator locator, Feature? condition)
+            Cursor cursor, int child, Feature? condition)
         {
             if (condition == null) return null;
 
             var expLabel = condition.Value.Item1;
             var expToken = condition.Value.Item2;
-            return ancestor.Descendants().First(n => n.label.Equals(expLabel) && 
-                locator.GetSiblings(n).Any(s => s.label.Equals(expLabel) && s.code == expToken));
+            return ancestor.Descendants().First(n =>
+                n.label.Equals(expLabel) ? 
+                    cursor.Apply(n).Match(
+                        some: node => 
+                            node.GetChild(child).Leaves().Any(l => l.label.Equals(expLabel) && l.code == expToken),
+                        none: () => false
+                    ) : false);
         }
 
         public static string Const(string s) => s;
 
         public static string Var(TInput input, int key) => input[key];
 
-        public static string FindToken(TInput input, int child, Label label, int k) =>
-            input.errNode.NormalizedParent().GetChild(child).Leaves().Find(l => l.label.Equals(label), k)
+        public static string FindToken(TInput input, Cursor cursor, int child, Label label, int k) =>
+            cursor.Apply(input.errNode).Match(
+                some: node => node.GetChild(child).Leaves().Find(l => l.label.Equals(label), k)
                 .Match(
                     some: token => token.code,
                     none: () => null
-                );
+                ),
+                none: () => null
+            );
     }
 }

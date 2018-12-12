@@ -166,7 +166,7 @@ namespace Prem.Util
 
         public virtual int GetNumChildren() => 0;
 
-        public Option<SyntaxNode> GetAncestorWhere(Predicate<SyntaxNode> predicate, int k)
+        public Option<Node> GetAncestorWhere(Predicate<SyntaxNode> predicate, int k)
         {
             Debug.Assert(k > 0);
             SyntaxNode node = this;
@@ -179,44 +179,56 @@ namespace Prem.Util
                 }
                 else
                 {
-                    return Option.None<SyntaxNode>();
+                    return Option.None<Node>();
                 }
 
                 if (predicate(node))
                 {
-                    if (k == 1) return Option.Some<SyntaxNode>(node);
+                    if (k == 1) return Option.Some<Node>((Node)node);
                     k--;
                 }
             }
         }
 
-        public Option<SyntaxNode> GetAncestor(int k)
+        public Option<Node> GetAncestor(int k)
         {
             return GetAncestorWhere(_ => true, k);
         }
 
+        /// <summary>
+        /// Enumerate all subtrees, including itself.
+        /// </summary>
+        /// <returns>All subtrees.</returns>
         public IEnumerable<SyntaxNode> GetSubtrees() => DFS<SyntaxNode>(x => x);
 
+        /// <summary>
+        /// Enumerate all descendants, i.e. subtrees excluding itself.
+        /// </summary>
+        /// <returns>All descendants.</returns>
         public IEnumerable<SyntaxNode> Descendants() => GetSubtrees().Skip(1);
 
         public IEnumerable<Leaf> Leaves() => GetSubtrees().Where(n => n.isLeaf).Select(n => (Leaf)n);
 
         abstract public List<T> DFS<T>(Func<SyntaxNode, T> visit);
 
-        // including itself        
-        public IEnumerable<SyntaxNode> GetAncestors()
+        /// <summary>
+        /// Enumerate all "up" nodes, on the same path of this node, i.e. ancestors and itself.
+        /// </summary>
+        /// <returns>All "up" nodes.</returns>
+        public IEnumerable<SyntaxNode> UpPath()
         {
-            var ancestors = new List<SyntaxNode>();
-            var node = this;
-            ancestors.Add(node);
-
-            while (node.HasParent())
+            for (var node = this; node != null; node = node.parent)
             {
-                node = node.parent;
-                ancestors.Add(node);
+                yield return node;
             }
+        }
 
-            return ancestors;
+        public IEnumerable<Node> Ancestors()
+        {
+            for (var node = parent; node != null; node = node.parent)
+            {
+                yield return node;
+            }
         }
 
         public int CountAncestorWhere(Func<SyntaxNode, bool> predicate, int until)

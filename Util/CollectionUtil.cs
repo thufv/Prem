@@ -64,7 +64,7 @@ namespace Prem.Util
             return Option.None<int>();
         }
 
-        public static Option<T> Find<T>(this IEnumerable<T> seq, Predicate<T> predicate, int k)
+        public static Option<T> Find<T>(this IEnumerable<T> seq, Predicate<T> predicate, int k = 0)
         {
             foreach (var e in seq)
             {
@@ -81,13 +81,15 @@ namespace Prem.Util
             return Option.None<T>();
         }
 
-        public static Option<List<T>> TakeUntil<T>(this IEnumerable<T> seq, Predicate<T> predicate)
+        public static Option<List<T>> TakeUntil<T>(this IEnumerable<T> seq, Predicate<T> predicate, 
+            bool includeLast = true)
         {
             var list = new List<T>();
             foreach (var e in seq)
             {
                 if (predicate(e))
                 {
+                    if (includeLast) list.Add(e);
                     return list.Some();
                 }
 

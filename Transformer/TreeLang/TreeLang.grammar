@@ -17,26 +17,26 @@ language TreeLang;
 
 SyntaxNode newTree := New(tree);
 
-PartialNode tree := Copy(nodeRef) | Leaf(label, token) | Tree(label, children);
+PartialNode tree := Copy(ref) | Leaf(label, token) | Tree(label, children);
 
 IEnumerable<PartialNode> children := Child(tree) | Children(tree, children);
 
 SyntaxNode target := Just(source)
-                   | nodeRef;
-                   
-SyntaxNode nodeRef := ancestor
-                    | Find(ancestor, label, k)
-                    | FindRel(ancestor, label, locator, siblingFeature);
+                   | ref;
 
-SyntaxNode ancestor := AbsAnc(source, k) | RelAnc(source, label, k);
+SyntaxNode ref := ancestor
+                | Find(ancestor, label, k)
+                | FindRel(ancestor, label, cursor, child, siblingFeature);
+
+SyntaxNode ancestor := Move(source, cursor);
 
 Record<Label, string>? siblingFeature := Feature(label, token) = Pair(label, token);
 
-string token := Const(s) | Var(source, i) | FindToken(source, k, label, k);
+string token := Const(s) | Var(source, k) | FindToken(source, cursor, child, label, k);
 
+int child;
 int k;
-int i;
 string s;
 
 Label label;
-SiblingLocator locator;
+Cursor cursor;
