@@ -7,9 +7,15 @@ using Microsoft.ProgramSynthesis.Rules;
 using Microsoft.ProgramSynthesis.Specifications;
 using Microsoft.ProgramSynthesis.Specifications.Extensions;
 using Microsoft.ProgramSynthesis.Learning;
+using Microsoft.ProgramSynthesis.AST;
 
 using Prem.Util;
-using Optional;
+using Microsoft.ProgramSynthesis.VersionSpace;
+using Microsoft.ProgramSynthesis.Utils;
+using Microsoft.ProgramSynthesis.Learning.Strategies.Deductive.RuleLearners;
+using System.Threading;
+
+using MyLogger = Prem.Util.Logger;
 
 namespace Prem.Transformer.TreeLang
 {
@@ -21,7 +27,7 @@ namespace Prem.Transformer.TreeLang
 
     public class WitnessFunctions : DomainLearningLogic
     {
-        private static Logger Log = Logger.Instance;
+        private static MyLogger Log = MyLogger.Instance;
 
         private static void Show<T>(T item)
         {
@@ -40,9 +46,12 @@ namespace Prem.Transformer.TreeLang
 
         private Symbol _inputSymbol;
 
+        private Grammar _grammar;
+
         public WitnessFunctions(Grammar grammar) : base(grammar)
         {
             this._inputSymbol = grammar.InputSymbol;
+            this._grammar = grammar;
         }
 
         private TInput GetInput(State input) => (TInput)input[_inputSymbol];
@@ -321,7 +330,7 @@ namespace Prem.Transformer.TreeLang
             return new ExampleSpec(labelDict);
         }
 
-        [WitnessFunction(nameof(Semantics.Tree), 1, DependsOnParameters = new[]{ 0 })]
+        [WitnessFunction(nameof(Semantics.Tree), 1, DependsOnParameters = new[] { 0 })]
         public ExampleSpec TreeChildren(GrammarRule rule, ExampleSpec spec, ExampleSpec labelSpec)
         {
 #if DEBUG
@@ -393,7 +402,7 @@ namespace Prem.Transformer.TreeLang
             return new ExampleSpec(headDict);
         }
 
-        [WitnessFunction(nameof(Semantics.Children), 1, DependsOnParameters = new[]{ 0 })]
+        [WitnessFunction(nameof(Semantics.Children), 1, DependsOnParameters = new[] { 0 })]
         public ExampleSpec ChildrenTail(GrammarRule rule, ExampleSpec spec)
         {
 #if DEBUG
@@ -427,7 +436,7 @@ namespace Prem.Transformer.TreeLang
             c2.source = source;
             c2.target = target;
 
-            return new List<Cursor>{ c1, c2 };
+            return new List<Cursor> { c1, c2 };
         }
 
         [WitnessFunction(nameof(Semantics.Move), 1)]
@@ -526,10 +535,11 @@ namespace Prem.Transformer.TreeLang
 #if DEBUG
             Log.Fine("Find.ancestor |- {0}", spec);
 #endif
+
             return GenAncestor(rule, spec);
         }
 
-        [WitnessFunction(nameof(Semantics.Find), 1, DependsOnParameters = new[]{ 0 })]
+        [WitnessFunction(nameof(Semantics.Find), 1, DependsOnParameters = new[] { 0 })]
         public DisjunctiveExamplesSpec FindLabel(GrammarRule rule, DisjunctiveExamplesSpec spec,
             ExampleSpec rootSpec)
         {
@@ -580,7 +590,7 @@ namespace Prem.Transformer.TreeLang
             return GenAncestor(rule, spec);
         }
 
-        [WitnessFunction(nameof(Semantics.FindRel), 1, DependsOnParameters = new[]{ 0 })]
+        [WitnessFunction(nameof(Semantics.FindRel), 1, DependsOnParameters = new[] { 0 })]
         public DisjunctiveExamplesSpec FindRelLabel(GrammarRule rule, DisjunctiveExamplesSpec spec,
             ExampleSpec rootSpec)
         {
@@ -590,7 +600,7 @@ namespace Prem.Transformer.TreeLang
             return GenLabel(rule, spec, rootSpec);
         }
 
-        [WitnessFunction(nameof(Semantics.FindRel), 2, DependsOnParameters = new []{ 0, 1 })]
+        [WitnessFunction(nameof(Semantics.FindRel), 2, DependsOnParameters = new[] { 0, 1 })]
         public DisjunctiveExamplesSpec FindRelCursor(GrammarRule rule, DisjunctiveExamplesSpec spec,
             ExampleSpec rootSpec, ExampleSpec labelSpec)
         {
@@ -611,13 +621,14 @@ namespace Prem.Transformer.TreeLang
                     if (target.label.Equals(label) && ancestor.Descendants().Any(n => n.id == target.id))
                     {
                         Debug.Assert(target.HasParent());
-                        target.Ancestors().TakeUntil(n => n.id == ancestor.id).MatchSome(nodes => {
+                        target.Ancestors().TakeUntil(n => n.id == ancestor.id).MatchSome(nodes =>
+                        {
                             nodes.Where(n => n.GetNumChildren() > 1) // Feature is helpful.
                                 .ToList().ForEach(n => candidates.AddRange(GenCursor(target, n)));
                         });
                     }
                 }
-      
+
                 if (candidates.Empty()) return null;
 #if DEBUG
                 ShowMany(candidates);
@@ -628,7 +639,7 @@ namespace Prem.Transformer.TreeLang
             return new DisjunctiveExamplesSpec(cursorDict);
         }
 
-        [WitnessFunction(nameof(Semantics.FindRel), 3, DependsOnParameters = new[]{ 0, 1, 2 })]
+        [WitnessFunction(nameof(Semantics.FindRel), 3, DependsOnParameters = new[] { 0, 1, 2 })]
         public DisjunctiveExamplesSpec FindRelChild(GrammarRule rule, DisjunctiveExamplesSpec spec,
             ExampleSpec rootSpec, ExampleSpec labelSpec, ExampleSpec cursorSpec)
         {
@@ -638,18 +649,25 @@ namespace Prem.Transformer.TreeLang
             var childDict = new Dictionary<State, IEnumerable<object>>();
             foreach (var input in spec.ProvidedInputs)
             {
+                var ancestor = (Node)rootSpec.Examples[input];
+                var label = (Label)labelSpec.Examples[input];
                 var cursor = (Cursor)cursorSpec.Examples[input];
                 var candidates = new List<object>();
 
                 foreach (var expected in spec.DisjunctiveExamples[input])
                 {
                     var target = (SyntaxNode)expected;
-                    // Require `target` to be a descendant of `ancestor`, with label `label`,
-                    // and it is linked to the `cursor`. Note that the last condition implies the previous two.
-                    if (target.id == cursor.source.id)
+                    // Require `target` to be a descendant of `ancestor`, with label `label`.
+                    if (target.label.Equals(label) && ancestor.Descendants().Any(n => n.id == target.id))
                     {
-                        candidates.AddRange(Enumerable.Range(0, cursor.target.GetNumChildren())
-                            .Select(x => (object)x));
+                        cursor.Apply(target).MatchSome(n =>
+                        { // If `cursor` is applicable.
+                            var arity = n.GetNumChildren();
+                            if (arity > 1) // Feature is helpful.
+                            {
+                                candidates.AddRange(Enumerable.Range(0, arity).Select(x => (object)x));
+                            }
+                        });
                     }
                 }
 
@@ -667,7 +685,7 @@ namespace Prem.Transformer.TreeLang
 
         private HashSet<Feature> FeatureSet(IEnumerable<Leaf> leaves) => new HashSet<Feature>(leaves.Select(Feature));
 
-        [WitnessFunction(nameof(Semantics.FindRel), 4, DependsOnParameters = new[]{ 0, 1, 2, 3 })]
+        [WitnessFunction(nameof(Semantics.FindRel), 4, DependsOnParameters = new[] { 0, 1, 2, 3 })]
         public DisjunctiveExamplesSpec FindRelFeature(GrammarRule rule, DisjunctiveExamplesSpec spec,
             ExampleSpec rootSpec, ExampleSpec labelSpec, ExampleSpec cursorSpec, ExampleSpec childSpec)
         {
@@ -686,23 +704,33 @@ namespace Prem.Transformer.TreeLang
                 foreach (var expected in spec.DisjunctiveExamples[input])
                 {
                     var target = (SyntaxNode)expected;
-                    // Require `target` to be a descendant of `ancestor`, with label `label`,
-                    // and it is linked to the `cursor`. Note that the last condition implies the previous two.
-                    if (target.id == cursor.source.id)
+                    // Require `target` to be a descendant of `ancestor`, with label `label`.
+                    if (target.label.Equals(label) && ancestor.Descendants().Any(n => n.id == target.id))
                     {
-                        ancestor.Descendants().Where(n => n.label.Equals(label))
-                            .TakeUntil(n => n.id == target.id, false) // All nodes with label `label` before `target`.
-                            .MatchSome(competitors => {
-                                var featureSet = FeatureSet(cursor.target.GetChild(child).Leaves());
-                                foreach (var competitor in competitors)
-                                {
-                                    cursor.Apply(competitor).MatchSome(node => {
-                                        var fs = node.GetChild(child).Leaves().Select(Feature);
-                                        featureSet.ExceptWith(fs); // Exclude the competitive features.
+                        cursor.Apply(target).MatchSome(r =>
+                        { // If `cursor` is applicable,
+                            if (child < r.GetNumChildren()) // and has the `child`.
+                            {
+                                ancestor.Descendants().Where(n => n.label.Equals(label))
+                                    .TakeUntil(n => n.id == target.id, false) // All nodes with `label` before `target`.
+                                    .MatchSome(competitors =>
+                                    {
+                                        var featureSet = FeatureSet(r.GetChild(child).Leaves());
+                                        foreach (var competitor in competitors)
+                                        {
+                                            cursor.Apply(competitor).MatchSome(node =>
+                                            {
+                                                if (child < node.GetNumChildren()) // `node` is competitive.
+                                                        {
+                                                    var fs = node.GetChild(child).Leaves().Select(Feature);
+                                                    featureSet.ExceptWith(fs); // Exclude the competitive features.
+                                                        }
+                                            });
+                                        }
+                                        candidates.AddRange(featureSet.AsEnumerable().Select(c => (object)c));
                                     });
-                                }
-                                candidates.AddRange(featureSet.AsEnumerable().Select(c => (object)c));
-                            });
+                            }
+                        });
                     }
                 }
 
@@ -725,7 +753,7 @@ namespace Prem.Transformer.TreeLang
             var strDict = new Dictionary<State, IEnumerable<object>>();
             foreach (var input in spec.ProvidedInputs)
             {
-                var candidates = new List<object>();   
+                var candidates = new List<object>();
                 foreach (var target in spec.DisjunctiveExamples[input])
                 {
                     candidates.Add(target);
@@ -769,6 +797,35 @@ namespace Prem.Transformer.TreeLang
             return new DisjunctiveExamplesSpec(keyDict);
         }
 
+        [WitnessFunction(nameof(Semantics.CopyToken), 0)]
+        public DisjunctiveExamplesSpec CopyToken(GrammarRule rule, DisjunctiveExamplesSpec spec)
+        {
+#if DEBUG
+            Log.Fine("CopyToken |- {0}", spec);
+#endif
+            var refDict = new Dictionary<State, IEnumerable<object>>();
+            foreach (var input in spec.ProvidedInputs)
+            {
+                var root = GetInput(input).inputTree;
+                var candidates = new List<object>();
+
+                foreach (var expected in spec.DisjunctiveExamples[input])
+                {
+                    var target = (string)expected;
+                    root.Leaves().Where(l => l.code == target).ToList().ForEach(l => candidates.Add(l));
+                }
+
+                if (candidates.Empty()) return null;
+#if DEBUG
+                ShowMany(candidates);
+#endif
+                refDict[input] = candidates;
+            }
+
+            return new DisjunctiveExamplesSpec(refDict);
+        }
+
+
         [WitnessFunction(nameof(Semantics.FindToken), 1)]
         public DisjunctiveExamplesSpec FindTokenCursor(GrammarRule rule, DisjunctiveExamplesSpec spec)
         {
@@ -800,7 +857,7 @@ namespace Prem.Transformer.TreeLang
             return new DisjunctiveExamplesSpec(cursorDict);
         }
 
-        [WitnessFunction(nameof(Semantics.FindToken), 2, DependsOnParameters = new[]{ 1 })]
+        [WitnessFunction(nameof(Semantics.FindToken), 2, DependsOnParameters = new[] { 1 })]
         public DisjunctiveExamplesSpec FindTokenChild(GrammarRule rule, DisjunctiveExamplesSpec spec,
             ExampleSpec cursorSpec)
         {
@@ -819,7 +876,8 @@ namespace Prem.Transformer.TreeLang
                     // Require `target` to be the info that `cursor` linked to.
                     if (target == cursor.info)
                     {
-                        cursor.target.children.ForEachI((index, child) => {
+                        cursor.target.children.ForEachI((index, child) =>
+                        {
                             if (child.Leaves().Any(l => l.code == target)) // Only add child where `target` is inside.
                             {
                                 candidates.Add(index);
@@ -838,7 +896,7 @@ namespace Prem.Transformer.TreeLang
             return new DisjunctiveExamplesSpec(childDict);
         }
 
-        [WitnessFunction(nameof(Semantics.FindToken), 3, DependsOnParameters = new[]{ 1, 2 })]
+        [WitnessFunction(nameof(Semantics.FindToken), 3, DependsOnParameters = new[] { 1, 2 })]
         public DisjunctiveExamplesSpec FindTokenLabel(GrammarRule rule, DisjunctiveExamplesSpec spec,
             ExampleSpec cursorSpec, ExampleSpec childSpec)
         {

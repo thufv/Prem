@@ -95,7 +95,7 @@ namespace Prem.Transformer
             {
                 Strategies = new ISynthesisStrategy[]
                 {
-                    new DeductiveSynthesis(witnessFunctions)
+                    new PremStrategy(grammar),
                 },
                 UseThreads = false,
 #if DEBUG

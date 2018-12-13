@@ -18,6 +18,9 @@ namespace Prem.Util
 
         public static bool Empty<T>(this List<T> list) => list.Count == 0;
 
+        public static bool Same<T>(this IEnumerable<T> seq) =>
+            seq.Any() ? seq.All(e => e.Equals(seq.First())) : true;
+
         public static List<V> Map2<T, U, V>(this List<T> list1, List<U> list2, Func<T, U, V> func)
         {
             int n = Math.Min(list1.Count, list2.Count);

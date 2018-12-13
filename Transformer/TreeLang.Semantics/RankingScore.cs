@@ -69,6 +69,9 @@ namespace Prem.Transformer.TreeLang
         [FeatureCalculator(nameof(Semantics.Var))]
         public static double Var(double input, double key) => 1;
 
+        [FeatureCalculator(nameof(Semantics.CopyToken))]
+        public static double CopyToken(double target) => target;
+
         [FeatureCalculator(nameof(Semantics.FindToken))]
         public static double FindToken(double input, double cursor, double child, double label, double k) => k;
 

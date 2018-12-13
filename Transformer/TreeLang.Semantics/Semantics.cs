@@ -73,6 +73,8 @@ namespace Prem.Transformer.TreeLang
 
         public static string Var(TInput input, int key) => input[key];
 
+        public static string CopyToken(SyntaxNode target) => target.code;
+
         public static string FindToken(TInput input, Cursor cursor, int child, Label label, int k) =>
             cursor.Apply(input.errNode).Match(
                 some: node => node.GetChild(child).Leaves().Find(l => l.label.Equals(label), k)
