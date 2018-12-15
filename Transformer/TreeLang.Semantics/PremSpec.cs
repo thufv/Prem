@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+using Prem.Util;
 
 namespace Prem.Transformer.TreeLang
 {
@@ -84,6 +85,16 @@ namespace Prem.Transformer.TreeLang
                 items.Add($"{p.Key} -> {p.Value}");
             }
             return "{ " + String.Join("; ", items) + " }";
+        }
+
+        public MultiValueDict<I, O> AsMultiValueDict()
+        {
+            var dict = new MultiValueDict<I, O>();
+            foreach (var p in this)
+            {
+                dict.Add(p.Key, p.Value);
+            }
+            return dict;
         }
     }
 }

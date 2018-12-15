@@ -68,7 +68,6 @@ namespace Prem.Util
             groups.ToList().ForEach(g => base.Add(g.Key, new HashSet<TValue>(g.AsEnumerable())));
         }
 
-
         /// <summary>
         /// Adds the specified value under the specified key
         /// </summary>
@@ -162,6 +161,88 @@ namespace Prem.Util
                 toReturn = new HashSet<TValue>();
             }
             return toReturn;
+        }
+
+        public MultiValueDict<TKey, TValueNew> MapValues<TValueNew>(Func<TKey, TValue, TValueNew> mapper)
+        {
+            var dict = new MultiValueDict<TKey, TValueNew>();
+            foreach (var key in Keys)
+            {
+                dict[key] = new HashSet<TValueNew>();
+                foreach (var value in this[key])
+                {
+                    dict[key].Add(mapper(key, value));
+                }
+            }
+            return dict;
+        }
+
+        public MultiValueDict<TKey, TValueNew> FlatMapValues<TValueNew>(Func<TKey, TValue, List<TValueNew>> mapper)
+        {
+            var dict = new MultiValueDict<TKey, TValueNew>();
+            foreach (var key in Keys)
+            {
+                dict[key] = new HashSet<TValueNew>();
+                foreach (var value in this[key])
+                {
+                    mapper(key, value).ForEach(e => dict[key].Add(e));
+                }
+            }
+            return dict;
+        }
+
+        public IEnumerable<KeyValuePair<TKey, HashSet<TValue>>> SortedByLength() =>
+            this.AsEnumerable().SortedBy(p => p.Value.Count);
+
+        public HashSet<TValue> Intersect()
+        {
+            var items = SortedByLength().Reverse().Select(p => p.Value).ToList();
+            if (items.Count == 1)
+            {
+                return items.First();
+            }
+
+            var head = items.First();
+            foreach (var i in items.Rest())
+            {
+                head.IntersectWith(i);
+            }
+            return head;
+        }
+
+        public MultiValueDict<TKey, TValue> IntersectBy<TInspect>(Func<TKey, TValue, TInspect> inspector)
+        {
+            var items = MapValues((i, o) => (Output: o, Inspect: inspector(i, o))).SortedByLength().ToList();
+            if (items.Count == 1)
+            {
+                return this;
+            }
+
+            var head = items.First();
+            var rest = items.Rest();
+            var commons = head.Value.Where(hp => rest.All(rp => rp.Value.Any(v => v.Inspect.Equals(hp.Inspect))))
+                .Select(p => p.Inspect);
+
+            var dict = new MultiValueDict<TKey, TValue>();
+            foreach (var p in items)
+            {
+                dict[p.Key] = new HashSet<TValue>();
+                foreach (var common in commons)
+                {
+                    p.Value.Where(v => v.Inspect.Equals(common)).ToList().ForEach(x => dict[p.Key].Add(x.Output));
+                }
+            }
+            return dict;
+        }
+
+        public bool AnyEmpty() => this.AsEnumerable().Any(p => p.Value.Count == 0);
+        
+        public bool FirstValueIdenticalBy<TInspect>(Func<TKey, TValue, TInspect> inspector, out TInspect inspect)
+        {
+            var seq = this.AsEnumerable().Select(p => inspector(p.Key, p.Value.AsEnumerable().First()));
+            inspect = seq.First();
+            var x = inspect;
+            return seq.Rest().All(ins => ins.Equals(x));
         }
 
         public override string ToString()

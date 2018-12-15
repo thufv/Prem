@@ -103,5 +103,8 @@ namespace Prem.Util
         }
 
         public static IEnumerable<T> Sorted<T>(this IEnumerable<T> seq) => seq.OrderBy(x => x);
+
+        public static IEnumerable<T> SortedBy<T, U>(this IEnumerable<T> seq, Func<T, U> keySelector) =>
+            seq.OrderBy(x => keySelector(x));
     }
 }
