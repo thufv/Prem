@@ -51,7 +51,7 @@ namespace Prem.Transformer.TreeLang
             cursor.Apply(input.errNode).Map(v => (SyntaxNode)v).ValueOr(input.errNode);
 
         public static SyntaxNode Find(SyntaxNode ancestor, Label label, int k) =>
-            ancestor.Descendants().First(n => n.label.Equals(label));
+            ancestor.Descendants().Kth(n => n.label.Equals(label), k).ValueOr(ancestor);
 
         public static SyntaxNode FindRel(SyntaxNode ancestor, Label label, 
             Cursor cursor, int child, Feature? condition)
@@ -60,13 +60,15 @@ namespace Prem.Transformer.TreeLang
 
             var expLabel = condition.Value.Item1;
             var expToken = condition.Value.Item2;
-            return ancestor.Descendants().First(n =>
-                n.label.Equals(expLabel) ? 
+            return ancestor.Descendants().Kth(n =>
+                n.label.Equals(label) &&
                     cursor.Apply(n).Match(
-                        some: node => 
-                            node.GetChild(child).Leaves().Any(l => l.label.Equals(expLabel) && l.code == expToken),
+                        some: node =>
+                            child < node.GetNumChildren() ?
+                            node.GetChild(child).Leaves().Any(l => l.label.Equals(expLabel) && l.code == expToken)
+                            : false,
                         none: () => false
-                    ) : false);
+                    )).ValueOr(ancestor);
         }
 
         public static string Const(string s) => s;

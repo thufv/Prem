@@ -18,6 +18,23 @@ namespace Prem.Util
 
         public static bool Empty<T>(this List<T> list) => list.Count == 0;
 
+        public static Option<T> Kth<T>(this IEnumerable<T> seq, Predicate<T> predicate, int k = 1)
+        {
+            foreach (var e in seq)
+            {
+                if (predicate(e))
+                {
+                    k--;
+                    if (k == 0)
+                    {
+                        return e.Some();
+                    }
+                }
+            }
+
+            return Option.None<T>();
+        }
+
         public static bool Same<T>(this IEnumerable<T> seq) =>
             seq.Any() ? seq.All(e => e.Equals(seq.First())) : true;
 

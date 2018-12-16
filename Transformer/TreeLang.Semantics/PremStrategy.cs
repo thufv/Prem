@@ -29,6 +29,16 @@ namespace Prem.Transformer.TreeLang
 
         private ProgramNode Input;
 
+        public int MaxCallDepth = 2;
+
+        public bool useFeatureFilter = true;
+
+        public static HashSet<Label> LabelFilters = new HashSet<Label>{
+            new Label(297, "IDENTIFIER")
+        };
+
+        public bool soundnessTest = true;
+
         private TInput GetInput(State input) => (TInput)input[_inputSymbol];
 
         private SyntaxNode GetSource(State input) => GetInput(input).errNode;
@@ -85,7 +95,7 @@ namespace Prem.Transformer.TreeLang
         }
 
         private ProgramSet LearnManyDisjunctive<TSpecIn, TSpecExp>(Symbol symbol, string learnerName,
-            Func<TSpecIn, TSpecExp, ProgramSet> learner, PremSpec<TSpecIn, List<TSpecExp>> spec)
+            Func<TSpecIn, TSpecExp, int, ProgramSet> learner, PremSpec<TSpecIn, List<TSpecExp>> spec)
         {
             var intersectSpaces = new List<ProgramSet>();
 #if DEBUG
@@ -105,7 +115,7 @@ namespace Prem.Transformer.TreeLang
                     j++;
                     Log.Tree("Candidate #{0}", j);
 #endif
-                    unionSpaces.Add(learner(p.Key, expected));
+                    unionSpaces.Add(learner(p.Key, expected, 0));
                 }
                 intersectSpaces.Add(Union(unionSpaces));
             }
@@ -119,7 +129,7 @@ namespace Prem.Transformer.TreeLang
         }
 
         private ProgramSet LearnMany<TSpecIn, TSpecExp>(Symbol symbol, string learnerName,
-            Func<TSpecIn, TSpecExp, ProgramSet> learner, PremSpec<TSpecIn, TSpecExp> spec) =>
+            Func<TSpecIn, TSpecExp, int, ProgramSet> learner, PremSpec<TSpecIn, TSpecExp> spec) =>
             LearnManyDisjunctive(symbol, learnerName, learner, spec.MapOutputs((i, o) => new List<TSpecExp> { o }));
 
         private Optional<ProgramSet> LearnProgram(PremSpec<TInput, SyntaxNode> spec)
@@ -178,7 +188,8 @@ namespace Prem.Transformer.TreeLang
                         Log.DecIndent();
 #endif
                         // All done, return program set.
-                        return ProgramSet.Join(Op(nameof(Semantics.Ins)), kSpace, refSpace.Value, treeSpace.Value).Some();
+                        return ProgramSet.Join(Op(nameof(Semantics.Ins)), kSpace, refSpace.Value, 
+                            ProgramSet.Join(Op(nameof(Semantics.New)), treeSpace.Value)).Some();
                     }
 
                 case ResultKind.DELETE: // Use `Del`.
@@ -236,7 +247,8 @@ namespace Prem.Transformer.TreeLang
 #endif
 
                         // All done, return program set.
-                        return ProgramSet.Join(Op(nameof(Semantics.Upd)), refSpace.Value, treeSpace.Value).Some();
+                        return ProgramSet.Join(Op(nameof(Semantics.Upd)), refSpace.Value,
+                            ProgramSet.Join(Op(nameof(Semantics.New)), treeSpace.Value)).Some();
                     }
             }
 
@@ -347,23 +359,45 @@ namespace Prem.Transformer.TreeLang
                 Label label;
                 if (spec.Identical((i, o) => o.label, out label))
                 {
-                    var tokenSpec = spec.MapOutputs((i, o) => o.code);
 #if DEBUG
                     Log.Tree("label = {0}", label);
                     Log.Tree("token |- {0}", spec);
 #endif
-                    var tokenSpace = LearnMany(Symbol("token"), "token", LearnToken, tokenSpec);
+                    var tokenSpaces = new List<ProgramSet>();
+                    // Option 1: constant string.
+                    string token;
+                    if (spec.Identical((i, o) => o.code, out token))
+                    {
+                        tokenSpaces.Add(ProgramSet.List(Symbol(nameof(Semantics.Const)), Const(token)));
+#if DEBUG
+                        Log.IncIndent();
+                        Log.Tree("Const = {0}", token);
+                        Log.DecIndent();
+#endif
+                    }
+
+                    // Option 2: variable.
+                    Optional.Option<int> key;
+                    if (spec.Identical((i, o) => i.Find(o.code), out key) && key.HasValue)
+                    {
+                        tokenSpaces.Add(ProgramSet.List(Symbol(nameof(Semantics.Var)), Var(key.ValueOr(-1))));
+#if DEBUG
+                        Log.IncIndent();
+                        Log.Tree("Var = {0}", key.ValueOr(-1));
+                        Log.DecIndent();
+#endif
+                    }
 #if DEBUG
                     Log.DecIndent();
                     Log.DecIndent();
 #endif
-                    if (tokenSpace.IsEmpty)
+                    if (tokenSpaces.Empty())
                     {
                         return Optional<ProgramSet>.Nothing;
                     }
 
                     return ProgramSet.Join(Op("Leaf"), ProgramSet.List(Symbol("Label"), Label(label)),
-                        tokenSpace).Some();
+                        Union(tokenSpaces)).Some();
                 }
 #if DEBUG
                 Log.DecIndent();
@@ -452,7 +486,7 @@ namespace Prem.Transformer.TreeLang
             return ProgramSet.Join(Op("Children"), childSpace.Value, childrenSpace.Value).Some();
         }
 
-        private ProgramSet LearnRef(TInput input, SyntaxNode expected)
+        private ProgramSet LearnRef(TInput input, SyntaxNode expected, int callDepth = 0)
         {
 #if DEBUG
             Log.Tree("ref |- {0} -> {1}", input.errNode, expected);
@@ -522,7 +556,7 @@ namespace Prem.Transformer.TreeLang
 
         private HashSet<Feature> FeatureSet(IEnumerable<Leaf> leaves) => new HashSet<Feature>(leaves.Select(Feature));
 
-        private ProgramSet LearnFind(TInput input, SyntaxNode expected)
+        private ProgramSet LearnFind(TInput input, SyntaxNode expected, int callDepth = 0)
         {
 #if DEBUG
             Debug.Assert(!input.errNode.UpPath().Contains(expected));
@@ -611,7 +645,7 @@ namespace Prem.Transformer.TreeLang
 #endif
                     var i = expected.CountAncestorWhere(n => n.label.Equals(parent.label), parent.id);
                     var cursor = new RelCursor(parent.label, i);
-                    var cursorSpace = ProgramSet.List(Symbol(nameof(Semantics.Move)), Move(cursor));
+                    var cursorSpace = ProgramSet.List(Symbol("cursor"), Cursor(cursor));
 #if DEBUG
                     Log.Tree("cursor = {0}", cursor);
 #endif
@@ -625,7 +659,14 @@ namespace Prem.Transformer.TreeLang
                             Log.IncIndent();
                             Log.Tree("index = {0}", index);
 #endif
-                            var featureSet = FeatureSet(child.Leaves());
+                            var leaves = child.Leaves();
+                            // Heuristic: only consider a few kinds of leaf nodes as feature.
+                            if (useFeatureFilter)
+                            {
+                                leaves = leaves.Where(l => LabelFilters.Contains(l.label));
+                            }
+
+                            var featureSet = FeatureSet(leaves);
                             foreach (var competitor in competitors)
                             {
                                 cursor.Apply(competitor).MatchSome(n =>
@@ -651,7 +692,7 @@ namespace Prem.Transformer.TreeLang
                                 Log.Tree("label |- {0}", feature.Item1);
 #endif
                                 var lSpace = ProgramSet.List(Symbol("label"), Label(feature.Item1));
-                                var tSpace = LearnToken(input, feature.Item2);
+                                var tSpace = LearnToken(input, feature.Item2, callDepth);
                                 featureSpaces.Add(ProgramSet.Join(Op("Feature"), lSpace, tSpace));
 #if DEBUG
                                 Log.DecIndent();
@@ -694,7 +735,7 @@ namespace Prem.Transformer.TreeLang
             return space;
         }
 
-        private ProgramSet LearnToken(TInput input, string token)
+        private ProgramSet LearnToken(TInput input, string token, int callDepth = 0)
         {
 #if DEBUG
             Log.Tree("token |- {0} -> {1}", input, token);
@@ -720,23 +761,33 @@ namespace Prem.Transformer.TreeLang
             });
 
             // Option 3: copy a reference from the old tree.
-#if DEBUG
-            Log.IncIndent();
-            Log.Tree("CopyToken");
-            Log.IncIndent();
-#endif
-            foreach (var leaf in input.inputTree.Leaves().Where(l => l.code == token && l != input.errNode))
+            // Heuristic: enable this only when the `callDepth` doesn't exceed `MaxCallDepth`.
+            if (callDepth <= MaxCallDepth)
             {
-                var findSpace = LearnFind(input, leaf);
-                if (!findSpace.IsEmpty)
-                {
-                    spaces.Add(findSpace);
-                }
-            }
 #if DEBUG
-            Log.DecIndent();
-            Log.DecIndent();
+                Log.IncIndent();
+                Log.Tree("CopyToken <depth={0}>", callDepth);
+                Log.IncIndent();
 #endif
+                var findSpaces = new List<ProgramSet>();
+                foreach (var leaf in input.inputTree.Leaves().Where(l => l.code == token && l != input.errNode))
+                {
+                    var findSpace = LearnFind(input, leaf, callDepth + 1);
+                    if (!findSpace.IsEmpty)
+                    {
+                        findSpaces.Add(findSpace);
+                    }
+                }
+
+                if (findSpaces.Any())
+                {
+                    spaces.Add(ProgramSet.Join(Op(nameof(Semantics.CopyToken)), Union(findSpaces)));
+                }
+#if DEBUG
+                Log.DecIndent();
+                Log.DecIndent();
+#endif
+            }
             // Union all spaces.
             var space = Union(spaces);
 #if DEBUG
