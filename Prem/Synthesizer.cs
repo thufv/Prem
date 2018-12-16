@@ -149,7 +149,7 @@ namespace Prem
         }
 
         public RuleSet Synthesize(Example example, int k = 1) =>
-            Synthesize(example.Yield().ToList(), k);
+            Synthesize(example.Single().ToList(), k);
 
         private Option<ErrPattern> SynthesizeErrPattern(List<Example> examples)
         {

@@ -7,7 +7,7 @@ namespace Prem.Util
 {
     public static class CollectionUtil
     {
-        public static IEnumerable<T> Yield<T>(this T item)
+        public static IEnumerable<T> Single<T>(this T item)
         {
             yield return item;
         }

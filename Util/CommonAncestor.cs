@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System;
+using System.Diagnostics;
 
 namespace Prem.Util
 {
@@ -14,6 +15,7 @@ namespace Prem.Util
         /// <returns>Their lowest common ancestor.</returns>
         public static SyntaxNode LCA(SyntaxNode node1, SyntaxNode node2)
         {
+            Debug.Assert(node1.context == node2.context);
             while (true)
             {
                 if (node1.depth > node2.depth)
@@ -24,7 +26,7 @@ namespace Prem.Util
                 {
                     node2 = node2.parent;
                 }
-                else if (node1.id == node2.id)
+                else if (node1 == node2)
                 {
                     return node1;
                 }

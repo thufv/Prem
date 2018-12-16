@@ -40,10 +40,10 @@ namespace Prem.Transformer.TreeLang
         public static PartialNode Tree(Label label, IEnumerable<PartialNode> children) =>
             Node.CreatePartial(label, children);
 
-        public static IEnumerable<PartialNode> Child(PartialNode tree) => tree.Yield();
+        public static IEnumerable<PartialNode> Child(PartialNode tree) => tree.Single();
 
         public static IEnumerable<PartialNode> Children(PartialNode head,
-            IEnumerable<PartialNode> tail) => head.Yield().Concat(tail);
+            IEnumerable<PartialNode> tail) => head.Single().Concat(tail);
 
         public static SyntaxNode Just(TInput input) => input.errNode;
 

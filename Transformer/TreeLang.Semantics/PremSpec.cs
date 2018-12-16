@@ -8,6 +8,8 @@ namespace Prem.Transformer.TreeLang
 {
     public class PremSpec<I, O> : Dictionary<I, O>
     {
+        private static Logger Log = Logger.Instance;
+
         public static PremSpec<I, O> From(ICollection<KeyValuePair<I, O>> dict)
         {
             var spec = new PremSpec<I, O>();
@@ -82,7 +84,7 @@ namespace Prem.Transformer.TreeLang
             var items = new List<string>();
             foreach (var p in this)
             {
-                items.Add($"{p.Key} -> {p.Value}");
+                items.Add($"{p.Key} -> {Logger.ExplicitlyToString(p.Value)}");
             }
             return "{ " + String.Join("; ", items) + " }";
         }
