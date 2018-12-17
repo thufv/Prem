@@ -2,16 +2,74 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using Microsoft.ProgramSynthesis.Utils;
 
 namespace Prem.Util
 {
+    using PremLogger = Prem.Util.Logger;
     /// <summary>
     /// Compare two syntax trees of type `SyntaxNode`,
     /// finding an edit which could transform the one to the other.
     /// </summary>
     public static class SyntaxNodeComparer
     {
-        private static Logger Log = Logger.Instance;
+        private static PremLogger Log = PremLogger.Instance;
+
+        public static Optional<Record<SyntaxNode, SyntaxNode>> Diff(SyntaxNode oldNode, SyntaxNode newNode)
+        {
+            if (oldNode.kind != newNode.kind || !oldNode.label.Equals(newNode.label))
+            {
+                // These two nodes are totally different.
+                return Record.Create(oldNode, newNode).Some();
+            }
+
+            Debug.Assert(newNode.kind != SyntaxKind.ERROR);
+            if (newNode.kind == SyntaxKind.TOKEN) // If both are leaves and have the same label, then
+            {
+                if (oldNode.code == newNode.code) // they are identical if the values are the same,
+                {
+                    return Optional<Record<SyntaxNode, SyntaxNode>>.Nothing;
+                }
+
+                // or, they are in fact different.
+                return Record.Create(oldNode, newNode).Some();
+            }
+
+            // Both must be nodes.
+            Debug.Assert(newNode.kind == SyntaxKind.NODE);
+            var oldChildren = ((Node)oldNode).children;
+            var newChildren = ((Node)newNode).children;
+
+            var k = oldChildren.Count;
+            if (newChildren.Count != k) // Two nodes are different if they have different number of children.
+            {
+                return Record.Create(oldNode, newNode).Some();
+            }
+
+            // They have the same number of children, compare them accordingly.
+            var diffCache = Optional<Record<SyntaxNode, SyntaxNode>>.Nothing;
+            for (var i = 0; i < k; i++)
+            {
+                var oldChild = oldChildren[i];
+                var newChild = newChildren[i];
+                var diff = Diff(oldChild, newChild);
+
+                if (diff.HasValue)
+                {
+                    if (diffCache.HasValue)
+                    {
+                        // Multiple edits are required, so we simply lift the diff.
+                        return Record.Create(oldNode, newNode).Some();
+                    }
+
+                    // Temporarily cache the diff and return it finally, unless multiple edits are required.
+                    diffCache = diff;
+                }
+                // else: So far so good, we will continue comparing the next ones.
+            }
+
+            return diffCache;
+        }
 
         /// <summary>
         /// Compare two syntax trees and generate a `Result` indicating the edit which
@@ -20,7 +78,7 @@ namespace Prem.Util
         /// <param name="oldNode">The old node.</param>
         /// <param name="newNode">The new node.</param>
         /// <returns>A transformation result.</returns>
-        public static Result Compare(SyntaxNode oldNode, SyntaxNode newNode)
+        public static Result OldCompare(SyntaxNode oldNode, SyntaxNode newNode)
         {
             if (oldNode.kind != newNode.kind || !oldNode.label.Equals(newNode.label))
             {
@@ -56,7 +114,7 @@ namespace Prem.Util
                 {
                     var oldChild = oldChildren[i];
                     var newChild = newChildren[i];
-                    var result = Compare(oldChild, newChild);
+                    var result = OldCompare(oldChild, newChild);
 
                     if (result.kind != ResultKind.IDENTICAL)
                     {
@@ -98,7 +156,7 @@ namespace Prem.Util
                     {
                         var oldChild = oldChildren[i < j ? i : i + 1];
                         var newChild = newChildren[i];
-                        var result = Compare(oldChild, newChild);
+                        var result = OldCompare(oldChild, newChild);
 
                         if (result.kind != ResultKind.IDENTICAL)
                         {
@@ -132,7 +190,7 @@ namespace Prem.Util
                     {
                         var newChild = newChildren[i < j ? i : i + 1];
                         var oldChild = oldChildren[i];
-                        var result = Compare(oldChild, newChild);
+                        var result = OldCompare(oldChild, newChild);
 
                         if (result.kind != ResultKind.IDENTICAL)
                         {

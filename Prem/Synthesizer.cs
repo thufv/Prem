@@ -104,11 +104,20 @@ namespace Prem
                 some: pattern =>
                 {
                     Log.Debug("Synthesized error pattern: {0}", pattern);
+                    var printer = new IndentPrinter();
 
                     // 2. Compare and match.
                     foreach (var example in examples)
                     {
-                        var result = SyntaxNodeComparer.Compare(example.input.tree.root, example.output.root);
+                        var result = SyntaxNodeComparer.Diff(example.input.tree.root, example.output.root);
+                        Debug.Assert(result.HasValue);
+                        printer.PrintLine("");
+                        result.Value.Item1.PrintTo(printer);
+                        printer.PrintLine("<->");
+                        result.Value.Item2.PrintTo(printer);
+
+                        /*
+                        var result = SyntaxNodeComparer.OldCompare(example.input.tree.root, example.output.root);
                         example.input.tree.result = result;
 
                         var printer = new IndentPrinter();
@@ -133,8 +142,9 @@ namespace Prem
                                 p.Key.matches = new List<SyntaxNode>(p.Value);
                             }
                         }
+                        */
                     }
-
+                    return null;
                     // 3. Synthesize transformers.
                     var trans = SynthesizeTransformers(examples.Select(e => e.AsTExample(pattern)), k);
                     return new RuleSet(pattern, trans);

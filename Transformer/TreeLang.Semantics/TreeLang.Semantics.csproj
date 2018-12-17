@@ -5,7 +5,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\Util\Util.csproj" />
+        <ProjectReference Include="..\Util\Util.csproj" />
         <PackageReference Include="Microsoft.ProgramSynthesis.Common" Version="6.9.0" />
     </ItemGroup>
 

@@ -8,6 +8,7 @@
         <PackageReference Include="Colorful.Console" Version="1.2.9" />
         <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
         <PackageReference Include="Optional" Version="4.0.0" />
+        <PackageReference Include="Microsoft.ProgramSynthesis.Common" Version="6.9.0" />
     </ItemGroup>
 
 </Project>
