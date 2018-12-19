@@ -154,8 +154,10 @@ namespace Prem.Util
 
         public IEnumerable<Feature> Features() => FeatureChildren().SelectMany(n => n.Leaves().Select(Feature));
 
-        public bool ContainsFeature(Label label, string token)
+        public bool ContainsFeature(Feature feature)
         {
+            var label = feature.Item1;
+            var token = feature.Item2;
             var node = this;
             while (node.HasParent())
             {

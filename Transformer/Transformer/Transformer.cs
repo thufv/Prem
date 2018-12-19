@@ -12,7 +12,7 @@ using Microsoft.ProgramSynthesis.VersionSpace;
 using Microsoft.ProgramSynthesis.Learning;
 using Microsoft.ProgramSynthesis.Learning.Strategies;
 using Microsoft.ProgramSynthesis.Learning.Logging;
-using Optional;
+using Microsoft.ProgramSynthesis.Utils;
 
 using Prem.Transformer.TreeLang;
 using Prem.Util;
@@ -47,12 +47,12 @@ namespace Prem.Transformer
             this.score = score;
         }
 
-        public Option<SyntaxNode> Apply(TInput input)
+        public Optional<SyntaxNode> Apply(TInput input)
         {
             var inputState = State.CreateForExecution(_inputSymbol, input);
             var result = _program.Invoke(inputState) as SyntaxNode;
 
-            return result == null ? Option.None<SyntaxNode>() : Option.Some(result);
+            return result == null ? Optional<SyntaxNode>.Nothing : result.Some();
         }
 
         public override string ToString() =>
@@ -116,6 +116,19 @@ namespace Prem.Transformer
 
             Log.Info("Transformer: {0} program(s) synthesized, time elapsed {1} ms.",
                 programSet.Size, _stopwatch.ElapsedMilliseconds);
+
+            // Test soundness.
+            foreach (var p in programSet.RealizedPrograms.Take(k))
+            {
+                foreach (var e in examples)
+                {
+                    var tree = p.Invoke(State.CreateForExecution(_inputSymbol, e.input)) as SyntaxNode;
+                    if (tree == null || !tree.IdenticalTo(e.output))
+                    {
+                        Debug.Assert(false, "Failure on test case");
+                    }
+                }
+            }
 
             return programSet.RealizedPrograms.Take(k)
                 .Select(p => new TProgram(p, p.GetFeatureValue(_scorer), _inputSymbol))

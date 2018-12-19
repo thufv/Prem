@@ -15,20 +15,17 @@ language TreeLang;
 
 @start SyntaxNode program := Transform(target, newTree);
 
-SyntaxNode target := Err(old) | ref;
+SyntaxNode target := source | ref;
 
-SyntaxNode ref := scope | Select(scope, index, selector);
+SyntaxNode source := Err(old) | Var(old, key);
 
-Node scope := LiftScope(old, label, k) | VarScope(old, label, label, key);
+SyntaxNode ref := Select(scope, index) | SelectBy(scope, label, index, featurePair);
 
-Optional<Func<SyntaxNode, bool>> selector := Self()
-                                          | Label(label) 
-                                          | LabelSub(label, label)
-                                          | LabelWith(label, featurePair);
+Node scope := Lift(source, label, k);
 
 Record<Label, string>? featurePair := Feature(label, token) = Pair(label, token);
 
-string token := Const(s) | Var(old, key) | FeatureString(old, label, k, index, label);
+string token := ConstToken(s) | VarToken(old, key) | ErrToken(old, label);
 
 SyntaxNode newTree := New(tree);
 
@@ -39,8 +36,8 @@ IEnumerable<PartialNode> children := Child(tree) | Children(tree, children);
 IEnumerable<PartialNode> siblings := Append(tree, siblings) | Prepend(tree, siblings)
                                    | Front(ref) | Tail(ref) | Siblings(ref);
 
-int index;
+Optional<int> index;
+Label label;
 int k;
 string s;
-Label label;
 EnvKey key;

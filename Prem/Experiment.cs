@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using Optional;
+using Microsoft.ProgramSynthesis.Utils;
 
 using Prem.Util;
 
@@ -183,7 +183,7 @@ namespace Prem
             );
         }
 
-        private void PrintResults(IEnumerable<Option<int>> results)
+        private void PrintResults(IEnumerable<Optional<int>> results)
         {
             Log.Info("Result: {0}", Show.L(results.ToList()));
         }

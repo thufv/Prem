@@ -21,24 +21,23 @@ namespace Prem.Transformer.TreeLang
 
         public static SyntaxNode Err(TInput input) => input.errNode;
 
-        public static SyntaxNode Select(Node scope, int childIndex, Selector selector)
-        {
-            if (selector.HasValue)
-            {
-                return scope.GetChild(childIndex).Descendants().First(selector.Value);
-            }
+        public static SyntaxNode Var(TInput input, EnvKey key) =>
+            input.inputTree.Leaves().First(l => l.code == input[key]);
 
-            return scope.GetChild(childIndex);
+        public static SyntaxNode Select(Node scope, Optional<int> index) =>
+            index.HasValue ? scope.GetChild(index.Value) : scope;
+
+        public static SyntaxNode SelectBy(Node scope, Label label, Optional<int> index, Feature? feature)
+        {
+            var root = Select(scope, index);
+            var candidates = root.GetSubtrees().Where(n => n.label.Equals(label));
+            return feature == null ? candidates.First() : candidates.First(n => n.ContainsFeature(feature.Value));
         }
 
-        public static Node VarScope(TInput input, Label label, Label featureLabel, EnvKey key) =>
-            input.inputTree.Descendants().First(n => n.label.Equals(label) &&
-                n.ContainsFeature(featureLabel, input[key])) as Node;
-
-        public static Node LiftScope(TInput input, Label label, int k)
+        public static Node Lift(SyntaxNode source, Label label, int k)
         {
             Debug.Assert(k > 0);
-            var node = input.errNode;
+            var node = source;
             while (node.HasParent())
             {
                 var parent = node.parent;
@@ -56,29 +55,12 @@ namespace Prem.Transformer.TreeLang
             return null;
         }
 
-        public static Selector Self() => Selector.Nothing;
+        public static string ConstToken(string s) => s;
 
-        public static Selector Label(Label label) =>
-            new Func<SyntaxNode, bool>(x => x.label.Equals(label)).Some();
+        public static string VarToken(TInput input, EnvKey key) => input[key];
 
-        public static Selector LabelSub(Label label, Label superLabel) =>
-            new Func<SyntaxNode, bool>(x => x.label.Equals(label)).Some();
-
-        public static Selector LabelWith(Label label, Feature? feature)
-        {
-            if (feature == null) return Selector.Nothing;
-            var featureLabel = feature.Value.Item1;
-            var tokenLabel = feature.Value.Item2;
-            return new Func<SyntaxNode, bool>(x =>
-                x.label.Equals(label) && x.ContainsFeature(featureLabel, tokenLabel)).Some();
-        }
-
-        public static string Const(string s) => s;
-
-        public static string Var(TInput input, EnvKey key) => input[key];
-
-        public static string FeatureString(TInput input, Label label, int k, int index, Label featureLabel) =>
-            Select(LiftScope(input, label, k), index, Label(featureLabel).Some()).code;
+        public static string ErrToken(TInput input, Label label) =>
+            input.errNode.Features().First(f => f.Item1.Equals(label)).Item2;
 
         public static SyntaxNode New(PartialNode tree)
         {

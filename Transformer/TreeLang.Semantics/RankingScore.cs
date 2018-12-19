@@ -4,7 +4,7 @@ using System.Linq;
 using Microsoft.ProgramSynthesis;
 using Microsoft.ProgramSynthesis.AST;
 using Microsoft.ProgramSynthesis.Features;
-
+using Microsoft.ProgramSynthesis.Utils;
 using Prem.Util;
 
 namespace Prem.Transformer.TreeLang
@@ -25,38 +25,26 @@ namespace Prem.Transformer.TreeLang
         [FeatureCalculator(nameof(Semantics.Err))]
         public static double Err(double target) => target / 2.1 + 0.5; // (0.5,1]
 
-        [FeatureCalculator(nameof(Semantics.Select))]
-        public static double Select(double scope, double childIndex, double selector) =>
-            selector;
-
-        [FeatureCalculator(nameof(Semantics.VarScope))]
-        public static double VarScope(double input, double label, double featureLabel, double key) =>
-            featureLabel;
-
-        [FeatureCalculator(nameof(Semantics.LiftScope))]
-        public static double LiftScope(double input, double label, double k) => k;
-
-        [FeatureCalculator(nameof(Semantics.Self))]
-        public static double Self() => 1;
-
-        [FeatureCalculator(nameof(Semantics.Label))]
-        public static double Label(double label) => label;
-
-        [FeatureCalculator(nameof(Semantics.LabelSub))]
-        public static double LabelSub(double label, double superLabel) => label * superLabel;
-
-        [FeatureCalculator(nameof(Semantics.LabelWith))]
-        public static double LabelWith(double label, double feature) => label + feature;
-
-        [FeatureCalculator(nameof(Semantics.Const))]
-        public static double Const(double s) => s;
-
         [FeatureCalculator(nameof(Semantics.Var))]
         public static double Var(double input, double key) => key;
 
-        [FeatureCalculator(nameof(Semantics.FeatureString))]
-        public static double FeatureString(double input, double label, double k, double index, double featureLabel) =>
-            featureLabel;
+        [FeatureCalculator(nameof(Semantics.Select))]
+        public static double Select(double scope, double index) => index;
+
+        [FeatureCalculator(nameof(Semantics.SelectBy))]
+        public static double SelectBy(double scope, double label, double index, double feature) => feature;
+
+        [FeatureCalculator(nameof(Semantics.Lift))]
+        public static double Lift(double input, double label, double k) => k;
+
+        [FeatureCalculator(nameof(Semantics.ConstToken))]
+        public static double ConstToken(double s) => s;
+
+        [FeatureCalculator(nameof(Semantics.VarToken))]
+        public static double VarToken(double input, double key) => key;
+
+        [FeatureCalculator(nameof(Semantics.ErrToken))]
+        public static double ErrToken(double input, double label) => label;
 
         [FeatureCalculator(nameof(Semantics.New))]
         public static double New(double tree) => tree;
@@ -98,7 +86,10 @@ namespace Prem.Transformer.TreeLang
         public static double Feature(double label, double token) => label * token;
 
         [FeatureCalculator("index", Method = CalculationMethod.FromLiteral)]
-        public static double Index(int i) => 1;
+        public static double Index(Optional<int> i) => 1;
+
+        [FeatureCalculator("label", Method = CalculationMethod.FromLiteral)]
+        public static double Label(Label label) => 1; // unused
 
         // 0 < score(k) <= 1
         // When k > 0, 0 < score(k) <= 0.5
@@ -109,9 +100,6 @@ namespace Prem.Transformer.TreeLang
 
         [FeatureCalculator("s", Method = CalculationMethod.FromLiteral)]
         public static double S(string s) => 1;
-
-        [FeatureCalculator("label", Method = CalculationMethod.FromLiteral)]
-        public static double Label(Label label) => 1; // unused
 
         [FeatureCalculator("key", Method = CalculationMethod.FromLiteral)]
         public static double EnvKey(EnvKey key) => 1;

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Optional;
+using Microsoft.ProgramSynthesis.Utils;
 
 namespace Prem.Util
 {
@@ -18,7 +18,7 @@ namespace Prem.Util
 
         public static bool Empty<T>(this List<T> list) => list.Count == 0;
 
-        public static Option<T> Kth<T>(this IEnumerable<T> seq, Predicate<T> predicate, int k = 1)
+        public static Optional<T> Kth<T>(this IEnumerable<T> seq, Predicate<T> predicate, int k = 1)
         {
             foreach (var e in seq)
             {
@@ -32,7 +32,7 @@ namespace Prem.Util
                 }
             }
 
-            return Option.None<T>();
+            return Optional<T>.Nothing;
         }
 
         public static bool Same<T>(this IEnumerable<T> seq) =>
@@ -60,63 +60,16 @@ namespace Prem.Util
                 .ForEach(p => action(p.index, p.elem));
         }
 
-        public static Option<int> FirstCount<T>(this IEnumerable<T> seq, Predicate<T> predicate)
+        public static Optional<int> FirstCount<T>(this IEnumerable<T> seq, Predicate<T> predicate)
         {
             int count = 1;
             foreach (var e in seq)
             {
-                if (predicate(e)) return Option.Some(count);
+                if (predicate(e)) return count.Some();
                 count++;
             }
 
-            return Option.None<int>();
-        }
-
-        public static Option<int> IndexWhere<T>(this IEnumerable<T> seq, Predicate<T> predicate)
-        {
-            int index = 0;
-            foreach (var e in seq)
-            {
-                if (predicate(e)) return Option.Some(index);
-                index++;
-            }
-
-            return Option.None<int>();
-        }
-
-        public static Option<T> Find<T>(this IEnumerable<T> seq, Predicate<T> predicate, int k = 0)
-        {
-            foreach (var e in seq)
-            {
-                if (predicate(e))
-                {
-                    k--;
-                    if (k < 0)
-                    {
-                        return Option.Some<T>(e);
-                    }
-                }
-            }
-
-            return Option.None<T>();
-        }
-
-        public static Option<List<T>> TakeUntil<T>(this IEnumerable<T> seq, Predicate<T> predicate, 
-            bool includeLast = true)
-        {
-            var list = new List<T>();
-            foreach (var e in seq)
-            {
-                if (predicate(e))
-                {
-                    if (includeLast) list.Add(e);
-                    return list.Some();
-                }
-
-                list.Add(e);
-            }
-
-            return list.None();
+            return Optional<int>.Nothing;
         }
 
         public static IEnumerable<T> Sorted<T>(this IEnumerable<T> seq) => seq.OrderBy(x => x);
@@ -144,6 +97,15 @@ namespace Prem.Util
                 results.Add(tmp);
             }
             return results;
+        }
+
+        public static Optional<T> TryFirst<T>(this IEnumerable<T> seq) =>
+            seq.Any() ? seq.First().Some() : Optional<T>.Nothing;
+
+        public static bool Any<T>(this Optional<T> opt, Predicate<T> predicate)
+        {
+            if (opt.HasValue) return predicate(opt.Value);
+            return false;
         }
     }
 }

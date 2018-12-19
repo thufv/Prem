@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using Microsoft.ProgramSynthesis.Utils;
 using Prem.Util;
@@ -60,6 +61,8 @@ namespace Prem.Transformer.TreeLang
             }
             return spec;
         }
+
+        public IEnumerable<E> Select<E>(Func<I, O, E> mapper) => this.Select(p => mapper(p.Key, p.Value));
 
         public IEnumerable<PremSpec<I, E>> FlatMap<E>(Func<I, O, List<E>> mapper)
         {
@@ -128,5 +131,9 @@ namespace Prem.Transformer.TreeLang
             }
             return dict;
         }
+    }
+
+    public static class SpecUtil
+    {
     }
 }

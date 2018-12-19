@@ -328,6 +328,7 @@ namespace Prem.Util
 
         public void DecIndent()
         {
+            System.Diagnostics.Debug.Assert(_identLevel > 0, "Cannot decrease indent.");
             _identLevel--;
         }
 

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Optional;
+using Microsoft.ProgramSynthesis.Utils;
 
 using Prem.Transformer;
 using Prem.Util;
@@ -200,10 +200,10 @@ namespace Prem
 
         public bool isEmpty => !transformers.Any();
 
-        public Option<SyntaxNode> ApplyTop(Input input)
+        public Optional<SyntaxNode> ApplyTop(Input input)
         {
             var env = new Env();
-            if (!errPattern.Match(input.errMessage, env)) return Option.None<SyntaxNode>();
+            if (!errPattern.Match(input.errMessage, env)) return Optional<SyntaxNode>.Nothing;
 
             return transformers.First().Apply(input.AsTInput(env));
         }
@@ -215,24 +215,24 @@ namespace Prem
 
             var input = example.input.AsTInput(env);
             var expected = example.output.root;
-            return transformers.First().Apply(input).Exists(tree => tree.IdenticalTo(expected));
+            return transformers.First().Apply(input).Any(tree => tree.IdenticalTo(expected));
         }
 
         public IEnumerable<bool> TestTopMany(IEnumerable<Example> examples) =>
             examples.Select(TestTop);
 
-        public Option<int> TestAll(Example example)
+        public Optional<int> TestAll(Example example)
         {
             var env = new Env();
-            if (!errPattern.Match(example.input.errMessage, env)) return Option.None<int>();
+            if (!errPattern.Match(example.input.errMessage, env)) return Optional<int>.Nothing;
 
             var input = example.input.AsTInput(env);
             var expected = example.output.root;
             return transformers.FirstCount(t => 
-                t.Apply(input).Exists(tree => tree.IdenticalTo(expected)));
+                t.Apply(input).Any(tree => tree.IdenticalTo(expected)));
         }
 
-        public IEnumerable<Option<int>> TestAllMany(IEnumerable<Example> examples) =>
+        public IEnumerable<Optional<int>> TestAllMany(IEnumerable<Example> examples) =>
             examples.Select(TestAll);
     }
 }
