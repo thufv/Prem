@@ -14,7 +14,7 @@ namespace Prem
 
     public class Input
     {
-        protected static Logger Log = Logger.Instance;
+        protected static ColorLogger Log = ColorLogger.Instance;
 
         public SyntaxNodeContext tree { get; }
 
@@ -70,7 +70,7 @@ namespace Prem
 
     public sealed class Synthesizer
     {
-        private static Logger Log = Logger.Instance;
+        private static ColorLogger Log = ColorLogger.Instance;
 
         private TLearner _learner;
 
@@ -104,48 +104,8 @@ namespace Prem
                 some: pattern =>
                 {
                     Log.Debug("Synthesized error pattern: {0}", pattern);
-                    var printer = new IndentPrinter();
 
-                    // 2. Compare and match.
-                    foreach (var example in examples)
-                    {
-                        var result = SyntaxNodeComparer.Diff(example.input.tree.root, example.output.root);
-                        Debug.Assert(result.HasValue);
-                        printer.PrintLine("");
-                        result.Value.Item1.PrintTo(printer);
-                        printer.PrintLine("<->");
-                        result.Value.Item2.PrintTo(printer);
-
-                        /*
-                        var result = SyntaxNodeComparer.OldCompare(example.input.tree.root, example.output.root);
-                        example.input.tree.result = result;
-
-                        var printer = new IndentPrinter();
-                        Log.Info("{0}: {1}", example.input.file, result);
-                        if (Log.IsLoggable(LogLevel.DEBUG))
-                        {
-                            result.PrintTo(printer);
-                        }
-
-                        var target = result.kind == ResultKind.INSERT ? ((Insert)result).newNode
-                            : result.kind == ResultKind.UPDATE ? ((Update)result).newNode
-                            : null;
-                        if (target != null)
-                        {
-                            var matcher = new SyntaxNodeMatcher();
-                            var matching = matcher.GetMatching(target, result.oldTree);
-                            Log.Debug("Matching:");
-                            Log.DebugRaw(matching.ToString());
-
-                            foreach (var p in matching)
-                            {
-                                p.Key.matches = new List<SyntaxNode>(p.Value);
-                            }
-                        }
-                        */
-                    }
-                    return null;
-                    // 3. Synthesize transformers.
+                    // 2. Synthesize transformers.
                     var trans = SynthesizeTransformers(examples.Select(e => e.AsTExample(pattern)), k);
                     return new RuleSet(pattern, trans);
                 },

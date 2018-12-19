@@ -11,7 +11,7 @@ namespace Prem.Util
     /// </summary>
     public class SyntaxNodeMatcher
     {
-        private static Logger Log = Logger.Instance;
+        private static ColorLogger Log = ColorLogger.Instance;
 
         /// <summary>
         /// Compare two syntax trees and locate all matches.

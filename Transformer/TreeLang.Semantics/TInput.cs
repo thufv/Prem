@@ -26,6 +26,11 @@ namespace Prem.Transformer.TreeLang
             get => env[i];
         }
 
+        public string this[EnvKey key]
+        {
+            get => env[key.first];
+        }
+
         public Option<int> Find(string s)
         {
             foreach (var p in env)

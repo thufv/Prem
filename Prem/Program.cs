@@ -10,7 +10,7 @@ namespace Prem
 {
     internal class Program
     {
-        private static Logger Log = Logger.Instance;
+        private static ColorLogger Log = ColorLogger.Instance;
 
         class Options
         {

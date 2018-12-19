@@ -10,7 +10,7 @@ namespace Prem
 {
     public class Parser
     {
-        private static Logger Log = Logger.Instance;
+        private static ColorLogger Log = ColorLogger.Instance;
 
         public string lang { get; }
 

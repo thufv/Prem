@@ -5,7 +5,7 @@ using System.Linq;
 namespace Prem.Util {
     public class Show
     {
-        private static Logger Log = Logger.Instance;
+        private static ColorLogger Log = ColorLogger.Instance;
 
         public static string L<T>(List<T> l) =>
             l.Any() ? String.Join(", ", l.Select(x => x.ToString())) : "<empty>";

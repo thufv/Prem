@@ -2,13 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+using Microsoft.ProgramSynthesis.Utils;
 using Prem.Util;
 
 namespace Prem.Transformer.TreeLang
 {
     public class PremSpec<I, O> : Dictionary<I, O>
     {
-        private static Logger Log = Logger.Instance;
+        private static ColorLogger Log = ColorLogger.Instance;
 
         public static PremSpec<I, O> From(ICollection<KeyValuePair<I, O>> dict)
         {
@@ -16,6 +17,16 @@ namespace Prem.Transformer.TreeLang
             foreach (var p in dict)
             {
                 spec[p.Key] = p.Value;
+            }
+            return spec;
+        }
+
+        public static PremSpec<I, E> From<E>(List<I> keys, List<E> values)
+        {
+            var spec = new PremSpec<I, E>();
+            for (int i = 0; i < keys.Count; i++)
+            {
+                spec[keys[i]] = values[i];
             }
             return spec;
         }
@@ -49,6 +60,25 @@ namespace Prem.Transformer.TreeLang
             }
             return spec;
         }
+
+        public IEnumerable<PremSpec<I, E>> FlatMap<E>(Func<I, O, List<E>> mapper)
+        {
+            var keys = new List<I>();
+            var elements = new List<List<E>>();
+            foreach (var p in MapOutputs(mapper))
+            {
+                keys.Add(p.Key);
+                elements.Add(p.Value);
+            }
+
+            foreach (var group in elements.CartesianProduct())
+            {
+                yield return From(keys, group);
+            }
+        }
+
+        public PremSpec<I, Record<O, E>> Zip<E>(PremSpec<I, E> spec) =>
+            MapOutputs((i, o) => Record.Create(o, spec[i]));
 
         public bool Forall(Func<I, O, bool> predicate)
         {
@@ -84,7 +114,7 @@ namespace Prem.Transformer.TreeLang
             var items = new List<string>();
             foreach (var p in this)
             {
-                items.Add($"{p.Key} -> {Logger.ExplicitlyToString(p.Value)}");
+                items.Add($"{p.Key} -> {ColorLogger.ExplicitlyToString(p.Value)}");
             }
             return "{ " + String.Join("; ", items) + " }";
         }

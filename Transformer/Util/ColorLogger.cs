@@ -11,12 +11,12 @@ namespace Prem.Util
     /// This class is implemented as a thread-safe singleton.
     /// Call property <code>Instance</code> to obtain the instance.
     /// </summary>
-    public sealed class Logger
+    public sealed class ColorLogger
     {
         /// <summary>
         /// The internal instance, shall be singleton.
         /// </summary>
-        private static Logger instance = null;
+        private static ColorLogger instance = null;
         
         /// <summary>
         /// The lock.
@@ -26,20 +26,20 @@ namespace Prem.Util
         /// <summary>
         /// Disable constructor.
         /// </summary>
-        private Logger() {}
+        private ColorLogger() {}
 
         /// <summary>
         /// The instance, read only for callers.
         /// </summary>
         /// <value>The logger instance.</value>
-        public static Logger Instance
+        public static ColorLogger Instance
         {
             get
             {
                 lock (padlock)
                 {
                     if (instance == null) {
-                        instance = new Logger();
+                        instance = new ColorLogger();
                     }
                     return instance;
                 }

@@ -15,8 +15,9 @@ using Microsoft.ProgramSynthesis.Utils;
 using Microsoft.ProgramSynthesis.Learning.Strategies.Deductive.RuleLearners;
 using System.Threading;
 
-using MyLogger = Prem.Util.Logger;
+using MyLogger = Prem.Util.ColorLogger;
 
+/*
 namespace Prem.Transformer.TreeLang
 {
     using Record = Microsoft.ProgramSynthesis.Utils.Record;
@@ -969,3 +970,4 @@ namespace Prem.Transformer.TreeLang
         }
     }
 }
+*/

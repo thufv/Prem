@@ -13,67 +13,92 @@ namespace Prem.Transformer.TreeLang
     {
         public RankingScore(Grammar grammar) : base(grammar, "Score") { }
 
-        private static Logger Log = Logger.Instance;
+        private static ColorLogger Log = ColorLogger.Instance;
 
         protected override double GetFeatureValueForVariable(VariableNode variable) => 0;
 
         // The larger the score, the higher the rank.
 
-        [FeatureCalculator(nameof(Semantics.Ins))]
-        public static double Ins(double dst, double k, double tree) => dst + tree;
+        [FeatureCalculator(nameof(Semantics.Transform))]
+        public static double Transform(double target, double newTree) => target + newTree;
 
-        [FeatureCalculator(nameof(Semantics.Del))]
-        public static double Del(double dst) => dst;
+        [FeatureCalculator(nameof(Semantics.Err))]
+        public static double Err(double target) => target / 2.1 + 0.5; // (0.5,1]
 
-        [FeatureCalculator(nameof(Semantics.Upd))]
-        public static double Upd(double dst, double tree) => dst + tree;
+        [FeatureCalculator(nameof(Semantics.Select))]
+        public static double Select(double scope, double childIndex, double selector) =>
+            selector;
+
+        [FeatureCalculator(nameof(Semantics.VarScope))]
+        public static double VarScope(double input, double label, double featureLabel, double key) =>
+            featureLabel;
+
+        [FeatureCalculator(nameof(Semantics.LiftScope))]
+        public static double LiftScope(double input, double label, double k) => k;
+
+        [FeatureCalculator(nameof(Semantics.Self))]
+        public static double Self() => 1;
+
+        [FeatureCalculator(nameof(Semantics.Label))]
+        public static double Label(double label) => label;
+
+        [FeatureCalculator(nameof(Semantics.LabelSub))]
+        public static double LabelSub(double label, double superLabel) => label * superLabel;
+
+        [FeatureCalculator(nameof(Semantics.LabelWith))]
+        public static double LabelWith(double label, double feature) => label + feature;
+
+        [FeatureCalculator(nameof(Semantics.Const))]
+        public static double Const(double s) => s;
+
+        [FeatureCalculator(nameof(Semantics.Var))]
+        public static double Var(double input, double key) => key;
+
+        [FeatureCalculator(nameof(Semantics.FeatureString))]
+        public static double FeatureString(double input, double label, double k, double index, double featureLabel) =>
+            featureLabel;
 
         [FeatureCalculator(nameof(Semantics.New))]
-        public static double New(double tree) => tree; // <= 1
+        public static double New(double tree) => tree;
 
         [FeatureCalculator(nameof(Semantics.Copy))]
-        public static double Copy(double target) => target / 2.1 + 0.5; // (0.5,1]
+        public static double Copy(double reference) => reference;
 
         [FeatureCalculator(nameof(Semantics.Leaf))]
-        public static double Leaf(double label, double token) => 1 / 1.9; // (0.5,1]
+        public static double Leaf(double label, double token) => label + token;
 
-        // forall child: score(Tree(label, children)) < score(child)
-        [FeatureCalculator(nameof(Semantics.Tree))]
-        public static double Tree(double label, double children) => children / 2;
+        [FeatureCalculator(nameof(Semantics.Node))]
+        public static double Tree(double label, double children) => children;
+
+        [FeatureCalculator(nameof(Semantics.ListNode))]
+        public static double ListTree(double label, double siblings) => siblings;
 
         [FeatureCalculator(nameof(Semantics.Child))]
         public static double Child(double tree) => tree;
 
         [FeatureCalculator(nameof(Semantics.Children))]
-        public static double Children(double tree, double children) => (tree + children) / 2;
+        public static double Children(double head, double tail) => head * tail;
 
-        [FeatureCalculator(nameof(Semantics.Just))]
-        public static double Just(double source) => 1; // <= 1
+        [FeatureCalculator(nameof(Semantics.Append))]
+        public static double Append(double tree, double siblings) => siblings;
 
-        [FeatureCalculator(nameof(Semantics.Move))]
-        public static double Move(double source, double cursor) => cursor; // <= 0.5
+        [FeatureCalculator(nameof(Semantics.Prepend))]
+        public static double Prepend(double tree, double siblings) => siblings;
 
-        [FeatureCalculator(nameof(Semantics.Find))]
-        public static double Find(double ancestor, double label, double k) => ancestor;
+        [FeatureCalculator(nameof(Semantics.Front))]
+        public static double Front(double reference) => reference;
 
-        [FeatureCalculator(nameof(Semantics.FindRel))]
-        public static double FindRel(double ancestor, double label, double cursor, double child, double feature) => 
-            cursor;
+        [FeatureCalculator(nameof(Semantics.Tail))]
+        public static double Tail(double reference) => reference;
+
+        [FeatureCalculator(nameof(Semantics.Siblings))]
+        public static double Siblings(double reference) => reference;
 
         [FeatureCalculator("Feature")]
-        public static double Feature(double label, double token) => token;
-        
-        [FeatureCalculator(nameof(Semantics.Const))]
-        public static double Const(double s) => s;
-        
-        [FeatureCalculator(nameof(Semantics.Var))]
-        public static double Var(double input, double key) => 1;
+        public static double Feature(double label, double token) => label * token;
 
-        [FeatureCalculator(nameof(Semantics.CopyToken))]
-        public static double CopyToken(double target) => target;
-
-        [FeatureCalculator(nameof(Semantics.FindToken))]
-        public static double FindToken(double input, double cursor, double child, double label, double k) => k;
+        [FeatureCalculator("index", Method = CalculationMethod.FromLiteral)]
+        public static double Index(int i) => 1;
 
         // 0 < score(k) <= 1
         // When k > 0, 0 < score(k) <= 0.5
@@ -82,16 +107,13 @@ namespace Prem.Transformer.TreeLang
         [FeatureCalculator("k", Method = CalculationMethod.FromLiteral)]
         public static double K(int k) => (k >= 0) ? 1.0 / (1 + k) : 1.0 / (1.1 - k);
 
-        [FeatureCalculator("child", Method = CalculationMethod.FromLiteral)]
-        public static double Child(int i) => 1; // unused
-
         [FeatureCalculator("s", Method = CalculationMethod.FromLiteral)]
         public static double S(string s) => 1;
 
         [FeatureCalculator("label", Method = CalculationMethod.FromLiteral)]
         public static double Label(Label label) => 1; // unused
 
-        [FeatureCalculator("cursor", Method = CalculationMethod.FromLiteral)]
-        public static double Cursor(Cursor cursor) => 1;
+        [FeatureCalculator("key", Method = CalculationMethod.FromLiteral)]
+        public static double EnvKey(EnvKey key) => 1;
     }
 }

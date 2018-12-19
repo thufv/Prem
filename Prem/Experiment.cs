@@ -12,7 +12,7 @@ namespace Prem
 {
     public class Experiment
     {
-        private static Logger Log = Logger.Instance;
+        private static ColorLogger Log = ColorLogger.Instance;
 
         private Parser _parser;
 

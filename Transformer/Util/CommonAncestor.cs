@@ -13,7 +13,7 @@ namespace Prem.Util
         /// <param name="node1">One node.</param>
         /// <param name="node2">Another node.</param>
         /// <returns>Their lowest common ancestor.</returns>
-        public static SyntaxNode LCA(SyntaxNode node1, SyntaxNode node2)
+        public static Node LCA(SyntaxNode node1, SyntaxNode node2)
         {
             Debug.Assert(node1.context == node2.context);
             while (true)
@@ -28,7 +28,7 @@ namespace Prem.Util
                 }
                 else if (node1 == node2)
                 {
-                    return node1;
+                    return (Node)node1;
                 }
                 else
                 {

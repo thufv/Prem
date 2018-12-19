@@ -5,36 +5,42 @@ using Prem.Util;
 using Prem.Transformer.TreeLang;
 
 using semantics Prem.Transformer.TreeLang.Semantics;
-using learners Prem.Transformer.TreeLang.WitnessFunctions;
+using learners Prem.Transformer.TreeLang.PremStrategy;
 
 language TreeLang;
 
 @complete feature double Score = Prem.Transformer.TreeLang.RankingScore;
 
-@input TInput source;
+@input TInput old;
 
-@start SyntaxNode program := Ins(ref, child, newTree) | Del(ref) | Upd(ref, newTree);
+@start SyntaxNode program := Transform(target, newTree);
+
+SyntaxNode target := Err(old) | ref;
+
+SyntaxNode ref := scope | Select(scope, index, selector);
+
+Node scope := LiftScope(old, label, k) | VarScope(old, label, label, key);
+
+Optional<Func<SyntaxNode, bool>> selector := Self()
+                                          | Label(label) 
+                                          | LabelSub(label, label)
+                                          | LabelWith(label, featurePair);
+
+Record<Label, string>? featurePair := Feature(label, token) = Pair(label, token);
+
+string token := Const(s) | Var(old, key) | FeatureString(old, label, k, index, label);
 
 SyntaxNode newTree := New(tree);
 
-PartialNode tree := Copy(ref) | Leaf(label, token) | Tree(label, children);
+PartialNode tree := Copy(ref) | Leaf(label, token) | Node(label, children) | ListNode(label, siblings);
 
 IEnumerable<PartialNode> children := Child(tree) | Children(tree, children);
 
-SyntaxNode ref := Just(source)
-                | ancestor
-                | Find(ancestor, label, k)
-                | FindRel(ancestor, label, cursor, child, siblingFeature);
+IEnumerable<PartialNode> siblings := Append(tree, siblings) | Prepend(tree, siblings)
+                                   | Front(ref) | Tail(ref) | Siblings(ref);
 
-SyntaxNode ancestor := Move(source, cursor);
-
-Record<Label, string>? siblingFeature := Feature(label, token) = Pair(label, token);
-
-string token := Const(s) | Var(source, k) | CopyToken(ref);
-
-int child;
+int index;
 int k;
 string s;
-
 Label label;
-Cursor cursor;
+EnvKey key;

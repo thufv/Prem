@@ -66,7 +66,7 @@ namespace Prem.Transformer
     /// </summary>
     public sealed class TLearner
     {
-        private static Logger Log = Logger.Instance;
+        private static ColorLogger Log = ColorLogger.Instance;
 
         private SynthesisEngine _engine;
         private Symbol _inputSymbol;
@@ -89,7 +89,6 @@ namespace Prem.Transformer
 
             _inputSymbol = grammar.InputSymbol;
 
-            var witnessFunctions = new WitnessFunctions(grammar);
             _scorer = new RankingScore(grammar);
             _engine = new SynthesisEngine(grammar, new SynthesisEngine.Config
             {
@@ -97,10 +96,7 @@ namespace Prem.Transformer
                 {
                     new PremStrategy(grammar),
                 },
-                UseThreads = false,
-#if DEBUG
-                LogListener = new LogListener(LogInfo.Witness),
-#endif
+                UseThreads = false
             });
 
             Log.Debug("Transformer: synthesis engine is setup.");
@@ -116,9 +112,6 @@ namespace Prem.Transformer
 
             _stopwatch.Restart();
             var programSet = _engine.LearnGrammarTopK(spec, _scorer, k);
-#if DEBUG
-            _engine.Configuration.LogListener.SaveLogToXML("learning.log.xml");
-#endif
             _stopwatch.Stop();
 
             Log.Info("Transformer: {0} program(s) synthesized, time elapsed {1} ms.",

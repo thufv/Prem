@@ -6,7 +6,7 @@ using Microsoft.ProgramSynthesis.Utils;
 
 namespace Prem.Util
 {
-    using PremLogger = Prem.Util.Logger;
+    using PremLogger = Prem.Util.ColorLogger;
     /// <summary>
     /// Compare two syntax trees of type `SyntaxNode`,
     /// finding an edit which could transform the one to the other.
@@ -36,7 +36,7 @@ namespace Prem.Util
             }
 
             // Both must be nodes.
-            Debug.Assert(newNode.kind == SyntaxKind.NODE);
+            Debug.Assert(newNode.kind == SyntaxKind.NODE || newNode.kind == SyntaxKind.LIST);
             var oldChildren = ((Node)oldNode).children;
             var newChildren = ((Node)newNode).children;
 

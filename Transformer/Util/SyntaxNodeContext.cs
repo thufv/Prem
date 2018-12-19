@@ -7,7 +7,7 @@ namespace Prem.Util
 {
     public class SyntaxNodeContext
     {
-        protected static Logger Log = Logger.Instance;
+        protected static ColorLogger Log = ColorLogger.Instance;
 
         public SyntaxNode root;
 

@@ -3,12 +3,15 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using Microsoft.ProgramSynthesis.Utils;
 using Newtonsoft.Json.Linq;
 using Optional;
 
 namespace Prem.Util
 {
     using PartialFunc = Func<SyntaxNodeContext, int, SyntaxNode>;
+
+    using Feature = Record<Label, string>;
 
     /// <summary>
     /// The `SyntaxNode` declared below is a concrete syntax node,
@@ -50,6 +53,7 @@ namespace Prem.Util
     {
         TOKEN,
         NODE,
+        LIST,
         ERROR
     }
 
@@ -60,7 +64,7 @@ namespace Prem.Util
     /// </summary>
     abstract public class SyntaxNode
     {
-        protected static Logger Log = Logger.Instance;
+        protected static ColorLogger Log = ColorLogger.Instance;
 
         public SyntaxKind kind { get; }
 
@@ -123,6 +127,53 @@ namespace Prem.Util
             }
 
             return null;
+        }
+
+        private static Feature Feature(Leaf leaf) => Record.Create(leaf.label, leaf.code);
+
+        public IEnumerable<SyntaxNode> FeatureChildren()
+        {
+            var node = this;
+            while (node.HasParent())
+            {
+                var parent = node.parent;
+                if (parent.children.Count > 1)
+                {
+                    foreach (var child in parent.children)
+                    {
+                        if (child != node)
+                        {
+                            yield return child;
+                        }
+                    }
+                    break;
+                }
+                node = parent;
+            }
+        }
+
+        public IEnumerable<Feature> Features() => FeatureChildren().SelectMany(n => n.Leaves().Select(Feature));
+
+        public bool ContainsFeature(Label label, string token)
+        {
+            var node = this;
+            while (node.HasParent())
+            {
+                var parent = node.parent;
+                if (parent.children.Count > 1)
+                {
+                    foreach (var child in parent.children)
+                    {
+                        if (child != node && child.Leaves().Any(l => l.label.Equals(label) && l.code == token))
+                        {
+                            return true;
+                        }
+                    }
+                }
+                node = parent;
+            }
+
+            return false;
         }
 
         public bool HasParent()
@@ -421,6 +472,24 @@ namespace Prem.Util
 
         public override int GetNumChildren() => children.Count;
 
+        /// <summary>
+        /// Locate in which child contains the `target` node.
+        /// </summary>
+        /// <param name="target"></param>
+        /// <returns></returns>
+        public int Locate(SyntaxNode target)
+        {
+            for (int i = 0; i < children.Count; i++)
+            {
+                if (children[i].GetSubtrees().Contains(target))
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
         public override List<T> DFS<T>(Func<SyntaxNode, T> visit)
         {
             var results = new List<T> { visit(this) };
@@ -448,6 +517,24 @@ namespace Prem.Util
             printer.IncIndent();
             children.ForEach(x => x.PrintTo(printer));
             printer.DecIndent();
+        }
+    }
+
+    public class ListNode : Node //FIXME: ListNode <: Node is wrong
+    {
+        public ListNode(SyntaxNodeContext context, int depth, Label label,
+            IEnumerable<PartialNode> children, string code = "") : base(context, depth, label, children, code)
+        {
+        }
+
+        public IEnumerable<SyntaxNode> Tail() => children.Rest();
+
+        public IEnumerable<SyntaxNode> Front()
+        {
+            for (int i = 0; i < children.Count - 1; i++)
+            {
+                yield return children[i];
+            }
         }
     }
 }

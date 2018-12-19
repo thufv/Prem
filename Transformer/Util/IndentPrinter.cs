@@ -8,10 +8,13 @@ namespace Prem.Util
 
         int level = 0;
 
+        int maxLevel;
+
         bool newline = true;
 
-        public IndentPrinter(int spaces = 4)
+        public IndentPrinter(int maxLevel = 4, int spaces = 4)
         {
+            this.maxLevel = maxLevel;
             this.width = spaces;
         }
 
@@ -25,21 +28,49 @@ namespace Prem.Util
             this.level--;
         }
 
-        public void Print(string text)
+        bool normal = true;
+
+        private bool CheckState()
         {
-            if (newline)
+            if (normal)
             {
-                Console.Write(new String(' ', width * level));
-                newline = false;
+                if (level > maxLevel)
+                {
+                    normal = false;
+                    Console.Write(new String(' ', width * level));
+                    Console.WriteLine("...");
+                }
             }
-            Console.Write(text);
+            else
+            {
+                if (level <= maxLevel)
+                {
+                    normal = true;
+                }
+            }
+
+            return normal;
         }
 
-        public void PrintLine(string text)
+        public void Print(string text, bool endline = false)
         {
-            Print(text);
-            Console.WriteLine();
-            newline = true;
+            if (CheckState())
+            {
+                if (newline)
+                {
+                    Console.Write(new String(' ', width * level));
+                    newline = false;
+                }
+                Console.Write(text);
+
+                if (endline)
+                {
+                    Console.WriteLine();
+                    newline = true;
+                }
+            }
         }
+
+        public void PrintLine(string text) => Print(text, true);
     }
 }

@@ -123,5 +123,27 @@ namespace Prem.Util
 
         public static IEnumerable<T> SortedBy<T, U>(this IEnumerable<T> seq, Func<T, U> keySelector) =>
             seq.OrderBy(x => keySelector(x));
+
+        /// <summary>
+        /// Cartesian product.
+        /// </summary>
+        public static List<List<T>> CartesianProduct<T>(this List<List<T>> list)
+        {
+            int count = 1;
+            list.ForEach(item => count *= item.Count);
+            var results = new List<List<T>>();
+            for (int i = 0; i < count; ++i)
+            {
+                var tmp = new List<T>();
+                int j = 1;
+                foreach (var item in list)
+                {
+                    j *= item.Count;
+                    tmp.Add(item[(i / (count / j)) % item.Count]);
+                }
+                results.Add(tmp);
+            }
+            return results;
+        }
     }
 }
