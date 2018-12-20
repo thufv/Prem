@@ -18,6 +18,11 @@ namespace Prem.Util
             return hashValues.Aggregate(Combine);
         }
 
+        public static int Combine(params int[] hashValues)
+        {
+            return hashValues.ToList().Aggregate(Combine);
+        }
+
         public static int Combine(int hash, IEnumerable<int> hashValues)
         {
             if (hashValues.Any())

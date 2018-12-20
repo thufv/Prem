@@ -16,8 +16,6 @@ using Prem.Util;
 
 namespace Prem.Transformer.TreeLang
 {
-    using Feature = Record<Label, string>;
-
     public class PremStrategy : SynthesisStrategy<ExampleSpec>
     {
         private static ColorLogger Log = ColorLogger.Instance;
@@ -56,7 +54,9 @@ namespace Prem.Transformer.TreeLang
 
         private ProgramNode Index() => new LiteralNode(Symbol("index"), Optional<int>.Nothing);
 
-        private ProgramNode Index(int index) => new LiteralNode(Symbol("index"), index.Some());
+        private ProgramNode Index(Optional<int> index) => new LiteralNode(Symbol("index"), index);
+
+        private ProgramNode Index(int index) => Index(index.Some());
 
         private ProgramNode K(int k) => new LiteralNode(Symbol("k"), k);
 
@@ -70,16 +70,21 @@ namespace Prem.Transformer.TreeLang
 
         private ProgramNode Var(EnvKey key) => new NonterminalNode(Op(nameof(Semantics.Var)), Input, Key(key));
 
+        private ProgramNode AnyFeature() => new NonterminalNode(Op(nameof(Semantics.AnyFeature)));
+
+        private ProgramNode Feature(Optional<int> index, Label label, ProgramNode token) => 
+            new NonterminalNode(Op(nameof(Semantics.Feature)), Index(index), Label(label), token);
+
         private ProgramNode Lift(ProgramNode source, Label label, int k) =>
             new NonterminalNode(Op(nameof(Semantics.Lift)), source, Label(label), K(k));
 
         private ProgramNode ConstToken(string s) => new NonterminalNode(Op(nameof(Semantics.ConstToken)), S(s));
-        
+
         private ProgramNode VarToken(EnvKey key) =>
             new NonterminalNode(Op(nameof(Semantics.VarToken)), Input, Key(key));
 
-        private ProgramNode ErrToken(Label label) =>
-            new NonterminalNode(Op(nameof(Semantics.ErrToken)), Input, Label(label));
+        private ProgramNode ErrToken(Optional<int> index, Label label) =>
+            new NonterminalNode(Op(nameof(Semantics.ErrToken)), Input, Index(index), Label(label));
 
         private static ProgramSet Union(params ProgramSet[] unionSpaces) =>
             new UnionProgramSet(null, unionSpaces); // Symbol is unimportant in union spaces.
@@ -87,6 +92,7 @@ namespace Prem.Transformer.TreeLang
         private static ProgramSet Union(IEnumerable<ProgramSet> unionSpaces) =>
             new UnionProgramSet(null, unionSpaces.ToArray());
 
+        // WARNING: Intersection may not work if there exists join spaces.
         private static ProgramSet Intersect(IEnumerable<ProgramSet> spaces) =>
             spaces.Aggregate((s1, s2) => s1.Intersect(s2));
 
@@ -94,7 +100,10 @@ namespace Prem.Transformer.TreeLang
             CancellationToken cancel)
         {
             var spec = task.Spec;
-            return LearnProgram(PremSpec<TInput, SyntaxNode>.From(spec.Examples, GetInput, o => (SyntaxNode)o));
+            var programSet = LearnProgram(
+                PremSpec<TInput, SyntaxNode>.From(spec.Examples, GetInput, o => (SyntaxNode)o));
+            Log.Info("Synthesis done.");
+            return programSet;
         }
 
         private Optional<ProgramSet> LearnProgram(PremSpec<TInput, SyntaxNode> spec)
@@ -113,30 +122,17 @@ namespace Prem.Transformer.TreeLang
 #endif
             if (diffResults.Forall((i, o) => o.HasValue))
             {
-                // Synthesize param `target`.
-                var targetSpec = diffResults.MapOutputs((i, o) => o.Value.Item1);
+                // Synthesize param `ref`.
+                var refSpec = diffResults.MapOutputs((i, o) => o.Value.Item1);
 #if DEBUG
-                Log.Tree("target |- {0}", targetSpec);
+                Log.Tree("ref |- {0}", refSpec);
                 Log.IncIndent();
 #endif
-                ProgramSet targetSpace;
-                // Case 1: error node = expected output, use `Err`.
-                if (targetSpec.Forall((i, o) => i.errNode == o))
-                {
-#if DEBUG
-                    Log.Tree("Err(old)");
-#endif
-                    targetSpace = ProgramSet.List(Symbol(nameof(Semantics.Err)), Err());
-                }
-                else
-                {
-                    // Case 2: try ref.
-                    targetSpace = LearnRef(targetSpec);
-                }
+                var refSpace = LearnRef(refSpec);
 #if DEBUG
                 Log.DecIndent();
 #endif
-                if (targetSpace.IsEmpty)
+                if (refSpace.IsEmpty)
                 {
                     return Optional<ProgramSet>.Nothing;
                 }
@@ -162,14 +158,14 @@ namespace Prem.Transformer.TreeLang
 #if DEBUG
                 Log.DecIndent();
 #endif
-                if (!treeSpace.HasValue || treeSpace.Value.IsEmpty)
+                if (treeSpace.IsEmpty)
                 {
                     return Optional<ProgramSet>.Nothing;
                 }
 
                 // All done, return program set.
-                return ProgramSet.Join(Op(nameof(Semantics.Transform)), targetSpace,
-                    ProgramSet.Join(Op(nameof(Semantics.New)), treeSpace.Value)).Some();
+                return ProgramSet.Join(Op(nameof(Semantics.Transform)), refSpace,
+                    ProgramSet.Join(Op(nameof(Semantics.New)), treeSpace)).Some();
             }
 
             // Inconsistent specification.
@@ -180,7 +176,21 @@ namespace Prem.Transformer.TreeLang
         {
             var spaces = new List<ProgramSet>();
 
-            // We first synthesize a suitable scope using `Lift`.
+            // Special case: error node = expected output, use `Err`.
+            if (spec.Forall((i, o) => i.errNode.Equals(o)))
+            {
+#if DEBUG
+                Log.Tree("Err(old)");
+#endif
+                return ProgramSet.List(Symbol(nameof(Semantics.Err)), Err());
+            }
+
+            if (spec.Any((i, o) => i.errNode.Equals(o)))
+            {
+                return ProgramSet.Empty(Symbol(nameof(Semantics.Err)));
+            }
+
+            // General case: we first synthesize a suitable scope using `Lift`.
             // Heuristic: only lift as lowest as possible until the scope contains the expected node for every example.
 
             // Option 1: lift error node.
@@ -212,11 +222,33 @@ namespace Prem.Transformer.TreeLang
                     return ProgramSet.List(Symbol(nameof(Semantics.Lift)), Lift(source, label, k));
                 }
 
-                Debug.Assert(false, "Need more lift!");
+                Log.Tree("scopeSpec = {0}", scopeSpec);
+
+                var highest = scopeSpec.ArgMin(p => p.Value.depth);
+                label = highest.Value.label;
+                if (!scopeSpec.Forall((i, o) => i.Equals(highest.Key) ? true :
+                    o.Ancestors().Any(n => n.label.Equals(label))))
+                {
+                    return ProgramSet.Empty(Symbol(nameof(Semantics.Lift)));
+                }
+
+                scopeSpec = scopeSpec.MapOutputs((i, o) => i.Equals(highest.Key) ? o : 
+                    o.Ancestors().First(n => n.label.Equals(label)));
+                if (scopeSpec.Identical((i, o) => sourceSpec[i].CountAncestorWhere(
+                        n => n.label.Equals(label), o.id), out k))
+                {
+#if DEBUG
+                    Log.Tree("scope: from {0} lift {2} to {1}", source, label, k);
+#endif
+                    return ProgramSet.List(Symbol(nameof(Semantics.Lift)), Lift(source, label, k));
+                }
+
+                return ProgramSet.Empty(Symbol(nameof(Semantics.Lift)));
+                // Debug.Assert(false, "Need more lift!");
             }
         }
 
-        private ProgramSet LearnSelect(PremSpec<TInput, SyntaxNode> spec, PremSpec<TInput, Node> scopeSpec, 
+        private ProgramSet LearnSelect(PremSpec<TInput, SyntaxNode> spec, PremSpec<TInput, Node> scopeSpec,
             ProgramSet scopeSpace)
         {
             var spaces = new List<ProgramSet>();
@@ -231,7 +263,7 @@ namespace Prem.Transformer.TreeLang
 #if DEBUG
                 Log.Tree("scope");
 #endif
-                spaces.Add(ProgramSet.Join(Op(nameof(Semantics.Select)), 
+                spaces.Add(ProgramSet.Join(Op(nameof(Semantics.Select)),
                     scopeSpace, ProgramSet.List(Symbol("index"), Index())));
             }
 
@@ -266,14 +298,14 @@ namespace Prem.Transformer.TreeLang
                     Log.Tree("features");
                     Log.IncIndent();
 #endif
-                    var featureSpace = Intersect(spec.Select((i, o) => 
+                    var featureSpace = Intersect(spec.Select((i, o) =>
                         LearnFeature(i, o, scopeSpec[i].GetChild(index))));
 #if DEBUG
                     Log.DecIndent();
                     Log.Tree("features = {0}", featureSpace);
                     Log.DecIndent();
 #endif
-                    spaces.Add(ProgramSet.Join(Op(nameof(Semantics.SelectBy)), 
+                    spaces.Add(ProgramSet.Join(Op(nameof(Semantics.SelectBy)),
                         scopeSpace, labelSpace, indexSpace, featureSpace));
                 }
             }
@@ -293,13 +325,25 @@ namespace Prem.Transformer.TreeLang
                 Log.IncIndent();
 #endif
                 var featureSpace = Intersect(spec.Select((i, o) => LearnFeature(i, o, scopeSpec[i])));
+                if (!featureSpace.IsEmpty)
+                {
 #if DEBUG
+                    foreach (var feature in featureSpace.RealizedPrograms)
+                    {
+                        Log.Tree("{0}", feature);
+                    }
+#endif
+                    spaces.Add(ProgramSet.Join(Op(nameof(Semantics.SelectBy)),
+                        scopeSpace, labelSpace, indexSpace, featureSpace));
+                }
+#if DEBUG
+                if (featureSpace.IsEmpty)
+                {
+                    Log.Tree("<empty set>");
+                }
                 Log.DecIndent();
-                Log.Tree("features = {0}", featureSpace);
                 Log.DecIndent();
 #endif
-                spaces.Add(ProgramSet.Join(Op(nameof(Semantics.SelectBy)),
-                    scopeSpace, labelSpace, indexSpace, featureSpace));
             }
 #if DEBUG
             Log.DecIndent();
@@ -317,58 +361,100 @@ namespace Prem.Transformer.TreeLang
             // REQUIRE: only one candidate.
             if (candidates.Count == 1)
             {
-                // FIXME: add null
+                spaces.Add(ProgramSet.List(Symbol(nameof(Semantics.AnyFeature)), AnyFeature()));
             }
 
             // General case: restricting using features.
             var competitors = candidates.Except(expected.Yield());
-            Log.Tree("comp: ", competitors);
+            // Log.Tree("comp: {0}", competitors);
             var featureSet = new HashSet<Feature>(expected.Features());
-            Log.Tree("FS before: {0}", featureSet);
+            // Log.Tree("FS before: {0}", featureSet);
             foreach (var competitor in competitors)
             {
                 featureSet.ExceptWith(competitor.Features());
             }
-            Log.Tree("FS after: {0}", featureSet);
+            // Log.Tree("FS after: {0}", featureSet);
 
-            foreach (var feature in featureSet)
-            {
-                var labelSpace = ProgramSet.List(Symbol("label"), Label(feature.Item1));
-                var tokenSpace = LearnToken(input, feature.Item2);
+            // var castSet = new HashSet<Label>(expected.UpPath().Select(n => n.label));
+            // Log.Tree("Cast before: {0}", castSet);
+            // foreach (var competitor in competitors)
+            // {
+            // Log.Tree("cmp: {0}", competitor.UpPath().Select(n => n.label));
+            //     castSet.ExceptWith(competitor.UpPath().Select(n => n.label));
+            // }
+            // Log.Tree("Cast after: {0}", castSet);
+
+            spaces.Add(ProgramSet.List(Symbol(nameof(Semantics.Feature)),
+                featureSet.SelectMany(f => 
+                    LearnToken(input, f.token).Select(token => Feature(f.index, f.label, token)))));
+
+            return Union(spaces);
+        }
+
+        private List<ProgramNode> LearnToken(TInput input, string expected)
+        {
+            var programs = new List<ProgramNode>();
+            // Option 1: constant token.
 #if DEBUG
-                Log.Tree("{0}", feature);
+            // Log.Tree("ConstToken({0})", expected);
 #endif
-                spaces.Add(ProgramSet.Join(Op("Feature"), labelSpace, tokenSpace));
+            programs.Add(ConstToken(expected));
+
+            // Option 2: variable token.
+            input.Find(expected).Select(key => 
+            {
+                programs.Add(VarToken(key));
+            });
+
+            // Option 3: the token of a feature which the error node contains.
+            var features = input.errNode.Features();
+            foreach (var feature in features.Where(f => f.token == expected))
+            {
+                var label = feature.label;
+                var index = feature.index;
+                if (features.Where(f => f.label.Equals(label) && f.index.Equals(index)).ToList().Count == 1)
+                {
+                    programs.Add(ErrToken(index, label));
+                }
             }
 
-            return Union(spaces);
+            return programs;
         }
 
-        private ProgramSet LearnToken(TInput input, string token)
+        private ProgramSet LearnTree(PremSpec<TInput, SyntaxNode> spec)
         {
             var spaces = new List<ProgramSet>();
-            // Option 1: constant token.
-            spaces.Add(ProgramSet.List(Symbol(nameof(Semantics.ConstToken)), ConstToken(token)));
+            // Case 2: leaf nodes, using `Leaf`.
+            if (spec.Forall((i, o) => o.kind == SyntaxKind.TOKEN))
+            {
+#if DEBUG
+                Log.Tree("Leaf |- {0}", spec);
+#endif
+                Label label;
+                if (spec.Identical((i, o) => o.label, out label))
+                {
+#if DEBUG
+                    Log.IncIndent();
+                    Log.Tree("label = {0}", label);
+#endif
+                    var tokenSpaces = new List<ProgramSet>();
+                    foreach (var p in spec)
+                    {
+                        tokenSpaces.Add(ProgramSet.List(Symbol("token"), LearnToken(p.Key, p.Value.code)));
+                    }
+                    var tokenSpace = Intersect(tokenSpaces);
+#if DEBUG
+                    Log.DecIndent();
+#endif
+                    if (!tokenSpace.IsEmpty)
+                    {
+                        return ProgramSet.Join(Op(nameof(Semantics.Leaf)),
+                            ProgramSet.List(Symbol("label"), Label(label)), tokenSpace);
+                    }
+                }
+                // else: Inconsistent specification.
+            }
 
-            // Option 2: variable.
-//             input.Find(token).MatchSome(k =>
-//             {
-// #if DEBUG
-//                 Log.IncIndent();
-//                 Log.Tree("Var = {0}", k);
-//                 Log.DecIndent();
-// #endif
-//                 spaces.Add(ProgramSet.List(Symbol(nameof(Semantics.Var)), Var(k)));
-//             });
-
-            // Option 3: copy a reference from the old tree.
-            // Heuristic: enable this only when the `callDepth` doesn't exceed `MaxCallDepth`.
-            // Union all spaces.
-            return Union(spaces);
-        }
-
-        private Optional<ProgramSet> LearnTree(PremSpec<TInput, SyntaxNode> spec)
-        {
             // Case 1: copy a reference from old tree.
             if (spec.Forall((i, o) => o.matches.Any()))
             {
@@ -386,45 +472,18 @@ namespace Prem.Transformer.TreeLang
 #endif
                     refSpaces.Add(LearnRef(refSpec));
 #if DEBUG
-    Log.DecIndent();
+                    Log.DecIndent();
 #endif
                 }
 #if DEBUG
                 Log.DecIndent();
 #endif
-                return ProgramSet.Join(Op(nameof(Semantics.Copy)), Union(refSpaces)).Some();
-            }
-
-            // Case 2: leaf nodes, using `Leaf`.
-            if (spec.Forall((i, o) => o.kind == SyntaxKind.TOKEN))
-            {
-#if DEBUG
-                Log.Tree("Leaf |- {0}", spec);
-#endif
-                Label label;
-                string token;
-                if (spec.Identical((i, o) => o.label, out label) && spec.Identical((i, o) => o.code, out token))
+                var refSpace = Union(refSpaces);
+                if (!refSpace.IsEmpty)
                 {
-#if DEBUG
-                    Log.IncIndent();
-                    Log.Tree("label = {0}", label);
-#endif
-                    var tokenSpaces = new List<ProgramSet>();
-                    foreach (var p in spec)
-                    {
-                        tokenSpaces.Add(LearnToken(p.Key, p.Value.code));
-                    }
-                    var tokenSpace = Intersect(tokenSpaces);
-#if DEBUG
-                    Log.DecIndent();
-                    Debug.Assert(!tokenSpace.IsEmpty);
-#endif
-                    return ProgramSet.Join(Op("Leaf"), ProgramSet.List(Symbol("label"), Label(label)),
-                        tokenSpace).Some();
+                    spaces.Add(ProgramSet.Join(Op(nameof(Semantics.Copy)), refSpace));
+                    return Union(spaces);
                 }
-
-                // Inconsistent specification.
-                return Optional<ProgramSet>.Nothing;
             }
 
             // Case 3: constructor nodes, using `Node`.
@@ -448,20 +507,16 @@ namespace Prem.Transformer.TreeLang
                     Log.DecIndent();
                     Log.DecIndent();
 #endif
-                    if (!childrenSpace.HasValue || childrenSpace.Value.IsEmpty)
+                    if (childrenSpace.HasValue && !childrenSpace.Value.IsEmpty)
                     {
-                        return Optional<ProgramSet>.Nothing;
+                        spaces.Add(ProgramSet.Join(Op(nameof(Semantics.Node)), 
+                            ProgramSet.List(Symbol("Label"), Label(label)), childrenSpace.Value));
                     }
-
-                    return ProgramSet.Join(Op(nameof(Semantics.Node)), ProgramSet.List(Symbol("Label"), Label(label)),
-                        childrenSpace.Value).Some();
                 }
-
-                return Optional<ProgramSet>.Nothing;
             }
+            // else: Inconsistent specification.
 
-            // Inconsistent specification.
-            return Optional<ProgramSet>.Nothing;
+            return Union(spaces);
         }
 
         private Optional<ProgramSet> LearnChildren(PremSpec<TInput, IEnumerable<SyntaxNode>> spec)
@@ -471,7 +526,7 @@ namespace Prem.Transformer.TreeLang
             // First synthesize the first child.
             var childSpec = spec.MapOutputs((i, o) => o.First());
             var childSpace = LearnTree(childSpec);
-            if (!childSpace.HasValue || childSpace.Value.IsEmpty)
+            if (childSpace.IsEmpty)
             {
                 return Optional<ProgramSet>.Nothing;
             }
@@ -479,7 +534,7 @@ namespace Prem.Transformer.TreeLang
             // Suppose no more children, then this is the base case.
             if (!spec.Forall((i, o) => o.Rest().Any()))
             {
-                return ProgramSet.Join(Op(nameof(Semantics.Child)), childSpace.Value).Some();
+                return ProgramSet.Join(Op(nameof(Semantics.Child)), childSpace).Some();
             }
 
 #if DEBUG
@@ -493,7 +548,7 @@ namespace Prem.Transformer.TreeLang
                 return Optional<ProgramSet>.Nothing;
             }
 
-            return ProgramSet.Join(Op(nameof(Semantics.Children)), childSpace.Value, childrenSpace.Value).Some();
+            return ProgramSet.Join(Op(nameof(Semantics.Children)), childSpace, childrenSpace.Value).Some();
         }
     }
 }

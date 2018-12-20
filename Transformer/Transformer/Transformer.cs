@@ -125,7 +125,9 @@ namespace Prem.Transformer
                     var tree = p.Invoke(State.CreateForExecution(_inputSymbol, e.input)) as SyntaxNode;
                     if (tree == null || !tree.IdenticalTo(e.output))
                     {
-                        Debug.Assert(false, "Failure on test case");
+                        Console.WriteLine(String.Join(" ", tree.Leaves().Select(l => l.code)));
+                        Debug.Assert(false, 
+                        String.Format("Program\n{0}\nfailed on test case\n{1}\n", p, e));
                     }
                 }
             }

@@ -94,7 +94,7 @@ namespace Prem.Util
         /// <value>Enable/disable. Default disable.</value>
         public bool ShowColor { get; set; }
 
-        public static string ExplicitlyToString(object obj)
+        public string ExplicitlyToString(object obj)
         {
             if (obj is IEnumerable && !(obj is IDictionary) && !(obj is String))
             {
@@ -118,7 +118,7 @@ namespace Prem.Util
             return obj.ToString();
         }
 
-        public static string ExplicitlyFormat(string format, params object[] args)
+        public string ExplicitlyFormat(string format, params object[] args)
         {
             var ss = new string[args.Length];
             for (var i = 0; i < args.Length; i++)

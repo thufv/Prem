@@ -2,15 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using Optional;
-
+using Microsoft.ProgramSynthesis.Utils;
 using Prem.Transformer;
 using Prem.Util;
 
 namespace Prem
 {
     using TInput = Prem.Transformer.TreeLang.TInput;
-    using Env = Dictionary<int, string>;
+
+    using Env = Dictionary<EnvKey, string>;
 
     public class Input
     {
@@ -29,7 +29,8 @@ namespace Prem
             this.tree = inputTree;
             this.errNode = inputTree.FindLeafWhere(n => n.pos.Equals(errPos)).Match(
                 some: token => token,
-                none: () => {
+                none: () =>
+                {
                     Log.Error("Error position {0} not in {1}", errPos, file);
                     Environment.Exit(1);
                     return null;
@@ -42,6 +43,7 @@ namespace Prem
         public TInput AsTInput(ErrPattern pattern)
         {
             var env = new Env();
+            env[new EnvKey(-1)] = errNode.code; // Environment always contains the error token.
             Debug.Assert(pattern.Match(errMessage, env));
             return AsTInput(env);
         }
@@ -81,51 +83,48 @@ namespace Prem
 
         public RuleSet Synthesize(List<Example> examples, int k = 1)
         {
-/*
-            var printer = new IndentPrinter();
-            examples.ForEachI((i, e) =>
-            {
-                Log.Fine("Example #{0}", i);
-                Log.Fine("Input tree:");
-                if (Log.IsLoggable(LogLevel.FINE))
-                {
-                    e.input.tree.root.PrintTo(printer);
-                }
-                Log.Fine("Output tree:");
-                if (Log.IsLoggable(LogLevel.FINE))
-                {
-                    e.output.root.PrintTo(printer);
-                }
-                Log.Debug("Err node: {0}", e.input.errNode);
-            });
-*/
+            /*
+                        var printer = new IndentPrinter();
+                        examples.ForEachI((i, e) =>
+                        {
+                            Log.Fine("Example #{0}", i);
+                            Log.Fine("Input tree:");
+                            if (Log.IsLoggable(LogLevel.FINE))
+                            {
+                                e.input.tree.root.PrintTo(printer);
+                            }
+                            Log.Fine("Output tree:");
+                            if (Log.IsLoggable(LogLevel.FINE))
+                            {
+                                e.output.root.PrintTo(printer);
+                            }
+                            Log.Debug("Err node: {0}", e.input.errNode);
+                        });
+            */
             // 1. Synthesize error pattern.
-            return SynthesizeErrPattern(examples).Match(
-                some: pattern =>
-                {
-                    Log.Debug("Synthesized error pattern: {0}", pattern);
+            var pattern = SynthesizeErrPattern(examples);
+            if (pattern.HasValue)
+            {
+                Log.Debug("Synthesized error pattern: {0}", pattern);
 
-                    // 2. Synthesize transformers.
-                    var trans = SynthesizeTransformers(examples.Select(e => e.AsTExample(pattern)), k);
-                    return new RuleSet(pattern, trans);
-                },
+                // 2. Synthesize transformers.
+                var trans = SynthesizeTransformers(examples.Select(e => e.AsTExample(pattern.Value)), k);
+                return new RuleSet(pattern.Value, trans);
+            }
 
-                none: () =>
-                {
-                    Log.Error("Failed to synthesize error pattern.");
-                    return RuleSet.Empty;
-                }
-            );
+            Log.Error("Failed to synthesize error pattern.");
+            return RuleSet.Empty;
         }
 
         public RuleSet Synthesize(Example example, int k = 1) =>
             Synthesize(example.Single().ToList(), k);
 
-        private Option<ErrPattern> SynthesizeErrPattern(List<Example> examples)
+        private Optional<ErrPattern> SynthesizeErrPattern(List<Example> examples)
         {
             var pattern = SynthesizeErrPattern(examples.First()).Some();
             return examples.Rest().Select(SynthesizeErrPattern).Aggregate(pattern,
-                (p1, p2) => p1.FlatMap(p => UnifyErrPatterns(p, p2))).Map(p => {
+                (p1, p2) => p1.SelectMany(p => UnifyErrPatterns(p, p2))).Select(p =>
+                {
                     p.LabelVars();
                     return p;
                 });
@@ -139,7 +138,7 @@ namespace Prem
             foreach (var word in words)
             {
                 var (pair, raw) = Var.Unquote(word);
-                if ((example.input.tree.root.code.Contains(raw) || 
+                if ((example.input.tree.root.code.Contains(raw) ||
                     example.output.root.code.Contains(raw)))
                 {
                     pattern.Append(new Var(pair));
@@ -154,9 +153,8 @@ namespace Prem
             return pattern;
         }
 
-        private Option<ErrPattern> UnifyErrPatterns(ErrPattern p1, ErrPattern p2) =>
-            (p1.Length != p2.Length) ? Option.None<ErrPattern>()
-                : Option.Some(p1.Map2(p2, UnifyMatcher));
+        private Optional<ErrPattern> UnifyErrPatterns(ErrPattern p1, ErrPattern p2) =>
+            (p1.Length != p2.Length) ? Optional<ErrPattern>.Nothing : p1.Map2(p2, UnifyMatcher).Some();
 
         private Matcher UnifyMatcher(Matcher m1, Matcher m2) => m1.Equals(m2) ? m1 : Matcher.Any;
 

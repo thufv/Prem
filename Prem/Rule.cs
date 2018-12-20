@@ -8,7 +8,7 @@ using Prem.Util;
 
 namespace Prem
 {
-    using Env = Dictionary<int, string>;
+    using Env = Dictionary<EnvKey, string>;
 
     public abstract class Matcher
     {
@@ -50,7 +50,7 @@ namespace Prem
 
     public class Var : Matcher
     {
-        public int var { get; private set; }
+        public EnvKey var { get; private set; }
 
         public (string left, string right) quotePair { get; }
         
@@ -95,7 +95,7 @@ namespace Prem
 
         public override void LabelVar(Counter counter)
         {
-            this.var = counter.AllocateId();
+            this.var = new EnvKey(counter.AllocateId());
         }
 
         public override bool Equals(object obj)

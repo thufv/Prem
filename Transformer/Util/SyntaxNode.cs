@@ -11,8 +11,6 @@ namespace Prem.Util
 {
     using PartialFunc = Func<SyntaxNodeContext, int, SyntaxNode>;
 
-    using Feature = Record<Label, string>;
-
     /// <summary>
     /// The `SyntaxNode` declared below is a concrete syntax node,
     /// say it must be associated with a context (which stores some global information of the tree)
@@ -129,9 +127,7 @@ namespace Prem.Util
             return null;
         }
 
-        private static Feature Feature(Leaf leaf) => Record.Create(leaf.label, leaf.code);
-
-        public IEnumerable<SyntaxNode> FeatureChildren()
+        public IEnumerable<(int index, SyntaxNode child)> FeatureChildren()
         {
             var node = this;
             while (node.HasParent())
@@ -139,11 +135,11 @@ namespace Prem.Util
                 var parent = node.parent;
                 if (parent.children.Count > 1)
                 {
-                    foreach (var child in parent.children)
+                    for (int i = 0; i < parent.children.Count; i++)
                     {
-                        if (child != node)
+                        if (parent.children[i] != node)
                         {
-                            yield return child;
+                            yield return (i, parent.children[i]);
                         }
                     }
                     break;
@@ -152,31 +148,12 @@ namespace Prem.Util
             }
         }
 
-        public IEnumerable<Feature> Features() => FeatureChildren().SelectMany(n => n.Leaves().Select(Feature));
+        public IEnumerable<Feature> Features() => 
+            FeatureChildren().SelectMany(p => 
+                p.child.Leaves().SelectMany(l => new Feature(l.label, l.code).Yield()
+                    .Concat(new Feature(p.index, l.label, l.code).Yield())));
 
-        public bool ContainsFeature(Feature feature)
-        {
-            var label = feature.Item1;
-            var token = feature.Item2;
-            var node = this;
-            while (node.HasParent())
-            {
-                var parent = node.parent;
-                if (parent.children.Count > 1)
-                {
-                    foreach (var child in parent.children)
-                    {
-                        if (child != node && child.Leaves().Any(l => l.label.Equals(label) && l.code == token))
-                        {
-                            return true;
-                        }
-                    }
-                }
-                node = parent;
-            }
-
-            return false;
-        }
+        public bool ContainsFeature(Feature feature) => Features().Contains(feature);
 
         public bool HasParent()
         {

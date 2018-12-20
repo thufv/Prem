@@ -95,6 +95,18 @@ namespace Prem.Transformer.TreeLang
             return true;
         }
 
+        public bool Any(Func<I, O, bool> predicate)
+        {
+            foreach (var p in this)
+            {
+                if (predicate(p.Key, p.Value))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public bool Identical<E>(Func<I, O, E> mapper, out E value)
         {
             var pointer = Keys.GetEnumerator();
@@ -117,7 +129,7 @@ namespace Prem.Transformer.TreeLang
             var items = new List<string>();
             foreach (var p in this)
             {
-                items.Add($"{p.Key} -> {ColorLogger.ExplicitlyToString(p.Value)}");
+                items.Add($"{p.Key} -> {Log.ExplicitlyToString(p.Value)}");
             }
             return "{ " + String.Join("; ", items) + " }";
         }

@@ -19,13 +19,13 @@ SyntaxNode target := source | ref;
 
 SyntaxNode source := Err(old) | Var(old, key);
 
-SyntaxNode ref := Select(scope, index) | SelectBy(scope, label, index, featurePair);
+SyntaxNode ref := Select(scope, index) | SelectBy(scope, label, index, maybeFeature);
 
 Node scope := Lift(source, label, k);
 
-Record<Label, string>? featurePair := Feature(label, token) = Pair(label, token);
+Optional<Feature> maybeFeature := Feature(index, label, token) | AnyFeature();
 
-string token := ConstToken(s) | VarToken(old, key) | ErrToken(old, label);
+string token := ConstToken(s) | VarToken(old, key) | ErrToken(old, index, label);
 
 SyntaxNode newTree := New(tree);
 

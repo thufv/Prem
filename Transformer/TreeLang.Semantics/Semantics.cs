@@ -8,10 +8,6 @@ using Prem.Util;
 
 namespace Prem.Transformer.TreeLang
 {
-    using Selector = Optional<Func<SyntaxNode, bool>>;
-
-    using Feature = Record<Label, string>;
-
     public static class Semantics
     {
         private static ColorLogger Log = ColorLogger.Instance;
@@ -27,12 +23,22 @@ namespace Prem.Transformer.TreeLang
         public static SyntaxNode Select(Node scope, Optional<int> index) =>
             index.HasValue ? scope.GetChild(index.Value) : scope;
 
-        public static SyntaxNode SelectBy(Node scope, Label label, Optional<int> index, Feature? feature)
+        public static SyntaxNode SelectBy(Node scope, Label label, Optional<int> index, Optional<Feature> feature)
         {
             var root = Select(scope, index);
-            var candidates = root.GetSubtrees().Where(n => n.label.Equals(label));
-            return feature == null ? candidates.First() : candidates.First(n => n.ContainsFeature(feature.Value));
+            var candidates = root.GetSubtrees().Where(n => n.label.Equals(label)).ToList();
+            if (!feature.HasValue)
+            {
+                return UniqueOf(candidates);
+            }
+
+            return UniqueOf(candidates.Where(n => n.ContainsFeature(feature.Value)));
         }
+
+        public static Optional<Feature> Feature(Optional<int> index, Label label, string token) =>
+            new Feature(index, label, token).Some();
+
+        public static Optional<Feature> AnyFeature() => Optional<Feature>.Nothing;
 
         public static Node Lift(SyntaxNode source, Label label, int k)
         {
@@ -59,8 +65,11 @@ namespace Prem.Transformer.TreeLang
 
         public static string VarToken(TInput input, EnvKey key) => input[key];
 
-        public static string ErrToken(TInput input, Label label) =>
-            input.errNode.Features().First(f => f.Item1.Equals(label)).Item2;
+        public static string ErrToken(TInput input, Optional<int> index, Label label)
+        {
+            return UniqueOf(input.errNode.Features().Where(f => 
+                f.index.Equals(index) && f.label.Equals(label)), f => f.token);
+        }
 
         public static SyntaxNode New(PartialNode tree)
         {
@@ -106,5 +115,18 @@ namespace Prem.Transformer.TreeLang
             Debug.Assert(reference is ListNode);
             return ((ListNode)reference).children.Select(x => x.ToPartial());
         }
+
+        public static U UniqueOf<T, U>(IEnumerable<T> candidates, Func<T, U> mapper)
+        {
+            if (candidates.ToList().Count == 1)
+            {
+                return mapper(candidates.First());
+            }
+
+            Log.Error("Unique candidates required, but found multiple: {0}", Log.ExplicitlyToString(candidates));
+            return default(U);
+        }
+
+        public static T UniqueOf<T>(IEnumerable<T> candidates) => UniqueOf(candidates, x => x);
     }
 }
