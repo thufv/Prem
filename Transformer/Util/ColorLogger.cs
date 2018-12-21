@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -96,10 +97,10 @@ namespace Prem.Util
 
         public string ExplicitlyToString(object obj)
         {
-            if (obj is IEnumerable && !(obj is IDictionary) && !(obj is String))
+            var sb = new StringBuilder();
+            if (obj is IEnumerable && !(obj is String))
             {
                 var o = (IEnumerable)obj;
-                var sb = new StringBuilder();
                 sb.Append("{ ");
                 var pointer = o.GetEnumerator();
                 if (pointer.MoveNext())
@@ -112,6 +113,16 @@ namespace Prem.Util
                     sb.Append(ExplicitlyToString(pointer.Current));
                 }
                 sb.Append(" }");
+                return sb.ToString();
+            }
+            else if (obj.GetType().IsGenericType && 
+                obj.GetType().GetGenericTypeDefinition() == typeof(KeyValuePair<,>))
+            {
+                var key = obj.GetType().GetProperty("Key").GetValue(obj, null);
+                var value = obj.GetType().GetProperty("Value").GetValue(obj, null);
+                sb.Append(ExplicitlyToString(key));
+                sb.Append(" -> ");
+                sb.Append(ExplicitlyToString(value));
                 return sb.ToString();
             }
 

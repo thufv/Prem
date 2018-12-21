@@ -14,8 +14,6 @@ namespace Prem
 
     public abstract class Matcher
     {
-        public static Matcher Any = new WildCard();
-
         public abstract bool Match(string word, Env env);
 
         public abstract void LabelVar(Counter counter);
@@ -55,35 +53,21 @@ namespace Prem
         public EnvKey var { get; private set; }
 
         public (string left, string right) quotePair { get; }
-        
-        public string right { get; }
 
         public Var()
         {
             this.quotePair = NO_QUOTE;
         }
-        
-        public Var((string left, string right) quotePair)
+
+        public Var((string, string) quotePair)
         {
             this.quotePair = quotePair;
-        }
-
-        public override bool Match(string word, Env env)
-        {
-            var left = quotePair.left;
-            var right = quotePair.right;
-            if (!word.StartsWith(left) || !word.EndsWith(right)) return false;
-            
-            var mid = word.Substring(left.Length, word.Length - left.Length - right.Length);
-            env[var] = mid;
-            return true;
         }
 
         public static (string left, string right) NO_QUOTE = ("", "");
 
         public static List<(string left, string right)> QUOTE_PAIRS =
             new List<(string left, string right)> {
-                ("‘", "’"),
                 ("'", "'"),
                 ("`", "'"),
                 ("\"", "\"")
@@ -94,6 +78,52 @@ namespace Prem
 
         public static Optional<char> MatchedQuote(char left) =>
             QUOTE_PAIRS.TryFind(p => p.left.StartsWith(left)).Select(p => p.right.First());
+
+        public override bool Match(string word, Env env)
+        {
+            var left = quotePair.left;
+            var right = quotePair.right;
+            if (!word.StartsWith(left) || !word.EndsWith(right)) return false;
+
+            var raw = word.Substring(left.Length, word.Length - left.Length - right.Length);
+            if (MatchSignature(raw, env))
+            {
+                return true;
+            }
+
+            env[var] = raw;
+            return true;
+        }
+
+        public bool MatchSignature(string word, Env env)
+        {
+            var groups = word.Split('(', ')');
+            if (groups.Length >= 2)
+            {
+                var fieldList = groups[0].Split('.');
+                int count = 0;
+                foreach (var field in fieldList.Reverse())
+                {
+                    env[var.Append(0, count)] = field;
+                    count++;
+                }
+
+                if (groups[1].Any())
+                {
+                    var typeList = groups[1].Split(',');
+                    count = 0;
+                    foreach (var type in typeList)
+                    {
+                        env[var.Append(1, count)] = type;
+                        count++;
+                    }
+                }
+
+                return true;
+            }
+
+            return false;
+        }
 
         public override void LabelVar(Counter counter)
         {
@@ -111,20 +141,11 @@ namespace Prem
             return quotePair.left == that.quotePair.left && quotePair.right == that.quotePair.right;
         }
 
-        public override int GetHashCode() => Hash.Combine(quotePair.left.GetHashCode(), 
+        public override int GetHashCode() => Hash.Combine(quotePair.left.GetHashCode(),
             quotePair.right.GetHashCode());
 
         public override string ToString() =>
             quotePair == NO_QUOTE ? $"?{var}" : $"{quotePair.left}?{var}{quotePair.right}";
-    }
-
-    public class WildCard : Matcher
-    {
-        public override void LabelVar(Counter counter) { }
-
-        public override bool Match(string word, Env env) => true;
-
-        public override string ToString() => "*";
     }
 
     public class ErrPattern
@@ -190,7 +211,6 @@ namespace Prem
                         var match = Var.MatchedQuote(message[i]);
                         if (match.HasValue)
                         {
-                            Debug.Assert(sb.Length == 0);
                             end = match.Value;
                             quoted = true;
                         }
@@ -228,7 +248,7 @@ namespace Prem
         public ErrPattern Map2(ErrPattern pattern, Func<Matcher, Matcher, Matcher> func) =>
             new ErrPattern(matchers.Map2(pattern.matchers, func));
 
-        public override string ToString() => 
+        public override string ToString() =>
             $"[{String.Join(", ", matchers.Select(m => m.ToString()))}]";
     }
 
@@ -283,7 +303,7 @@ namespace Prem
 
             var input = example.input.AsTInput(env);
             var expected = example.output.root;
-            return transformers.FirstCount(t => 
+            return transformers.FirstCount(t =>
                 t.Apply(input).Any(tree => tree.IdenticalTo(expected)));
         }
 

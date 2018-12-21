@@ -44,7 +44,7 @@ namespace Prem
         public TInput AsTInput(ErrPattern pattern)
         {
             var env = new Env();
-            env[new EnvKey(-1)] = errNode.code; // Environment always contains the error token.
+            env[EnvKey.ErrToken] = errNode.code; // Environment always contains the error token.
             Debug.Assert(pattern.Match(errMessage, env));
             return AsTInput(env);
         }
@@ -128,6 +128,7 @@ namespace Prem
                     }
                 }
 
+                pattern.LabelVars();
                 return pattern.Some();
             }
 

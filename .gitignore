@@ -8,6 +8,8 @@
 *.xml
 Prem/*.grammar
 
+Benchmarks/
+
 # User-specific files
 *.suo
 *.user

@@ -10,6 +10,8 @@ namespace Prem.Transformer.TreeLang
 
     public class TInput
     {
+        protected static ColorLogger Log = ColorLogger.Instance;
+
         public SyntaxNode inputTree { get; }
 
         public SyntaxNode errNode { get; }
@@ -28,11 +30,11 @@ namespace Prem.Transformer.TreeLang
             get => env[key];
         }
 
-        public Optional<EnvKey> Find(string s)
+        public Optional<EnvKey> TryFind(string token)
         {
             foreach (var p in env)
             {
-                if (p.Value == s)
+                if (p.Value == token)
                 {
                     return p.Key.Some();
                 }
@@ -41,9 +43,6 @@ namespace Prem.Transformer.TreeLang
             return Optional<EnvKey>.Nothing;
         }
 
-        public override string ToString()
-        {
-            return $"err:{errNode}";
-        }
+        public override string ToString() => $"{errNode} with {Log.ExplicitlyToString(env)}";
     }
 }

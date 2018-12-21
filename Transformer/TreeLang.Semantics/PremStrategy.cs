@@ -401,7 +401,7 @@ namespace Prem.Transformer.TreeLang
             programs.Add(ConstToken(expected));
 
             // Option 2: variable token.
-            input.Find(expected).Select(key => 
+            input.TryFind(expected).Select(key => 
             {
                 programs.Add(VarToken(key));
             });

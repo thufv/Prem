@@ -1,39 +1,34 @@
+using System.Collections.Generic;
+using System.Linq;
+
 namespace Prem.Util
 {
     public class EnvKey
     {
-        public int first { get; }
-        
-        public int second { get; }
+        private List<int> keys = new List<int>();
 
         public EnvKey(int id)
         {
-            this.first = id;
-            this.second = -1;
+            this.keys.Add(id);
         }
 
-        public EnvKey(int first, int second)
+        public EnvKey(List<int> keys)
         {
-            this.first = first;
-            this.second = second;
+            keys.ForEach(this.keys.Add);
         }
 
-        public override string ToString() => second == -1 ? $"{first}" : $"{first}:{second}";
+        public static EnvKey ErrToken = new EnvKey(-1);
 
-        public override bool Equals(object obj)
+        public EnvKey Append(params int[] ids)
         {
-            if ((obj == null) || !this.GetType().Equals(obj.GetType()))
+            var key = new EnvKey(keys);
+            foreach (var id in ids)
             {
-                return false;
+                key.keys.Add(id);
             }
-
-            var that = (EnvKey)obj;
-            return this.first == that.first && this.second == that.second;
+            return key;
         }
 
-        public override int GetHashCode()
-        {
-            return Hash.Combine(first.GetHashCode(), second.GetHashCode());
-        }
+        public override string ToString() => string.Join(":", keys.Select(k => k.ToString()));
     }
 }
