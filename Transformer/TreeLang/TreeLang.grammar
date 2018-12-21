@@ -19,11 +19,13 @@ SyntaxNode target := source | ref;
 
 SyntaxNode source := Err(old) | Var(old, key);
 
-SyntaxNode ref := Select(scope, index) | SelectBy(scope, label, index, maybeFeature);
+SyntaxNode ref := scope | Select(scope, label, maybeFeature);
 
-Node scope := Lift(source, label, k);
+SyntaxNode scope := node | Sub(node, index);
 
-Optional<Feature> maybeFeature := Feature(index, label, token) | AnyFeature();
+Node node := Lift(source, label, k);
+
+Optional<Feature> maybeFeature := SiblingsContains(index, label, token) | SubKindOf(label) | AnyFeature();
 
 string token := ConstToken(s) | VarToken(old, key) | ErrToken(old, index, label);
 

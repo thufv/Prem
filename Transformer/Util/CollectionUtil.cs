@@ -18,6 +18,8 @@ namespace Prem.Util
 
         public static bool Empty<T>(this List<T> list) => list.Count == 0;
 
+        public static IEnumerable<T> Except<T>(this IEnumerable<T> seq, T elem) => seq.Except(elem.Yield());
+
         public static Optional<T> Kth<T>(this IEnumerable<T> seq, Predicate<T> predicate, int k = 1)
         {
             foreach (var e in seq)

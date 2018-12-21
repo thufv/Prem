@@ -43,6 +43,8 @@ namespace Prem.Transformer.TreeLang
             return Optional<EnvKey>.Nothing;
         }
 
+        public IEnumerable<EnvKey> Keys => env.Keys;
+
         public override string ToString() => $"{errNode} with {Log.ExplicitlyToString(env)}";
     }
 }

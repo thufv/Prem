@@ -17,8 +17,6 @@ namespace Prem.Util
             keys.ForEach(this.keys.Add);
         }
 
-        public static EnvKey ErrToken = new EnvKey(-1);
-
         public EnvKey Append(params int[] ids)
         {
             var key = new EnvKey(keys);
@@ -30,5 +28,21 @@ namespace Prem.Util
         }
 
         public override string ToString() => string.Join(":", keys.Select(k => k.ToString()));
+
+        public override bool Equals(object obj)
+        {
+            if ((obj == null) || !this.GetType().Equals(obj.GetType()))
+            {
+                return false;
+            }
+
+            var that = (EnvKey)obj;
+            return ToString() == that.ToString();
+        }
+
+        public override int GetHashCode()
+        {
+            return ToString().GetHashCode();
+        }
     }
 }

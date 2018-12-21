@@ -73,7 +73,10 @@ namespace Prem.Transformer.TreeLang
         private ProgramNode AnyFeature() => new NonterminalNode(Op(nameof(Semantics.AnyFeature)));
 
         private ProgramNode Feature(Optional<int> index, Label label, ProgramNode token) => 
-            new NonterminalNode(Op(nameof(Semantics.Feature)), Index(index), Label(label), token);
+            new NonterminalNode(Op(nameof(Semantics.SiblingsContains)), Label(label), token);
+
+        private ProgramNode SubKindOf(Label label) =>
+            new NonterminalNode(Op(nameof(Semantics.SubKindOf)), Label(label));
 
         private ProgramNode Lift(ProgramNode source, Label label, int k) =>
             new NonterminalNode(Op(nameof(Semantics.Lift)), source, Label(label), K(k));
@@ -90,12 +93,20 @@ namespace Prem.Transformer.TreeLang
             new UnionProgramSet(null, unionSpaces); // Symbol is unimportant in union spaces.
 
         private static ProgramSet Union(IEnumerable<ProgramSet> unionSpaces) =>
-            new UnionProgramSet(null, unionSpaces.ToArray());
+            new UnionProgramSet(null, unionSpaces.ToArray()); // Symbol is unimportant in union spaces.
 
         // WARNING: Intersection may not work if there exists join spaces.
         private static ProgramSet Intersect(IEnumerable<ProgramSet> spaces) =>
             spaces.Aggregate((s1, s2) => s1.Intersect(s2));
 
+        /// <summary>
+        /// Entry point of the synthesis strategy, implementing
+        /// `Microsoft.ProgramSynthesis.Learning.Strategies.SynthesisStrategy`.
+        /// </summary>
+        /// <param name="engine">Synthesis engine.</param>
+        /// <param name="task">Learning task, which contains the specification.</param>
+        /// <param name="cancel">Cancellation token.</param>
+        /// <returns></returns>
         public override Optional<ProgramSet> Learn(SynthesisEngine engine, LearningTask<ExampleSpec> task,
             CancellationToken cancel)
         {
@@ -106,8 +117,32 @@ namespace Prem.Transformer.TreeLang
             return programSet;
         }
 
+        private PremSpec<TInput, Leaf> errNodes = new PremSpec<TInput, Leaf>();
+
+        private Dictionary<EnvKey, PremSpec<TInput, Leaf>> varNodeDict =
+            new Dictionary<EnvKey, PremSpec<TInput, Leaf>>();
+
+        /// <summary>
+        /// Learning a set of `program`s, i.e. tree transformers, that are consistent with the specification.
+        /// </summary>
+        /// <param name="spec">Specification of the form: input -> new tree.</param>
+        /// <returns>Consistent programs (if exist) or nothing.</returns>
         private Optional<ProgramSet> LearnProgram(PremSpec<TInput, SyntaxNode> spec)
         {
+            // Preparation: compute sources.
+            foreach (var input in spec.Keys)
+            {
+                errNodes[input] = input.errNode as Leaf;
+            }
+
+            foreach (var key in spec.Keys.Select(i => i.Keys).Intersect())
+            {
+                var varNodes = spec.MapOutputs((i, o) => i.inputTree.Leaves()
+                    .Where(l => l.code == i[key]).ArgMin(l => l.depth));
+                Debug.Assert(varNodes.Forall((i, v) => v != null));
+                varNodeDict[key] = varNodes;
+            }
+
             // Before we synthesize `target`, we have to first perform a diff.
             var diffResults = spec.MapOutputs((i, o) => SyntaxNodeComparer.Diff(i.inputTree, o));
 #if DEBUG
@@ -122,22 +157,35 @@ namespace Prem.Transformer.TreeLang
 #endif
             if (diffResults.Forall((i, o) => o.HasValue))
             {
-                // Synthesize param `ref`.
-                var refSpec = diffResults.MapOutputs((i, o) => o.Value.Item1);
+                // 1. Synthesize param `target`.
+                var targetSpec = diffResults.MapOutputs((i, o) => o.Value.Item1);
+                ProgramSet targetSpace;
 #if DEBUG
-                Log.Tree("ref |- {0}", refSpec);
+                Log.Tree("target |- {0}", targetSpec);
                 Log.IncIndent();
 #endif
-                var refSpace = LearnRef(refSpec);
-#if DEBUG
-                Log.DecIndent();
-#endif
-                if (refSpace.IsEmpty)
+                // Special case: error node = expected output, use `Err`.
+                if (targetSpec.Forall((i, o) => i.errNode.Equals(o)))
                 {
-                    return Optional<ProgramSet>.Nothing;
+#if DEBUG
+                    Log.Tree("Err(old)");
+#endif
+                    targetSpace = ProgramSet.List(Symbol(nameof(Semantics.Err)), Err());
+                }
+                // General case: try `ref`.
+                else
+                {
+                    targetSpace = LearnRef(targetSpec);
+#if DEBUG
+                    Log.DecIndent();
+#endif
+                    if (targetSpace.IsEmpty)
+                    {
+                        return Optional<ProgramSet>.Nothing;
+                    }
                 }
 
-                // Before we synthesize `newTree`, we have to perform matching before the old tree and new node.
+                // Before we synthesize `newTree`, we have to perform matching between the old tree and the new node.
                 var treeSpec = diffResults.MapOutputs((i, o) => o.Value.Item2);
                 foreach (var p in treeSpec)
                 {
@@ -149,7 +197,7 @@ namespace Prem.Transformer.TreeLang
                     }
                 }
 
-                // Synthesize param `tree` as the `newTree=New(tree)`.
+                // 2. Synthesize param `tree` as the `newTree`, constructed by `New(tree)`.
 #if DEBUG
                 Log.Tree("tree |- {0}", treeSpec);
                 Log.IncIndent();
@@ -164,50 +212,59 @@ namespace Prem.Transformer.TreeLang
                 }
 
                 // All done, return program set.
-                return ProgramSet.Join(Op(nameof(Semantics.Transform)), refSpace,
+                return ProgramSet.Join(Op(nameof(Semantics.Transform)), targetSpace,
                     ProgramSet.Join(Op(nameof(Semantics.New)), treeSpace)).Some();
             }
 
-            // Inconsistent specification.
             return Optional<ProgramSet>.Nothing;
         }
 
+        /// <summary>
+        /// Learning a set of `ref`s, i.e. node selectors, that are consistent with the specification.
+        /// </summary>
+        /// <param name="spec">Specification of the form: input -> node to be referenced.</param>
+        /// <returns>Consistent programs (if exist) or emptyset.</returns>
         private ProgramSet LearnRef(PremSpec<TInput, SyntaxNode> spec)
         {
             var spaces = new List<ProgramSet>();
-
-            // Special case: error node = expected output, use `Err`.
-            if (spec.Forall((i, o) => i.errNode.Equals(o)))
-            {
-#if DEBUG
-                Log.Tree("Err(old)");
-#endif
-                return ProgramSet.List(Symbol(nameof(Semantics.Err)), Err());
-            }
-
-            if (spec.Any((i, o) => i.errNode.Equals(o)))
-            {
-                return ProgramSet.Empty(Symbol(nameof(Semantics.Err)));
-            }
-
-            // General case: we first synthesize a suitable scope using `Lift`.
+            // A `ref` must be either a `scope` or `Select`, and both require a `scope`, 
+            // whose `node` must be constructed by `Lift`.
             // Heuristic: only lift as lowest as possible until the scope contains the expected node for every example.
 
             // Option 1: lift error node.
             PremSpec<TInput, Node> scopeSpec;
-            var scopeSpace = LearnLift(spec, spec.MapOutputs((i, o) => i.errNode), Err(), out scopeSpec);
+            var scopeSpace = LearnLift(spec, errNodes, Err(), out scopeSpec);
             spaces.Add(LearnSelect(spec, scopeSpec, scopeSpace));
 
             // Option 2: lift var node.
+            foreach (var p in varNodeDict)
+            {
+                var key = p.Key;
+                var varNodes = p.Value;
+                if (varNodes.Forall((i, v) => v != spec[i])) // Source node != expected node.
+                {
+                    scopeSpace = LearnLift(spec, varNodes, Var(key), out scopeSpec);
+                    spaces.Add(LearnSelect(spec, scopeSpec, scopeSpace));
+                }
+            }
 
             // Collect results.
             return Union(spaces);
         }
 
-        private ProgramSet LearnLift(PremSpec<TInput, SyntaxNode> spec, PremSpec<TInput, SyntaxNode> sourceSpec,
+        /// <summary>
+        /// Learning a set of `Lift`s, i.e. node lifters, that are consistent with the specification.
+        /// This method only identifies the lowest scope that covers all examples.
+        /// </summary>
+        /// <param name="spec">Specification of the form: input -> node to be referenced.</param>
+        /// <param name="sourceSpec">Constraint on the `source` of `Lift`: input -> source node.</param>
+        /// <param name="source">The program which constructs the `source`.</param>
+        /// <param name="scopeSpec">Output. Specification for learning `scope`: input -> scope root.</param>
+        /// <returns>Consistent programs (if exist) or emptyset.</returns>
+        private ProgramSet LearnLift(PremSpec<TInput, SyntaxNode> spec, PremSpec<TInput, Leaf> sourceSpec,
             ProgramNode source, out PremSpec<TInput, Node> scopeSpec)
         {
-            scopeSpec = spec.Zip(sourceSpec).MapOutputs((i, o) => CommonAncestor.LCA(o.Item1, o.Item2));
+            scopeSpec = spec.MapOutputs((i, o) => CommonAncestor.LCA(o, sourceSpec[i]));
             while (true)
             {
                 Label label;
@@ -217,12 +274,12 @@ namespace Prem.Transformer.TreeLang
                         n => n.label.Equals(label), o.id), out k))
                 {
 #if DEBUG
-                    Log.Tree("scope: from {0} lift {2} to {1}", source, label, k);
+                    Log.Tree("Lift({0}, {1}, {2})", source, label, k);
 #endif
                     return ProgramSet.List(Symbol(nameof(Semantics.Lift)), Lift(source, label, k));
                 }
 
-                Log.Tree("scopeSpec = {0}", scopeSpec);
+                // Log.Tree("scopeSpec = {0}", scopeSpec);
 
                 var highest = scopeSpec.ArgMin(p => p.Value.depth);
                 label = highest.Value.label;
@@ -238,7 +295,7 @@ namespace Prem.Transformer.TreeLang
                         n => n.label.Equals(label), o.id), out k))
                 {
 #if DEBUG
-                    Log.Tree("scope: from {0} lift {2} to {1}", source, label, k);
+                    Log.Tree("Lift({0}, {1}, {2})", source, label, k);
 #endif
                     return ProgramSet.List(Symbol(nameof(Semantics.Lift)), Lift(source, label, k));
                 }
@@ -248,6 +305,13 @@ namespace Prem.Transformer.TreeLang
             }
         }
 
+        /// <summary>
+        /// Learning a set of selectors that are consistent with the specification.
+        /// </summary>
+        /// <param name="spec">Specification of the form: input -> node to be referenced.</param>
+        /// <param name="scopeSpec">Specification for learned scopes (`node`s): input -> scope root.</param>
+        /// <param name="scopeSpace">The programs that construct the scope (`node`).</param>
+        /// <returns>Consistent programs (if exist) or emptyset.</returns>
         private ProgramSet LearnSelect(PremSpec<TInput, SyntaxNode> spec, PremSpec<TInput, Node> scopeSpec,
             ProgramSet scopeSpace)
         {
@@ -256,67 +320,66 @@ namespace Prem.Transformer.TreeLang
             Log.Tree("selectors");
             Log.IncIndent();
 #endif
-            // Option 1: simply select the scope.
-            // REQUIRE: expected node = scope for all examples.
-            if (spec.Forall((i, o) => o.Equals(scopeSpec[i])))
-            {
-#if DEBUG
-                Log.Tree("scope");
-#endif
-                spaces.Add(ProgramSet.Join(Op(nameof(Semantics.Select)),
-                    scopeSpace, ProgramSet.List(Symbol("index"), Index())));
-            }
-
-            // Option 2: select inside one of the child of scope.
+            // Option 1: select inside one of subscope, say one of the child of the scope root.
             // REQUIRE: expected node in scope[index] for some index for all examples.
             int index;
             if (spec.Identical((i, o) => scopeSpec[i].Locate(o), out index) && index >= 0)
             {
-                // Special case: expected node is simply the child.
-                // REQUIRE: expected node = scope[index] for all examples.
-                if (spec.Forall((i, o) => o.Equals(scopeSpec[i].GetChild(index))))
-                {
+                var indexSpace = ProgramSet.List(Symbol("index"), Index(index));
+                var subscopeSpace = ProgramSet.Join(Op(nameof(Semantics.Sub)), scopeSpace, indexSpace);
 #if DEBUG
-                    Log.Tree("child {0}", index);
-#endif
-                    spaces.Add(ProgramSet.Join(Op(nameof(Semantics.Select)),
-                        scopeSpace, ProgramSet.List(Symbol("index"), Index(index))));
-                }
-
-                // General case: identify using label and feature in the child scope.
-                // REQUIRE: expected node have the identical label for all examples.
-                Label label1;
-                if (spec.Identical((i, o) => o.label, out label1))
-                {
-                    var labelSpace = ProgramSet.List(Symbol("label"), Label(label1));
-                    var indexSpace = ProgramSet.List(Symbol("index"), Index(index));
+                Log.Tree("in subscope {0}", index);
+                Log.IncIndent();
+#endif          
+                spaces.Add(LearnSelectInScope(spec, scopeSpec.MapOutputs((i, o) => o.GetChild(index)), subscopeSpace));
 #if DEBUG
-                    Log.Tree("predicate", label1, index);
-                    Log.IncIndent();
-                    Log.Tree("scope = child {0}", index);
-                    Log.Tree("label = {0}", label1);
-                    Log.Tree("features");
-                    Log.IncIndent();
+                Log.DecIndent();
 #endif
-                    var featureSpace = Intersect(spec.Select((i, o) =>
-                        LearnFeature(i, o, scopeSpec[i].GetChild(index))));
-#if DEBUG
-                    Log.DecIndent();
-                    Log.Tree("features = {0}", featureSpace);
-                    Log.DecIndent();
-#endif
-                    spaces.Add(ProgramSet.Join(Op(nameof(Semantics.SelectBy)),
-                        scopeSpace, labelSpace, indexSpace, featureSpace));
-                }
             }
 
-            // Option 3: identify using label and feature.
+            // Option 2: select inside the entire scope.
+            // NO REQUIREMENT.
+#if DEBUG
+            Log.Tree("in entire scope");
+            Log.IncIndent();
+#endif
+            spaces.Add(LearnSelectInScope(spec, scopeSpec.MapOutputs((i, o) => (SyntaxNode)o), scopeSpace));
+#if DEBUG
+            Log.DecIndent();
+            Log.DecIndent();
+#endif
+            return Union(spaces);
+        }
+
+        /// <summary>
+        /// Learning a set of selectors that are consistent with the specification.
+        /// Similar to `LearnSelect`, but the scope has been determined (entire/sub).
+        /// </summary>
+        /// <param name="spec">Specification of the form: input -> node to be referenced.</param>
+        /// <param name="scopeSpec">Specification for the determined scopes: input -> scope root.</param>
+        /// <param name="scopeSpace">The programs that construct the scope.</param>
+        /// <returns>Consistent programs (if exist) or emptyset.</returns>
+        private ProgramSet LearnSelectInScope(PremSpec<TInput, SyntaxNode> spec, PremSpec<TInput, SyntaxNode> scopeSpec,
+            ProgramSet scopeSpace)
+        {
+            var spaces = new List<ProgramSet>();
+
+            // Special case: expected node is simply the scope root.
+            // REQUIRE: expected node = scope[index] for all examples.
+            if (spec.Forall((i, o) => o.Equals(scopeSpec[i])))
+            {
+#if DEBUG
+                Log.Tree("itself");
+#endif
+                spaces.Add(scopeSpace);
+            }
+
+            // General case: identify using label and feature in the subscope.
             // REQUIRE: expected node have the identical label for all examples.
             Label label;
             if (spec.Identical((i, o) => o.label, out label))
             {
                 var labelSpace = ProgramSet.List(Symbol("label"), Label(label));
-                var indexSpace = ProgramSet.List(Symbol("index"), Index());
 #if DEBUG
                 Log.Tree("predicate");
                 Log.IncIndent();
@@ -333,64 +396,79 @@ namespace Prem.Transformer.TreeLang
                         Log.Tree("{0}", feature);
                     }
 #endif
-                    spaces.Add(ProgramSet.Join(Op(nameof(Semantics.SelectBy)),
-                        scopeSpace, labelSpace, indexSpace, featureSpace));
+                    spaces.Add(ProgramSet.Join(Op(nameof(Semantics.Select)), scopeSpace, labelSpace, featureSpace));
+                }
+                else
+                {
+#if DEBUG
+                    Log.Tree("<empty set>");
+#endif
                 }
 #if DEBUG
-                if (featureSpace.IsEmpty)
-                {
-                    Log.Tree("<empty set>");
-                }
+
                 Log.DecIndent();
                 Log.DecIndent();
 #endif
             }
-#if DEBUG
-            Log.DecIndent();
-#endif
+
             return Union(spaces);
         }
 
+        /// <summary>
+        /// Given a `scope`, learning a set of features `F`, each of which is sufficient to locate the `expected` node,
+        /// i.e. for every `f` in `F`, there exists a unique node `n` (of course, with the expected label) in the scope,
+        /// whose feature scope contains `f`, and the `n` is exactly the expected node.
+        /// </summary>
+        /// <param name="input">Input.</param>
+        /// <param name="expected">Expected output: the node to be selected.</param>
+        /// <param name="scope">Selection scope.</param>
+        /// <returns>Consistent programs (if exist) or emptyset.</returns>
         private ProgramSet LearnFeature(TInput input, SyntaxNode expected, SyntaxNode scope)
         {
             var label = expected.label;
             var spaces = new List<ProgramSet>();
             var candidates = scope.GetSubtrees().Where(n => n.label.Equals(label)).ToList();
 
-            // Special case: feature is not mandatory.
-            // REQUIRE: only one candidate.
+            // Special case: only label is sufficient, feature is not mandatory.
+            // REQUIRE: unique candidate.
             if (candidates.Count == 1)
             {
                 spaces.Add(ProgramSet.List(Symbol(nameof(Semantics.AnyFeature)), AnyFeature()));
             }
 
-            // General case: restricting using features.
-            var competitors = candidates.Except(expected.Yield());
-            // Log.Tree("comp: {0}", competitors);
+            // General case: using features.
+            var competitors = candidates.Except(expected);
+            Log.Tree("C={0}", competitors);
             var featureSet = new HashSet<Feature>(expected.Features());
-            // Log.Tree("FS before: {0}", featureSet);
             foreach (var competitor in competitors)
             {
-                featureSet.ExceptWith(competitor.Features());
+                featureSet.ExceptWith(competitor.Features()); // Find features that are unique to the expected node.
             }
-            // Log.Tree("FS after: {0}", featureSet);
 
-            // var castSet = new HashSet<Label>(expected.UpPath().Select(n => n.label));
-            // Log.Tree("Cast before: {0}", castSet);
-            // foreach (var competitor in competitors)
-            // {
-            // Log.Tree("cmp: {0}", competitor.UpPath().Select(n => n.label));
-            //     castSet.ExceptWith(competitor.UpPath().Select(n => n.label));
-            // }
-            // Log.Tree("Cast after: {0}", castSet);
+            spaces.Add(ProgramSet.List(Symbol(nameof(Semantics.SiblingsContains)),
+                featureSet.SelectMany(feature => {
+                    if (feature is SiblingsContains)
+                    {
+                        var f = (SiblingsContains)feature;
+                        return LearnToken(input, f.token).Select(token => Feature(f.index, f.label, token));
+                    }
+                    else
+                    {
+                        var f = (SubKindOf)feature;
+                        return SubKindOf(f.super).Yield();
+                    }
+                })));
 
-            spaces.Add(ProgramSet.List(Symbol(nameof(Semantics.Feature)),
-                featureSet.SelectMany(f => 
-                    LearnToken(input, f.token).Select(token => Feature(f.index, f.label, token)))));
-
+            Log.Tree("F={0}", Union(spaces));
             return Union(spaces);
         }
 
+        /// <summary>
+        /// Learn tokens which evalutes to the `expected` string.
+        /// </summary>
+        /// <param name="input">Input.</param>
+        /// <param name="expected">Output: the expected string.</param>
+        /// <returns>Consistent programs.</returns>
         private List<ProgramNode> LearnToken(TInput input, string expected)
         {
             var programs = new List<ProgramNode>();
@@ -407,7 +485,7 @@ namespace Prem.Transformer.TreeLang
             });
 
             // Option 3: the token of a feature which the error node contains.
-            var features = input.errNode.Features();
+            var features = input.errNode.SFeatures();
             foreach (var feature in features.Where(f => f.token == expected))
             {
                 var label = feature.label;
@@ -424,7 +502,7 @@ namespace Prem.Transformer.TreeLang
         private ProgramSet LearnTree(PremSpec<TInput, SyntaxNode> spec)
         {
             var spaces = new List<ProgramSet>();
-            // Case 2: leaf nodes, using `Leaf`.
+            // Case 1: leaf nodes, using `Leaf`.
             if (spec.Forall((i, o) => o.kind == SyntaxKind.TOKEN))
             {
 #if DEBUG
@@ -455,7 +533,7 @@ namespace Prem.Transformer.TreeLang
                 // else: Inconsistent specification.
             }
 
-            // Case 1: copy a reference from old tree.
+            // Case 2: nodes/lists, copy a reference from old tree.
             if (spec.Forall((i, o) => o.matches.Any()))
             {
 #if DEBUG
@@ -464,15 +542,23 @@ namespace Prem.Transformer.TreeLang
 #endif
                 var refSpecs = spec.FlatMap((i, o) => o.matches);
                 var refSpaces = new List<ProgramSet>();
+                var total = refSpecs.Count();
+                var count = 1;
                 foreach (var refSpec in refSpecs)
                 {
 #if DEBUG
-                    Log.Tree("ref |- {0}", refSpec);
+                    Log.Tree("{0}/{1} ref |- {2}", count, total, refSpec);
                     Log.IncIndent();
 #endif
-                    refSpaces.Add(LearnRef(refSpec));
+                    var space = LearnRef(refSpec);
+                    if (!space.IsEmpty)
+                    {
+                        refSpaces.Add(space);
+                        break;
+                    }
 #if DEBUG
                     Log.DecIndent();
+                    count++;
 #endif
                 }
 #if DEBUG

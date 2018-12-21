@@ -97,6 +97,11 @@ namespace Prem.Util
 
         public string ExplicitlyToString(object obj)
         {
+            if (obj == null)
+            {
+                return "<null>";
+            }
+
             var sb = new StringBuilder();
             if (obj is IEnumerable && !(obj is String))
             {

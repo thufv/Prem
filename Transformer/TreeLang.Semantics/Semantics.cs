@@ -18,27 +18,22 @@ namespace Prem.Transformer.TreeLang
         public static SyntaxNode Err(TInput input) => input.errNode;
 
         public static SyntaxNode Var(TInput input, EnvKey key) =>
-            input.inputTree.Leaves().First(l => l.code == input[key]);
+            input.inputTree.Leaves().Where(l => l.code == input[key]).ArgMin(l => l.depth);
 
-        public static SyntaxNode Select(Node scope, Optional<int> index) =>
-            index.HasValue ? scope.GetChild(index.Value) : scope;
-
-        public static SyntaxNode SelectBy(Node scope, Label label, Optional<int> index, Optional<Feature> feature)
+        public static SyntaxNode Select(SyntaxNode scope, Label label, Optional<Feature> feature)
         {
-            var root = Select(scope, index);
-            var candidates = root.GetSubtrees().Where(n => n.label.Equals(label)).ToList();
+            var candidates = scope.GetSubtrees().Where(n => n.label.Equals(label)).ToList();
             if (!feature.HasValue)
             {
                 return UniqueOf(candidates);
             }
 
-            return UniqueOf(candidates.Where(n => n.ContainsFeature(feature.Value)));
+            return UniqueOf(candidates.Where(n => n.HasFeature(feature.Value)));
         }
 
-        public static Optional<Feature> Feature(Optional<int> index, Label label, string token) =>
-            new Feature(index, label, token).Some();
+        public static SyntaxNode Root(Node node) => node;
 
-        public static Optional<Feature> AnyFeature() => Optional<Feature>.Nothing;
+        public static SyntaxNode Sub(Node node, Optional<int> index) => node.GetChild(index.Value);
 
         public static Node Lift(SyntaxNode source, Label label, int k)
         {
@@ -61,13 +56,27 @@ namespace Prem.Transformer.TreeLang
             return null;
         }
 
+        public static Optional<Feature> SiblingsContains(Optional<int> index, Label label, string token)
+        {
+            Feature feature = new SiblingsContains(index, label, token);
+            return feature.Some();
+        }
+
+        public static Optional<Feature> SubKindOf(Label label)
+        {
+            Feature feature = new SubKindOf(label);
+            return feature.Some();
+        }
+
+        public static Optional<Feature> AnyFeature() => Optional<Feature>.Nothing;
+
         public static string ConstToken(string s) => s;
 
         public static string VarToken(TInput input, EnvKey key) => input[key];
 
         public static string ErrToken(TInput input, Optional<int> index, Label label)
         {
-            return UniqueOf(input.errNode.Features().Where(f => 
+            return UniqueOf(input.errNode.SFeatures().Where(f => 
                 f.index.Equals(index) && f.label.Equals(label)), f => f.token);
         }
 

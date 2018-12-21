@@ -29,19 +29,25 @@ namespace Prem.Transformer.TreeLang
         public static double Var(double input, double key) => key;
 
         [FeatureCalculator(nameof(Semantics.Select))]
-        public static double Select(double scope, double index) => index;
+        public static double Select(double scope, double label, double feature) => feature;
 
-        [FeatureCalculator(nameof(Semantics.SelectBy))]
-        public static double SelectBy(double scope, double label, double index, double feature) => feature;
+        [FeatureCalculator(nameof(Semantics.Root))]
+        public static double Root(double node) => 1;
 
-        [FeatureCalculator(nameof(Semantics.Feature))]
-        public static double Feature(double label, double token) => 1;
-
-        [FeatureCalculator(nameof(Semantics.AnyFeature))]
-        public static double AnyFeature() => 1;
+        [FeatureCalculator(nameof(Semantics.Sub))]
+        public static double Sub(double node, double index) => 1;
 
         [FeatureCalculator(nameof(Semantics.Lift))]
         public static double Lift(double input, double label, double k) => k;
+
+        [FeatureCalculator(nameof(Semantics.SiblingsContains))]
+        public static double SiblingsContains(double label, double token) => 1;
+
+        [FeatureCalculator(nameof(Semantics.SubKindOf))]
+        public static double SubKindOf(double label) => 1;
+
+        [FeatureCalculator(nameof(Semantics.AnyFeature))]
+        public static double AnyFeature() => 1;
 
         [FeatureCalculator(nameof(Semantics.ConstToken))]
         public static double ConstToken(double s) => s;

@@ -115,7 +115,7 @@ namespace Prem.Util
         /// <value>The parent node, null if `this` is the root.</value>
         public Node parent { get; set; }
 
-        public Node NormalizedParent()
+        public Node FeatureScope()
         {
             var node = parent;
             while (node != null)
@@ -148,12 +148,14 @@ namespace Prem.Util
             }
         }
 
-        public IEnumerable<Feature> Features() => 
-            FeatureChildren().SelectMany(p => 
-                p.child.Leaves().SelectMany(l => new Feature(l.label, l.code).Yield()
-                    .Concat(new Feature(p.index, l.label, l.code).Yield())));
+        public IEnumerable<Feature> Features() =>
+            FeatureChildren().SelectMany(p => p.child.Leaves().Select(Feature.SiblingsContains))
+                .Concat(FeatureScope().UpPath().Select(Feature.SubKindOf));
 
-        public bool ContainsFeature(Feature feature) => Features().Contains(feature);
+        public IEnumerable<SiblingsContains> SFeatures() =>
+            FeatureChildren().SelectMany(p => p.child.Leaves().Select(l => new SiblingsContains(l)));
+
+        public bool HasFeature(Feature feature) => Features().Contains(feature);
 
         public bool HasParent()
         {
@@ -240,18 +242,6 @@ namespace Prem.Util
         public IEnumerable<Leaf> Leaves() => GetSubtrees().Where(n => n.isLeaf).Select(n => (Leaf)n);
 
         abstract public List<T> DFS<T>(Func<SyntaxNode, T> visit);
-
-        /// <summary>
-        /// Enumerate all "up" nodes, on the same path of this node, i.e. ancestors and itself.
-        /// </summary>
-        /// <returns>All "up" nodes.</returns>
-        public IEnumerable<SyntaxNode> UpPath()
-        {
-            for (var node = this; node != null; node = node.parent)
-            {
-                yield return node;
-            }
-        }
 
         public IEnumerable<Node> Ancestors()
         {
@@ -467,6 +457,18 @@ namespace Prem.Util
             }
 
             return -1;
+        }
+
+        /// <summary>
+        /// Enumerate all "up" nodes, on the same path of this node, i.e. ancestors and itself.
+        /// </summary>
+        /// <returns>All "up" nodes.</returns>
+        public IEnumerable<Node> UpPath()
+        {
+            for (var node = this; node != null; node = node.parent)
+            {
+                yield return node;
+            }
         }
 
         public override List<T> DFS<T>(Func<SyntaxNode, T> visit)
