@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using Microsoft.ProgramSynthesis.Utils;
 
 using Prem.Transformer;
@@ -55,6 +57,11 @@ namespace Prem
         public (string left, string right) quotePair { get; }
         
         public string right { get; }
+
+        public Var()
+        {
+            this.quotePair = NO_QUOTE;
+        }
         
         public Var((string left, string right) quotePair)
         {
@@ -79,19 +86,14 @@ namespace Prem
                 ("‘", "’"),
                 ("'", "'"),
                 ("`", "'"),
-                ("\"", "\""),
-                NO_QUOTE
+                ("\"", "\"")
             };
 
-        public static ((string left, string right) pair, string raw) Unquote(string word)
-        {
-            var pair = QUOTE_PAIRS.Find(p => word.StartsWith(p.left) && word.EndsWith(p.right));
+        public static (string left, string right) FindQuote(string word) =>
+            QUOTE_PAIRS.TryFind(p => word.StartsWith(p.left) && word.EndsWith(p.right)).OrElse(NO_QUOTE);
 
-            var left = pair.left;
-            var right = pair.right;
-            var raw = word.Substring(left.Length, word.Length - left.Length - right.Length);
-            return (pair, raw);
-        }
+        public static Optional<char> MatchedQuote(char left) =>
+            QUOTE_PAIRS.TryFind(p => p.left.StartsWith(left)).Select(p => p.right.First());
 
         public override void LabelVar(Counter counter)
         {
@@ -149,7 +151,60 @@ namespace Prem
             get => matchers.Count;
         }
 
-        public static List<string> Tokenize(string message) => message.Split(" ").ToList();
+        public static List<string> Tokenize(string message)
+        {
+            var words = new List<string>();
+
+            var quoted = false;
+            var sb = new StringBuilder();
+            var end = ' ';
+            for (var i = 0; i < message.Length; i++)
+            {
+                if (quoted)
+                {
+                    if (message[i] != ' ')
+                    {
+                        sb.Append(message[i]);
+                        if (message[i] == end)
+                        {
+                            quoted = false;
+                            words.Add(sb.ToString());
+                            sb.Clear();
+                        }
+                    }
+                }
+                else
+                {
+                    if (message[i] == ' ')
+                    {
+                        if (sb.Length > 0)
+                        {
+                            words.Add(sb.ToString());
+                            sb.Clear();
+                        }
+                    }
+                    else
+                    {
+                        sb.Append(message[i]);
+
+                        var match = Var.MatchedQuote(message[i]);
+                        if (match.HasValue)
+                        {
+                            Debug.Assert(sb.Length == 0);
+                            end = match.Value;
+                            quoted = true;
+                        }
+                    }
+                }
+            }
+
+            if (sb.Length > 0)
+            {
+                words.Add(sb.ToString());
+            }
+
+            return words;
+        }
 
         public void LabelVars()
         {

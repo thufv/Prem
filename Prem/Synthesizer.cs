@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using Microsoft.ProgramSynthesis.Utils;
+
 using Prem.Transformer;
 using Prem.Util;
 
@@ -83,24 +84,8 @@ namespace Prem
 
         public RuleSet Synthesize(List<Example> examples, int k = 1)
         {
-            /*
-                        var printer = new IndentPrinter();
-                        examples.ForEachI((i, e) =>
-                        {
-                            Log.Fine("Example #{0}", i);
-                            Log.Fine("Input tree:");
-                            if (Log.IsLoggable(LogLevel.FINE))
-                            {
-                                e.input.tree.root.PrintTo(printer);
-                            }
-                            Log.Fine("Output tree:");
-                            if (Log.IsLoggable(LogLevel.FINE))
-                            {
-                                e.output.root.PrintTo(printer);
-                            }
-                            Log.Debug("Err node: {0}", e.input.errNode);
-                        });
-            */
+            Debug.Assert(examples.Count >= 2, "At least 2 examples must be provided.");
+            
             // 1. Synthesize error pattern.
             var pattern = SynthesizeErrPattern(examples);
             if (pattern.HasValue)
@@ -112,52 +97,48 @@ namespace Prem
                 return new RuleSet(pattern.Value, trans);
             }
 
-            Log.Error("Failed to synthesize error pattern.");
             return RuleSet.Empty;
         }
 
-        public RuleSet Synthesize(Example example, int k = 1) =>
-            Synthesize(example.Single().ToList(), k);
+        public RuleSet Synthesize(Example example, int k = 1) => Synthesize(example.Yield().ToList(), k);
 
         private Optional<ErrPattern> SynthesizeErrPattern(List<Example> examples)
         {
-            var pattern = SynthesizeErrPattern(examples.First()).Some();
-            return examples.Rest().Select(SynthesizeErrPattern).Aggregate(pattern,
-                (p1, p2) => p1.SelectMany(p => UnifyErrPatterns(p, p2))).Select(p =>
-                {
-                    p.LabelVars();
-                    return p;
-                });
-        }
-
-        private ErrPattern SynthesizeErrPattern(Example example)
-        {
-            var words = ErrPattern.Tokenize(example.input.errMessage);
             var pattern = new ErrPattern();
-
-            foreach (var word in words)
+            var sentences = examples.Select(e => ErrPattern.Tokenize(e.input.errMessage)).ToList();
+            if (sentences.Select(s => s.Count).Identical())
             {
-                var (pair, raw) = Var.Unquote(word);
-                if ((example.input.tree.root.code.Contains(raw) ||
-                    example.output.root.code.Contains(raw)))
+                foreach (var wordGroup in sentences.Transpose())
                 {
-                    pattern.Append(new Var(pair));
+                    if (wordGroup.Identical())
+                    {
+                        pattern.Append(new Const(wordGroup.First()));
+                    }
+                    else
+                    {
+                        (string, string) quotePair;
+                        if (wordGroup.Identical(Var.FindQuote, out quotePair))
+                        {
+                            pattern.Append(new Var(quotePair));
+                        }
+                        else
+                        {
+                            pattern.Append(new Var());
+                        }
+                    }
                 }
-                else
-                {
-                    pattern.Append(new Const(word));
-                }
+
+                return pattern.Some();
             }
 
-            Log.Fine("Raw error pattern: {0}", pattern);
-            return pattern;
+            Log.Error("Failed to synthesize error pattern, given patterns have different lengths:");
+            foreach (var sentence in sentences)
+            {
+                Log.Error("  {0} has length {1}", sentence, sentence.Count);
+            }
+            return Optional<ErrPattern>.Nothing;
         }
-
-        private Optional<ErrPattern> UnifyErrPatterns(ErrPattern p1, ErrPattern p2) =>
-            (p1.Length != p2.Length) ? Optional<ErrPattern>.Nothing : p1.Map2(p2, UnifyMatcher).Some();
-
-        private Matcher UnifyMatcher(Matcher m1, Matcher m2) => m1.Equals(m2) ? m1 : Matcher.Any;
-
+   
         private List<TProgram> SynthesizeTransformers(IEnumerable<TExample> examples, int k)
         {
             var programs = _learner.Learn(examples, k);

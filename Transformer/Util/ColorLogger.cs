@@ -186,7 +186,7 @@ namespace Prem.Util
         /// <param name="args"></param>
         public void Log(LogLevel level, string format, params object[] args)
         {
-            var msg = String.Format(format, args);
+            var msg = ExplicitlyFormat(format, args);
             var fullMessage = "[" + LevelString(level) + "] " + msg;
             Raw(level, fullMessage);
         }

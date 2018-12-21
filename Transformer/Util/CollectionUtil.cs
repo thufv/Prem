@@ -107,5 +107,34 @@ namespace Prem.Util
             if (opt.HasValue) return predicate(opt.Value);
             return false;
         }
+
+        public static U Then<T, U>(this T x, Func<T, U> f) => f(x);
+
+        public static bool Identical<T>(this IEnumerable<T> seq)
+        {
+            if (seq.Any())
+            {
+                var first = seq.First();
+                return seq.Rest().All(e => e.Equals(first));
+            }
+
+            return true;
+        }
+
+        public static bool Identical<T, U>(this IEnumerable<T> seq, Func<T, U> mapper, out U value)
+        {
+            value = seq.First().Then(mapper);
+            var v = value;
+            return seq.All(e => mapper(e).Equals(v));
+        }
+
+        public static Optional<T> TryFind<T>(this IEnumerable<T> seq, Predicate<T> predicate)
+        {
+            foreach (var e in seq)
+            {
+                if (predicate(e)) return e.Some();
+            }
+            return Optional<T>.Nothing;
+        }
     }
 }
