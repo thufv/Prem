@@ -168,7 +168,19 @@ namespace Prem.Util
             return possibilities;
         }
 
-        public static HashSet<T> SetIntersect<T>(this IEnumerable<HashSet<T>> xs)
+        public static bool ContainsMany<T>(this IEnumerable<T> xs, IEnumerable<T> es)
+        {
+            foreach (var e in es)
+            {
+                if (!xs.Contains(e))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        public static HashSet<T> SetIntersect<T>(this IEnumerable<IEnumerable<T>> xs)
         {
             Debug.Assert(xs.Any());
             var set = new HashSet<T>(xs.First());
@@ -180,7 +192,18 @@ namespace Prem.Util
             return set;
         }
 
-        public static HashSet<T> SetUnion<T>(this IEnumerable<HashSet<T>> xs)
+        public static HashSet<T> SetExcept<T>(this IEnumerable<T> x, IEnumerable<IEnumerable<T>> ys)
+        {
+            var set = new HashSet<T>(x);
+            foreach (var other in ys)
+            {
+                set.ExceptWith(other);
+            }
+
+            return set;
+        }
+
+        public static HashSet<T> SetUnion<T>(this IEnumerable<IEnumerable<T>> xs)
         {
             Debug.Assert(xs.Any());
             var set = new HashSet<T>(xs.First());
@@ -190,6 +213,12 @@ namespace Prem.Util
             }
 
             return set;
+        }
+
+        public static T Aggregate1<T>(this IEnumerable<T> xs, Func<T, T, T> f)
+        {
+            var first = xs.First();
+            return xs.Rest().Aggregate(first, f);
         }
     }
 }

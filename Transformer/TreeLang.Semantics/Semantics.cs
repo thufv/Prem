@@ -61,10 +61,13 @@ namespace Prem.Transformer.TreeLang
             return n => n.HasFeature(feature);
         }
 
-        public static Func<SyntaxNode, bool> AnyFeature() => _ => true;
+        public static Func<SyntaxNode, bool> True() => _ => true;
 
         public static Func<SyntaxNode, bool> Or(Func<SyntaxNode, bool> left, Func<SyntaxNode, bool> right) =>
             n => left(n) || right(n);
+
+        public static Func<SyntaxNode, bool> And(Func<SyntaxNode, bool> left, Func<SyntaxNode, bool> right) =>
+            n => left(n) && right(n);
 
         public static string ConstToken(string s) => s;
 

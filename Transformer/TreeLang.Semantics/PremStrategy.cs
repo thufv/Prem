@@ -27,7 +27,9 @@ namespace Prem.Transformer.TreeLang
 
         private ProgramNode Input;
 
-        public int MaxCallDepth = 2;
+        public int MAX_L = 2;
+
+        public int MAX_K = 2;
 
         public bool useFeatureFilter = true;
 
@@ -71,7 +73,7 @@ namespace Prem.Transformer.TreeLang
 
         private ProgramNode Var(EnvKey key) => new NonterminalNode(Op(nameof(Semantics.Var)), Input, Key(key));
 
-        private ProgramNode AnyFeature() => new NonterminalNode(Op(nameof(Semantics.AnyFeature)));
+        private ProgramNode True() => new NonterminalNode(Op(nameof(Semantics.True)));
 
         private ProgramNode Feature(Optional<int> index, Label label, ProgramNode token) =>
             new NonterminalNode(Op(nameof(Semantics.SiblingsContains)), Label(label), token);
@@ -381,113 +383,168 @@ namespace Prem.Transformer.TreeLang
             if (spec.Identical((i, o) => o.label, out label))
             {
                 var labelSpace = ProgramSet.List(Symbol("label"), Label(label));
+                var featureSpaces = new List<ProgramSet>();
 #if DEBUG
-                Log.Tree("predicate");
-                Log.IncIndent();
                 Log.Tree("label = {0}", label);
 #endif
-                // Synthesize a feature predicate `phi` s.t. for every example,
-                // 1) `phi` must hold for the expected node, and
-                // 2) `phi` must not hold for any its competitors, i.e. all nodes in the `scope` with label `label`.
-
-                // Here, we restrict `phi` to be the disjunctive form `F={f_1, ..., f_n}`, 
-                // and `phi(n)` holds iff there exists some `f_i` s.t. `n` has feature `f_i`.
-                // By 2), for any competitor `c` of any example, `Features(c)` cannot be a subset of `F`.
-                // In detail, the union set of all `Features(c)` (namely, the negative set) cannot be a subset of `F`.
-                var negativeSet = spec.SelectMany((i, o) =>
-                    scopeSpec[i].GetSubtrees().Where(l => l.label.Equals(label)).Except(o))
-                    .Select(set => new HashSet<Feature>(set.Features()))
-                    .SetUnion();
-
-                // For every example, all features of the expected node, i.e. `Features(o)`, excluding the negative set,
-                // may appear in `F`.
-                var featureSpec = spec.MapOutputs((i, o) =>
+                if (spec.Forall((i, o) => scopeSpec[i].GetSubtrees()
+                    .Where(n => n.label.Equals(label)).Except(o).Count() == 1))
                 {
-                    var set = new HashSet<Feature>(o.Features());
-                    set.ExceptWith(negativeSet);
-                    return set;
-                });
 #if DEBUG
-                Log.Tree("features |- {0}", featureSpec);
+                    Log.Tree("feature = true");
 #endif
-                // By 1), `F` must include sufficient features s.t. every positive set has a common feature with `F`.
-                // The only case when synthesizing `F` fails is that, some positive set is empty.
-                // Because otherwise, we could simply select a (nonempty) subset of the positive set for every example, 
-                // and union them together. However, we expect `F` to contain as least elements as possible.
-                if (featureSpec.Forall((i, set) => set.IsAny()))
-                {
-                    var featureSpaces = new List<ProgramSet>();
-                    var numExamples = featureSpec.Count;
-                    var featureSets = featureSpec.Values.ToArray();
-                    var inputs = featureSpec.Keys.ToArray();
+                    featureSpaces.Add(ProgramSet.List(Symbol(nameof(Semantics.True)), True()));
+                }
 
-                    // We need some greedy strategy to synthesize `F`, in an increasing order of `|F|`.
-                    // When `|F|=k`, examples could be divided into `k` groups,
-                    // and each group share at least one common feature.
-                    for (var k = 1; k <= numExamples; k++)
+                var competitors = spec.SelectMany((i, o) => scopeSpec[i].GetSubtrees()
+                    .Where(n => n.label.Equals(label)).Except(o));
+                var competitorFeatures = competitors.Select(c => c.Features());
+
+                // Synthesize a feature predicate `Phi` s.t. for every example,
+                // 1) `Phi` must hold for the expected node, and
+                // 2) `Phi` must not hold for any of its competitors, i.e. 
+                // all nodes (expect the expected one) in the `scope` with label `label`.
+
+                var numExamples = spec.Count;
+                var features = spec.Values.Select(e => e.Features()).ToArray();
+                var inputs = spec.Keys.ToArray();
+                var disjunctionSpaces = new List<ProgramSet>();
+
+                // Here, we restrict `Phi` to be of the disjunctive form `phi_1 \/ ... \/ phi_k`.
+                // By 2), every `phi_i` must not hold for any competitors. We will do it later.
+                // By 1), for every example, there exists some `phi_i` s.t. `phi_i` holds for the expected node.
+                // To achieve this, we use the following heuristic strategy: we try `k` from 1 to `numExamples`.
+                // When trying `k`, examples are splitted into `k` groups, and for every examples in one group,
+                // their expected node holds some `phi_i`. By disjuncting all such `phi_i`s, we get `Phi`.
+                for (var k = 1; k <= Math.Min(numExamples, MAX_K); k++)
+                {
+                    foreach (var partition in Partitions(numExamples, k))
                     {
-                        var found = false;
 #if DEBUG
-                        Log.Tree("k = {0}", k);
+                        Log.Tree("partition: {0}", partition);
+                        Log.IncIndent();
 #endif
-                        foreach (var partition in Partitions(numExamples, k))
+                        var groupSpaces = new List<ProgramSet>();
+                        foreach (var group in partition)
                         {
-                            var fs = partition.Select(grp => (grp: grp,
-                                set: grp.Select(i => featureSets[i]).SetIntersect()));
-                            if (fs.All(p => p.set.IsAny()))
-                            {
-                                found = true;
+                            // For every group of examples in the partition, we need to synthesize a consistent `phi`.
+                            // Since `phi` is of the conjunctive form `varphi_1 /\ ... /\ varphi_l`.
+                            // By 1), `phi` must hold for all expected nodes in the group, that is,
+                            // every `varphi_i` must hold for all expected nodes.
+                            // Thus, every `varphi_i` could be chosen from all common features of the expected nodes.
+                            var commonFeatures = group.Select(i => features[i]).SetIntersect().ToList();
+                            var groupInputs = group.Select(i => inputs[i]);
 #if DEBUG
-                                Log.IncIndent();
-                                Log.Tree("partition: {0}", partition);
-                                Log.IncIndent();
-                                foreach (var f in fs)
-                                {
-                                    Log.Tree("features for {0}: {1}", f.grp, f.set);
-                                }
-                                Log.DecIndent();
-                                Log.DecIndent();
-#endif
-                                var ps = LearnFeaturePredicate(fs.First().set, fs.First().grp.Select(i => inputs[i]));
-                                var phi = fs.Rest().Aggregate(ps, (acc, p) => 
-                                    ProgramSet.Join(Op(nameof(Semantics.Or)), 
-                                        acc, LearnFeaturePredicate(p.set, p.grp.Select(i => inputs[i]))));
-                                spaces.Add(ProgramSet.Join(Op(nameof(Semantics.Select)), scopeSpace, labelSpace, phi));
-                            }
-                        }
-
-                        if (found)
-                        {
-                            break;
-                        }
-                        else
-                        {
-#if DEBUG
+                            Log.Tree("group {0} common features {1}", group, commonFeatures);
                             Log.IncIndent();
-                            Log.Tree("<empty>");
+#endif
+                            // In case no common features present, the partition fails.
+                            if (!commonFeatures.IsAny())
+                            {
+#if DEBUG
+                                Log.Tree("<failure>");
+                                Log.DecIndent();
+#endif
+                                goto partition_end;
+                            }
+                            else
+                            {
+                                var conjunctionSpaces = new List<ProgramSet>();
+
+                                // Otherwise, we try `l` from 1 to `min {|commonFeatures|, MAX_L}`.
+                                for (var l = 1; l <= Math.Min(commonFeatures.Count, MAX_L); l++)
+                                {
+                                    if (l == 1) // Special case.
+                                    {
+                                        foreach (var f in commonFeatures.SetExcept(competitorFeatures))
+                                        {
+                                            var F = f.Yield();
+#if DEBUG
+                                            Log.Tree("conjunction {0}", F);
+#endif
+                                            conjunctionSpaces.Add(LearnConjunction(F, groupInputs));
+                                        }
+                                    }
+                                    else
+                                    {
+                                        // For every possible subset `F` with size `l` of `commonFeatures,
+                                        // it forms a predicate `/\_{f \in F} f`. Note that `F` already satisfies 1).
+                                        foreach (var F in commonFeatures.Choose(l))
+                                        {
+                                            // Tell if it also satisfies 2), i.e. for any competitor, `F` doesn't hold.
+                                            if (competitors.All(c => !c.Features().ContainsMany(F)))
+                                            {
+#if DEBUG
+                                                Log.Tree("conjunction {0}", F);
+#endif
+                                                conjunctionSpaces.Add(LearnConjunction(F, groupInputs));
+                                            }
+                                        }
+                                    }
+
+                                    if (conjunctionSpaces.IsAny())
+                                    {
+                                        break;
+                                    }
+                                } // l end
+
+                                if (conjunctionSpaces.IsAny())
+                                {
+                                    groupSpaces.Add(Union(conjunctionSpaces));
+                                }
+                                else
+                                {
+#if DEBUG
+                                    Log.Tree("<failure>");
+                                    Log.DecIndent();
+#endif
+                                    goto partition_end; // No unique features, the partition also fails.
+                                }
+                            }
+#if DEBUG
                             Log.DecIndent();
 #endif
-                        }
-                    }
-                }
-            }
+                        } // group end
+
+                        disjunctionSpaces.Add(groupSpaces.Aggregate1((s1, s2) =>
+                            ProgramSet.Join(Op(nameof(Semantics.Or)), s1, s2)));
+
+partition_end:
 #if DEBUG
-            Log.DecIndent();
+                        Log.DecIndent();
 #endif
+                    } // partitions end
+
+                    if (disjunctionSpaces.IsAny())
+                    {
+                        break;
+                    }
+                } // k end
+
+                if (disjunctionSpaces.IsAny())
+                {
+                    featureSpaces.Add(Union(disjunctionSpaces));
+                }
+                
+                spaces.Add(ProgramSet.Join(Op(nameof(Semantics.Select)), scopeSpace, labelSpace, Union(featureSpaces)));
+            } // if end
+        
             return Union(spaces);
         }
 
-        private ProgramSet LearnFeaturePredicate(HashSet<Feature> featureSet, IEnumerable<TInput> inputs)
+        private ProgramSet LearnConjunction(IEnumerable<Feature> features, IEnumerable<TInput> inputs)
         {
             var spaces = new List<ProgramSet>();
-            foreach (var feature in featureSet)
+            foreach (var feature in features)
             {
                 if (feature is SiblingsContains)
                 {
                     var f = (SiblingsContains)feature;
+                    var indexSpace = ProgramSet.List(Symbol("index"), Index(f.index));
                     var labelSpace = ProgramSet.List(Symbol("label"), Label(f.label));
                     var tokenSpace = Intersect(inputs.Select(i => LearnToken(i, f.token)));
-                    spaces.Add(ProgramSet.Join(Op(nameof(Semantics.SiblingsContains)), labelSpace, tokenSpace));
+                    spaces.Add(ProgramSet.Join(Op(nameof(Semantics.SiblingsContains)),
+                        indexSpace, labelSpace, tokenSpace));
                 }
                 else
                 {
@@ -497,64 +554,8 @@ namespace Prem.Transformer.TreeLang
                 }
             }
 
-            return Union(spaces);
+            return spaces.Aggregate1((s1, s2) => ProgramSet.Join(Op(nameof(Semantics.And)), s1, s2));
         }
-
-        /// <summary>
-        /// Given a `scope`, learning a set of features `F`, each of which is sufficient to locate the `expected` node,
-        /// i.e. for every `f` in `F`, there exists a unique node `n` (of course, with the expected label) in the scope,
-        /// whose feature scope contains `f`, and the `n` is exactly the expected node.
-        /// </summary>
-        /// <param name="input">Input.</param>
-        /// <param name="expected">Expected output: the node to be selected.</param>
-        /// <param name="scope">Selection scope.</param>
-        // /// <returns>Consistent programs (if exist) or emptyset.</returns>
-        // private ProgramSet LearnFeature(TInput input, SyntaxNode expected, SyntaxNode scope)
-        // {
-        //     var label = expected.label;
-        //     var spaces = new List<ProgramSet>();
-        //     var candidates = scope.GetSubtrees().Where(n => n.label.Equals(label)).ToList();
-
-        //     // Special case: only label is sufficient, feature is not mandatory.
-        //     // REQUIRE: unique candidate.
-        //     if (candidates.Count == 1)
-        //     {
-        //         spaces.Add(ProgramSet.List(Symbol(nameof(Semantics.AnyFeature)), AnyFeature()));
-        //     }
-
-        //     // General case: using features.
-        //     var competitors = candidates.Except(expected);
-        //     // Log.Tree("C={0}", competitors);
-        //     var featureSet = new HashSet<Feature>(expected.Features());
-        //     // Log.Tree("Before F={0}", featureSet.AsEnumerable());
-        //     // var printer = new IndentPrinter();
-        //     // expected.FeatureScope().PrintTo(printer);
-        //     // competitors.ToList().ForEach(c => c.FeatureScope().PrintTo(printer));
-
-        //     foreach (var competitor in competitors)
-        //     {
-        //         featureSet.ExceptWith(competitor.Features()); // Find features that are unique to the expected node.
-        //         // Log.Tree("Iter F={0}", featureSet.AsEnumerable());
-        //     }
-
-        //     spaces.Add(ProgramSet.List(Symbol(nameof(Semantics.SiblingsContains)),
-        //         featureSet.SelectMany(feature =>
-        //         {
-        //             if (feature is SiblingsContains)
-        //             {
-        //                 var f = (SiblingsContains)feature;
-        //                 return LearnToken(input, f.token).Select(token => Feature(f.index, f.label, token));
-        //             }
-        //             else
-        //             {
-        //                 var f = (SubKindOf)feature;
-        //                 return SubKindOf(f.super).Yield();
-        //             }
-        //         })));
-
-        //     Log.Tree("F={0}", Union(spaces));
-        //     return Union(spaces);
-        // }
 
         /// <summary>
         /// Learn tokens which evalutes to the `expected` string.

@@ -43,11 +43,14 @@ namespace Prem.Transformer.TreeLang
         [FeatureCalculator(nameof(Semantics.SubKindOf))]
         public static double SubKindOf(double label) => 1;
 
-        [FeatureCalculator(nameof(Semantics.AnyFeature))]
-        public static double AnyFeature() => 1;
+        [FeatureCalculator(nameof(Semantics.True))]
+        public static double True() => 1;
 
         [FeatureCalculator(nameof(Semantics.Or))]
-        public static double Or(double feature1, double feature2) => 1;
+        public static double Or(double feature1, double feature2) => feature1 * feature2 * 0.5;
+
+        [FeatureCalculator(nameof(Semantics.And))]
+        public static double And(double feature1, double feature2) => feature1 * feature2 * 0.5;
 
         [FeatureCalculator(nameof(Semantics.ConstToken))]
         public static double ConstToken(double s) => s;
