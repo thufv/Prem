@@ -20,18 +20,11 @@ namespace Prem.Transformer.TreeLang
         public static SyntaxNode Var(TInput input, EnvKey key) =>
             input.inputTree.Leaves().Where(l => l.code == input[key]).ArgMin(l => l.depth);
 
-        public static SyntaxNode Select(SyntaxNode scope, Label label, Optional<Feature> feature)
+        public static SyntaxNode Select(SyntaxNode scope, Label label, Func<SyntaxNode, bool> predicate)
         {
-            var candidates = scope.GetSubtrees().Where(n => n.label.Equals(label)).ToList();
-            if (!feature.HasValue)
-            {
-                return UniqueOf(candidates);
-            }
-
-            return UniqueOf(candidates.Where(n => n.HasFeature(feature.Value)));
+            var candidates = scope.GetSubtrees().Where(n => n.label.Equals(label) && predicate(n)).ToList();
+            return UniqueOf(candidates);
         }
-
-        public static SyntaxNode Root(Node node) => node;
 
         public static SyntaxNode Sub(Node node, Optional<int> index) => node.GetChild(index.Value);
 
@@ -56,19 +49,22 @@ namespace Prem.Transformer.TreeLang
             return null;
         }
 
-        public static Optional<Feature> SiblingsContains(Optional<int> index, Label label, string token)
+        public static Func<SyntaxNode, bool> SiblingsContains(Optional<int> index, Label label, string token)
         {
             Feature feature = new SiblingsContains(index, label, token);
-            return feature.Some();
+            return n => n.HasFeature(feature);
         }
 
-        public static Optional<Feature> SubKindOf(Label label)
+        public static Func<SyntaxNode, bool> SubKindOf(Label label)
         {
             Feature feature = new SubKindOf(label);
-            return feature.Some();
+            return n => n.HasFeature(feature);
         }
 
-        public static Optional<Feature> AnyFeature() => Optional<Feature>.Nothing;
+        public static Func<SyntaxNode, bool> AnyFeature() => _ => true;
+
+        public static Func<SyntaxNode, bool> Or(Func<SyntaxNode, bool> left, Func<SyntaxNode, bool> right) =>
+            n => left(n) || right(n);
 
         public static string ConstToken(string s) => s;
 

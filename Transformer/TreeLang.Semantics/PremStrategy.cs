@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -72,7 +73,7 @@ namespace Prem.Transformer.TreeLang
 
         private ProgramNode AnyFeature() => new NonterminalNode(Op(nameof(Semantics.AnyFeature)));
 
-        private ProgramNode Feature(Optional<int> index, Label label, ProgramNode token) => 
+        private ProgramNode Feature(Optional<int> index, Label label, ProgramNode token) =>
             new NonterminalNode(Op(nameof(Semantics.SiblingsContains)), Label(label), token);
 
         private ProgramNode SubKindOf(Label label) =>
@@ -176,13 +177,13 @@ namespace Prem.Transformer.TreeLang
                 else
                 {
                     targetSpace = LearnRef(targetSpec);
+                }
 #if DEBUG
-                    Log.DecIndent();
+                Log.DecIndent();
 #endif
-                    if (targetSpace.IsEmpty)
-                    {
-                        return Optional<ProgramSet>.Nothing;
-                    }
+                if (targetSpace.IsEmpty)
+                {
+                    return Optional<ProgramSet>.Nothing;
                 }
 
                 // Before we synthesize `newTree`, we have to perform matching between the old tree and the new node.
@@ -289,7 +290,7 @@ namespace Prem.Transformer.TreeLang
                     return ProgramSet.Empty(Symbol(nameof(Semantics.Lift)));
                 }
 
-                scopeSpec = scopeSpec.MapOutputs((i, o) => i.Equals(highest.Key) ? o : 
+                scopeSpec = scopeSpec.MapOutputs((i, o) => i.Equals(highest.Key) ? o :
                     o.Ancestors().First(n => n.label.Equals(label)));
                 if (scopeSpec.Identical((i, o) => sourceSpec[i].CountAncestorWhere(
                         n => n.label.Equals(label), o.id), out k))
@@ -384,31 +385,116 @@ namespace Prem.Transformer.TreeLang
                 Log.Tree("predicate");
                 Log.IncIndent();
                 Log.Tree("label = {0}", label);
-                Log.Tree("features");
-                Log.IncIndent();
 #endif
-                var featureSpace = Intersect(spec.Select((i, o) => LearnFeature(i, o, scopeSpec[i])));
-                if (!featureSpace.IsEmpty)
+                // Synthesize a feature predicate `phi` s.t. for every example,
+                // 1) `phi` must hold for the expected node, and
+                // 2) `phi` must not hold for any its competitors, i.e. all nodes in the `scope` with label `label`.
+
+                // Here, we restrict `phi` to be the disjunctive form `F={f_1, ..., f_n}`, 
+                // and `phi(n)` holds iff there exists some `f_i` s.t. `n` has feature `f_i`.
+                // By 2), for any competitor `c` of any example, `Features(c)` cannot be a subset of `F`.
+                // In detail, the union set of all `Features(c)` (namely, the negative set) cannot be a subset of `F`.
+                var negativeSet = spec.SelectMany((i, o) =>
+                    scopeSpec[i].GetSubtrees().Where(l => l.label.Equals(label)).Except(o))
+                    .Select(set => new HashSet<Feature>(set.Features()))
+                    .SetUnion();
+
+                // For every example, all features of the expected node, i.e. `Features(o)`, excluding the negative set,
+                // may appear in `F`.
+                var featureSpec = spec.MapOutputs((i, o) =>
                 {
+                    var set = new HashSet<Feature>(o.Features());
+                    set.ExceptWith(negativeSet);
+                    return set;
+                });
 #if DEBUG
-                    foreach (var feature in featureSpace.RealizedPrograms)
-                    {
-                        Log.Tree("{0}", feature);
-                    }
+                Log.Tree("features |- {0}", featureSpec);
 #endif
-                    spaces.Add(ProgramSet.Join(Op(nameof(Semantics.Select)), scopeSpace, labelSpace, featureSpace));
+                // By 1), `F` must include sufficient features s.t. every positive set has a common feature with `F`.
+                // The only case when synthesizing `F` fails is that, some positive set is empty.
+                // Because otherwise, we could simply select a (nonempty) subset of the positive set for every example, 
+                // and union them together. However, we expect `F` to contain as least elements as possible.
+                if (featureSpec.Forall((i, set) => set.IsAny()))
+                {
+                    var featureSpaces = new List<ProgramSet>();
+                    var numExamples = featureSpec.Count;
+                    var featureSets = featureSpec.Values.ToArray();
+                    var inputs = featureSpec.Keys.ToArray();
+
+                    // We need some greedy strategy to synthesize `F`, in an increasing order of `|F|`.
+                    // When `|F|=k`, examples could be divided into `k` groups,
+                    // and each group share at least one common feature.
+                    for (var k = 1; k <= numExamples; k++)
+                    {
+                        var found = false;
+#if DEBUG
+                        Log.Tree("k = {0}", k);
+#endif
+                        foreach (var partition in Partitions(numExamples, k))
+                        {
+                            var fs = partition.Select(grp => (grp: grp,
+                                set: grp.Select(i => featureSets[i]).SetIntersect()));
+                            if (fs.All(p => p.set.IsAny()))
+                            {
+                                found = true;
+#if DEBUG
+                                Log.IncIndent();
+                                Log.Tree("partition: {0}", partition);
+                                Log.IncIndent();
+                                foreach (var f in fs)
+                                {
+                                    Log.Tree("features for {0}: {1}", f.grp, f.set);
+                                }
+                                Log.DecIndent();
+                                Log.DecIndent();
+#endif
+                                var ps = LearnFeaturePredicate(fs.First().set, fs.First().grp.Select(i => inputs[i]));
+                                var phi = fs.Rest().Aggregate(ps, (acc, p) => 
+                                    ProgramSet.Join(Op(nameof(Semantics.Or)), 
+                                        acc, LearnFeaturePredicate(p.set, p.grp.Select(i => inputs[i]))));
+                                spaces.Add(ProgramSet.Join(Op(nameof(Semantics.Select)), scopeSpace, labelSpace, phi));
+                            }
+                        }
+
+                        if (found)
+                        {
+                            break;
+                        }
+                        else
+                        {
+#if DEBUG
+                            Log.IncIndent();
+                            Log.Tree("<empty>");
+                            Log.DecIndent();
+#endif
+                        }
+                    }
+                }
+            }
+#if DEBUG
+            Log.DecIndent();
+#endif
+            return Union(spaces);
+        }
+
+        private ProgramSet LearnFeaturePredicate(HashSet<Feature> featureSet, IEnumerable<TInput> inputs)
+        {
+            var spaces = new List<ProgramSet>();
+            foreach (var feature in featureSet)
+            {
+                if (feature is SiblingsContains)
+                {
+                    var f = (SiblingsContains)feature;
+                    var labelSpace = ProgramSet.List(Symbol("label"), Label(f.label));
+                    var tokenSpace = Intersect(inputs.Select(i => LearnToken(i, f.token)));
+                    spaces.Add(ProgramSet.Join(Op(nameof(Semantics.SiblingsContains)), labelSpace, tokenSpace));
                 }
                 else
                 {
-#if DEBUG
-                    Log.Tree("<empty set>");
-#endif
+                    var f = (SubKindOf)feature;
+                    var labelSpace = ProgramSet.List(Symbol("label"), Label(f.super));
+                    spaces.Add(ProgramSet.Join(Op(nameof(Semantics.SubKindOf)), labelSpace));
                 }
-#if DEBUG
-
-                Log.DecIndent();
-                Log.DecIndent();
-#endif
             }
 
             return Union(spaces);
@@ -422,46 +508,53 @@ namespace Prem.Transformer.TreeLang
         /// <param name="input">Input.</param>
         /// <param name="expected">Expected output: the node to be selected.</param>
         /// <param name="scope">Selection scope.</param>
-        /// <returns>Consistent programs (if exist) or emptyset.</returns>
-        private ProgramSet LearnFeature(TInput input, SyntaxNode expected, SyntaxNode scope)
-        {
-            var label = expected.label;
-            var spaces = new List<ProgramSet>();
-            var candidates = scope.GetSubtrees().Where(n => n.label.Equals(label)).ToList();
+        // /// <returns>Consistent programs (if exist) or emptyset.</returns>
+        // private ProgramSet LearnFeature(TInput input, SyntaxNode expected, SyntaxNode scope)
+        // {
+        //     var label = expected.label;
+        //     var spaces = new List<ProgramSet>();
+        //     var candidates = scope.GetSubtrees().Where(n => n.label.Equals(label)).ToList();
 
-            // Special case: only label is sufficient, feature is not mandatory.
-            // REQUIRE: unique candidate.
-            if (candidates.Count == 1)
-            {
-                spaces.Add(ProgramSet.List(Symbol(nameof(Semantics.AnyFeature)), AnyFeature()));
-            }
+        //     // Special case: only label is sufficient, feature is not mandatory.
+        //     // REQUIRE: unique candidate.
+        //     if (candidates.Count == 1)
+        //     {
+        //         spaces.Add(ProgramSet.List(Symbol(nameof(Semantics.AnyFeature)), AnyFeature()));
+        //     }
 
-            // General case: using features.
-            var competitors = candidates.Except(expected);
-            Log.Tree("C={0}", competitors);
-            var featureSet = new HashSet<Feature>(expected.Features());
-            foreach (var competitor in competitors)
-            {
-                featureSet.ExceptWith(competitor.Features()); // Find features that are unique to the expected node.
-            }
+        //     // General case: using features.
+        //     var competitors = candidates.Except(expected);
+        //     // Log.Tree("C={0}", competitors);
+        //     var featureSet = new HashSet<Feature>(expected.Features());
+        //     // Log.Tree("Before F={0}", featureSet.AsEnumerable());
+        //     // var printer = new IndentPrinter();
+        //     // expected.FeatureScope().PrintTo(printer);
+        //     // competitors.ToList().ForEach(c => c.FeatureScope().PrintTo(printer));
 
-            spaces.Add(ProgramSet.List(Symbol(nameof(Semantics.SiblingsContains)),
-                featureSet.SelectMany(feature => {
-                    if (feature is SiblingsContains)
-                    {
-                        var f = (SiblingsContains)feature;
-                        return LearnToken(input, f.token).Select(token => Feature(f.index, f.label, token));
-                    }
-                    else
-                    {
-                        var f = (SubKindOf)feature;
-                        return SubKindOf(f.super).Yield();
-                    }
-                })));
+        //     foreach (var competitor in competitors)
+        //     {
+        //         featureSet.ExceptWith(competitor.Features()); // Find features that are unique to the expected node.
+        //         // Log.Tree("Iter F={0}", featureSet.AsEnumerable());
+        //     }
 
-            Log.Tree("F={0}", Union(spaces));
-            return Union(spaces);
-        }
+        //     spaces.Add(ProgramSet.List(Symbol(nameof(Semantics.SiblingsContains)),
+        //         featureSet.SelectMany(feature =>
+        //         {
+        //             if (feature is SiblingsContains)
+        //             {
+        //                 var f = (SiblingsContains)feature;
+        //                 return LearnToken(input, f.token).Select(token => Feature(f.index, f.label, token));
+        //             }
+        //             else
+        //             {
+        //                 var f = (SubKindOf)feature;
+        //                 return SubKindOf(f.super).Yield();
+        //             }
+        //         })));
+
+        //     Log.Tree("F={0}", Union(spaces));
+        //     return Union(spaces);
+        // }
 
         /// <summary>
         /// Learn tokens which evalutes to the `expected` string.
@@ -469,7 +562,7 @@ namespace Prem.Transformer.TreeLang
         /// <param name="input">Input.</param>
         /// <param name="expected">Output: the expected string.</param>
         /// <returns>Consistent programs.</returns>
-        private List<ProgramNode> LearnToken(TInput input, string expected)
+        private ProgramSet LearnToken(TInput input, string expected)
         {
             var programs = new List<ProgramNode>();
             // Option 1: constant token.
@@ -479,7 +572,7 @@ namespace Prem.Transformer.TreeLang
             programs.Add(ConstToken(expected));
 
             // Option 2: variable token.
-            input.TryFind(expected).Select(key => 
+            input.TryFind(expected).Select(key =>
             {
                 programs.Add(VarToken(key));
             });
@@ -496,7 +589,7 @@ namespace Prem.Transformer.TreeLang
                 }
             }
 
-            return programs;
+            return ProgramSet.List(Symbol("token"), programs);
         }
 
         private ProgramSet LearnTree(PremSpec<TInput, SyntaxNode> spec)
@@ -515,12 +608,7 @@ namespace Prem.Transformer.TreeLang
                     Log.IncIndent();
                     Log.Tree("label = {0}", label);
 #endif
-                    var tokenSpaces = new List<ProgramSet>();
-                    foreach (var p in spec)
-                    {
-                        tokenSpaces.Add(ProgramSet.List(Symbol("token"), LearnToken(p.Key, p.Value.code)));
-                    }
-                    var tokenSpace = Intersect(tokenSpaces);
+                    var tokenSpace = Intersect(spec.Select(p => LearnToken(p.Key, p.Value.code)));
 #if DEBUG
                     Log.DecIndent();
 #endif
@@ -595,7 +683,7 @@ namespace Prem.Transformer.TreeLang
 #endif
                     if (childrenSpace.HasValue && !childrenSpace.Value.IsEmpty)
                     {
-                        spaces.Add(ProgramSet.Join(Op(nameof(Semantics.Node)), 
+                        spaces.Add(ProgramSet.Join(Op(nameof(Semantics.Node)),
                             ProgramSet.List(Symbol("Label"), Label(label)), childrenSpace.Value));
                     }
                 }
@@ -635,6 +723,143 @@ namespace Prem.Transformer.TreeLang
             }
 
             return ProgramSet.Join(Op(nameof(Semantics.Children)), childSpace, childrenSpace.Value).Some();
+        }
+
+        private static List<List<int[]>> Partitions(int numExamples, int k)
+        {
+            switch (numExamples)
+            {
+                case 2:
+                    {
+                        switch (k)
+                        {
+                            case 1:
+                                return new List<List<int[]>> { new List<int[]> { new[] { 0, 1 } } };
+                            case 2:
+                                return new List<List<int[]>> { new List<int[]> { new[] { 0 }, new[] { 1 } } };
+                        }
+                    }
+                    break;
+                case 3:
+                    {
+                        switch (k)
+                        {
+                            case 1:
+                                return new List<List<int[]>> { new List<int[]> { new[] { 0, 1, 2 } } };
+                            case 2:
+                                return new List<List<int[]>> {
+                                    // C(3, 1) = C(3, 2) = 3
+                                    new List<int[]> { new[] { 0, 1 }, new[] { 2 } },
+                                    new List<int[]> { new[] { 0, 2 }, new[] { 1 } },
+                                    new List<int[]> { new[] { 1, 2 }, new[] { 0 } }
+                                };
+                            case 3:
+                                return new List<List<int[]>> { new List<int[]> { new[] { 0 }, new[] { 1 },
+                                    new[] { 2 } } };
+                        }
+                    }
+                    break;
+                case 4:
+                    {
+                        switch (k)
+                        {
+                            case 1:
+                                return new List<List<int[]>> { new List<int[]> { new[] { 0, 1, 2, 3 } } };
+                            case 2:
+                                return new List<List<int[]>> {
+                                    // 3 + 1: C(4, 3) = C(4, 1) = 4
+                                    new List<int[]> { new[] { 0, 1, 2 }, new[] { 3 } },
+                                    new List<int[]> { new[] { 0, 1, 4 }, new[] { 2 } },
+                                    new List<int[]> { new[] { 0, 2, 3 }, new[] { 1 } },
+                                    new List<int[]> { new[] { 1, 2, 3 }, new[] { 0 } },
+                                    // 2 + 2: C(4, 2) / 2 = 3
+                                    new List<int[]> { new[] { 0, 1 }, new[] { 2, 3 } },
+                                    new List<int[]> { new[] { 0, 2 }, new[] { 1, 3 } },
+                                    new List<int[]> { new[] { 0, 3 }, new[] { 1, 2 } }
+                                };
+                            case 3:
+                                return new List<List<int[]>> {
+                                     // 2 + 1 + 1: C(4, 2) = 6
+                                    new List<int[]> { new[] { 0,1 }, new[] { 2 }, new[] { 3 } },
+                                    new List<int[]> { new[] { 0,2 }, new[] { 1 }, new[] { 3 } },
+                                    new List<int[]> { new[] { 0,3 }, new[] { 1 }, new[] { 2 } },
+                                    new List<int[]> { new[] { 1,2 }, new[] { 0 }, new[] { 3 } },
+                                    new List<int[]> { new[] { 1,3 }, new[] { 0 }, new[] { 2 } },
+                                    new List<int[]> { new[] { 2,3 }, new[] { 0 }, new[] { 1 } }
+                                };
+                            case 4:
+                                return new List<List<int[]>> { new List<int[]> { new[] { 0 }, new[] { 1 },
+                                    new[] { 2 }, new[] { 3 }
+                                } };
+                        }
+                    }
+                    break;
+                case 5:
+                    {
+                        switch (k)
+                        {
+                            case 1: return new List<List<int[]>> { new List<int[]> { new[] { 0, 1, 2, 3, 4 } } };
+                            case 2:
+                                return new List<List<int[]>> {
+                                    // C(5, 4) = C(5, 1) = 5
+                                    new List<int[]> { new[] { 0, 1, 2, 3 }, new[] { 4 } },
+                                    new List<int[]> { new[] { 0, 1, 2, 4 }, new[] { 3 } },
+                                    new List<int[]> { new[] { 0, 1, 3, 4 }, new[] { 2 } },
+                                    new List<int[]> { new[] { 0, 2, 3, 4 }, new[] { 1 } },
+                                    new List<int[]> { new[] { 1, 2, 3, 4 }, new[] { 0 } },
+                                    // C(5, 3) = C(5, 2) = 10
+                                    new List<int[]> { new[] { 0, 1, 2 }, new[] { 3, 4 } },
+                                    new List<int[]> { new[] { 0, 1, 3 }, new[] { 2, 4 } },
+                                    new List<int[]> { new[] { 0, 1, 4 }, new[] { 2, 3 } },
+                                    new List<int[]> { new[] { 0, 2, 3 }, new[] { 1, 4 } },
+                                    new List<int[]> { new[] { 0, 2, 4 }, new[] { 1, 3 } },
+                                    new List<int[]> { new[] { 0, 3, 4 }, new[] { 1, 2 } },
+                                    new List<int[]> { new[] { 1, 2, 3 }, new[] { 0, 4 } },
+                                    new List<int[]> { new[] { 1, 2, 4 }, new[] { 0, 3 } },
+                                    new List<int[]> { new[] { 1, 3, 4 }, new[] { 0, 2 } },
+                                    new List<int[]> { new[] { 2, 3, 4 }, new[] { 0, 1 } }
+                                };
+                            case 3:
+                                return new List<List<int[]>> {
+                                    // 3 + 1 + 1: C(5, 3) = 10
+                                    new List<int[]> { new[] { 0, 1, 2 }, new[] { 3 }, new[] { 4 } },
+                                    new List<int[]> { new[] { 0, 1, 3 }, new[] { 2 }, new[] { 4 } },
+                                    new List<int[]> { new[] { 0, 1, 4 }, new[] { 2 }, new[] { 3 } },
+                                    new List<int[]> { new[] { 0, 2, 3 }, new[] { 1 }, new[] { 4 } },
+                                    new List<int[]> { new[] { 0, 2, 4 }, new[] { 1 }, new[] { 3 } },
+                                    new List<int[]> { new[] { 0, 3, 4 }, new[] { 1 }, new[] { 2 } },
+                                    new List<int[]> { new[] { 1, 2, 3 }, new[] { 0 }, new[] { 4 } },
+                                    new List<int[]> { new[] { 1, 2, 4 }, new[] { 0 }, new[] { 3 } },
+                                    new List<int[]> { new[] { 1, 3, 4 }, new[] { 0 }, new[] { 2 } },
+                                    new List<int[]> { new[] { 2, 3, 4 }, new[] { 0 }, new[] { 1 } }
+                                    // 2 + 2 + 1: C(5, 2) * C(3, 2) = 18
+                                    // FIXME: TODO
+                                };
+                            case 4:
+                                return new List<List<int[]>> {
+                                    // 2 + 1 + 1 + 1: C(5,2) = 10
+                                    new List<int[]> { new[] { 3, 4 }, new[] { 0 }, new [] { 1 }, new[] { 2 } },
+                                    new List<int[]> { new[] { 2, 4 }, new[] { 0 }, new [] { 1 }, new[] { 3 } },
+                                    new List<int[]> { new[] { 2, 3 }, new[] { 0 }, new [] { 1 }, new[] { 4 } },
+                                    new List<int[]> { new[] { 1, 4 }, new[] { 0 }, new [] { 2 }, new[] { 3 } },
+                                    new List<int[]> { new[] { 1, 3 }, new[] { 0 }, new [] { 2 }, new[] { 4 } },
+                                    new List<int[]> { new[] { 1, 2 }, new[] { 0 }, new [] { 3 }, new[] { 4 } },
+                                    new List<int[]> { new[] { 0, 4 }, new[] { 1 }, new [] { 2 }, new[] { 3 } },
+                                    new List<int[]> { new[] { 0, 3 }, new[] { 1 }, new [] { 2 }, new[] { 4 } },
+                                    new List<int[]> { new[] { 0, 2 }, new[] { 1 }, new [] { 3 }, new[] { 4 } },
+                                    new List<int[]> { new[] { 0, 1 }, new[] { 2 }, new [] { 3 }, new[] { 4 } }
+                                };
+                            case 5:
+                                return new List<List<int[]>> { new List<int[]> { new[] { 0 }, new[] { 1 },
+                                    new[] { 2 }, new[] { 3 }, new[] { 4 }
+                                } };
+                        }
+                    }
+                    break;
+            }
+
+            Debug.Assert(false);
+            return null;
         }
     }
 }

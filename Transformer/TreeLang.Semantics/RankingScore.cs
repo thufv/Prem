@@ -31,9 +31,6 @@ namespace Prem.Transformer.TreeLang
         [FeatureCalculator(nameof(Semantics.Select))]
         public static double Select(double scope, double label, double feature) => feature;
 
-        [FeatureCalculator(nameof(Semantics.Root))]
-        public static double Root(double node) => 1;
-
         [FeatureCalculator(nameof(Semantics.Sub))]
         public static double Sub(double node, double index) => 1;
 
@@ -48,6 +45,9 @@ namespace Prem.Transformer.TreeLang
 
         [FeatureCalculator(nameof(Semantics.AnyFeature))]
         public static double AnyFeature() => 1;
+
+        [FeatureCalculator(nameof(Semantics.Or))]
+        public static double Or(double feature1, double feature2) => 1;
 
         [FeatureCalculator(nameof(Semantics.ConstToken))]
         public static double ConstToken(double s) => s;

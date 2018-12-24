@@ -149,11 +149,13 @@ namespace Prem.Util
         }
 
         public IEnumerable<Feature> Features() =>
-            FeatureChildren().SelectMany(p => p.child.Leaves().Select(Feature.SiblingsContains))
-                .Concat(FeatureScope().UpPath().Select(Feature.SubKindOf));
+            FeatureChildren().SelectMany(p => p.child.Leaves().SelectMany(l => new List<Feature>{ 
+                Feature.SiblingsContains(l), Feature.SiblingsContains(p.index, l) }))
+                .Concat(Ancestors().Select(Feature.SubKindOf));
 
         public IEnumerable<SiblingsContains> SFeatures() =>
-            FeatureChildren().SelectMany(p => p.child.Leaves().Select(l => new SiblingsContains(l)));
+            FeatureChildren().SelectMany(p => p.child.Leaves().SelectMany(l => new List<SiblingsContains> { 
+                new SiblingsContains(l), new SiblingsContains(p.index, l) } ));
 
         public bool HasFeature(Feature feature) => Features().Contains(feature);
 

@@ -6,6 +6,8 @@ namespace Prem.Util
     {
         public static Feature SiblingsContains(Leaf leaf) => new SiblingsContains(leaf);
 
+        public static Feature SiblingsContains(int index, Leaf leaf) => new SiblingsContains(index, leaf);
+
         public static Feature SubKindOf(Node node) => new SubKindOf(node.label);
     }
 
@@ -69,6 +71,13 @@ namespace Prem.Util
         public SiblingsContains(Leaf leaf)
         {
             this.index = Optional<int>.Nothing;
+            this.label = leaf.label;
+            this.token = leaf.code;
+        }
+
+        public SiblingsContains(int index, Leaf leaf)
+        {
+            this.index = index.Some();
             this.label = leaf.label;
             this.token = leaf.code;
         }

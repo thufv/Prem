@@ -64,6 +64,9 @@ namespace Prem.Transformer.TreeLang
 
         public IEnumerable<E> Select<E>(Func<I, O, E> mapper) => this.Select(p => mapper(p.Key, p.Value));
 
+        public IEnumerable<E> SelectMany<E>(Func<I, O, IEnumerable<E>> mapper) => this.SelectMany(p => mapper(p.Key, p.Value));
+
+
         public IEnumerable<PremSpec<I, E>> FlatMap<E>(Func<I, O, List<E>> mapper)
         {
             var keys = new List<I>();

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Microsoft.ProgramSynthesis.Utils;
 
@@ -7,6 +8,8 @@ namespace Prem.Util
 {
     public static class CollectionUtil
     {
+        private static ColorLogger Log = ColorLogger.Instance;
+
         public static IEnumerable<T> Single<T>(this T item)
         {
             yield return item;
@@ -137,6 +140,56 @@ namespace Prem.Util
                 if (predicate(e)) return e.Some();
             }
             return Optional<T>.Nothing;
+        }
+
+        public static List<List<List<T>>> PartitionInto<T>(this List<T> xs, int k)
+        {
+            Debug.Assert(k > 0 && k <= xs.Count);
+            if (k == 1)
+            {
+                var partition = new List<List<T>> { xs.ToList() };
+                return new List<List<List<T>>>{ partition };
+            }
+
+            var possibilities = new List<List<List<T>>>();
+            for (var count = 1; count <= xs.Count - k + 1; count++)
+            {
+                foreach (var firstPart in xs.Choose(count))
+                {
+                    var partition = new List<List<T>>{ firstPart.ToList() };
+                    foreach (var restParts in PartitionInto(xs.Except(firstPart).ToList(), k - 1))
+                    {
+                        partition.AddRange(restParts);
+                        possibilities.Add(partition);
+                    }
+                }
+            }
+
+            return possibilities;
+        }
+
+        public static HashSet<T> SetIntersect<T>(this IEnumerable<HashSet<T>> xs)
+        {
+            Debug.Assert(xs.Any());
+            var set = new HashSet<T>(xs.First());
+            foreach (var other in xs.Rest())
+            {
+                set.IntersectWith(other);
+            }
+
+            return set;
+        }
+
+        public static HashSet<T> SetUnion<T>(this IEnumerable<HashSet<T>> xs)
+        {
+            Debug.Assert(xs.Any());
+            var set = new HashSet<T>(xs.First());
+            foreach (var other in xs.Rest())
+            {
+                set.UnionWith(other);
+            }
+
+            return set;
         }
     }
 }
