@@ -122,7 +122,8 @@ namespace Prem
 
             if (_only_learn)
             {
-                _synthesizer.Synthesize(examples.ToList(), _k);
+                // FIXME: only learn 3 examples.
+                _synthesizer.Synthesize(examples.Take(3).ToList(), _k);
                 return;
             }
             

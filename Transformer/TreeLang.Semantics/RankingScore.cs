@@ -56,7 +56,7 @@ namespace Prem.Transformer.TreeLang
         public static double VarToken(double input, double key) => key;
 
         [FeatureCalculator(nameof(Semantics.ErrToken))]
-        public static double ErrToken(double input, double label) => label;
+        public static double ErrToken(double input) => 1;
 
         [FeatureCalculator(nameof(Semantics.New))]
         public static double New(double tree) => tree;

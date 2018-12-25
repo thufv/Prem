@@ -8,7 +8,8 @@ namespace Prem.Util
     {
         public static IEnumerable<Feature> Collect(SyntaxNode node) =>
             SubKindOf.Collect(node).Concat(SiblingsContainsLeaf.Collect(node))
-                .Concat(SiblingsContainsInfo.Collect(node));
+                .Concat(SiblingsContainsInfo.Collect(node))
+                .Concat(SiblingsContainsErrToken.Collect(node));
     }
 
     public class SubKindOf : Feature
@@ -138,6 +139,46 @@ namespace Prem.Util
         public override int GetHashCode()
         {
             return Hash.Combine(index.GetHashCode(), label.GetHashCode());
+        }
+    }
+
+    public class SiblingsContainsErrToken : Feature
+    {
+        public SiblingsContainsErrToken()
+        {
+        }
+
+        public static IEnumerable<Feature> Collect(SyntaxNode node)
+        {
+            var errNode = node.context.err;
+            foreach (var p in node.FeatureChildren())
+            {
+                foreach (var l in p.child.Leaves())
+                {
+                    if (l.label.Equals(errNode.label) && l.code.Equals(errNode.code))
+                    {
+                        yield return new SiblingsContainsErrToken();
+                    }
+                }
+            }
+        }
+
+        public override string ToString() => $"@ err";
+
+        public override bool Equals(object obj)
+        {
+            if ((obj == null) || !this.GetType().Equals(obj.GetType()))
+            {
+                return false;
+            }
+
+            var that = (SiblingsContainsErrToken)obj;
+            return true;
+        }
+
+        public override int GetHashCode()
+        {
+            return "@ err".GetHashCode();
         }
     }
 }

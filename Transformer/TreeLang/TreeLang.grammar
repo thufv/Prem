@@ -31,7 +31,7 @@ Func<SyntaxNode, bool> conjunction := featurePredicate | And(conjunction, featur
 
 Func<SyntaxNode, bool> featurePredicate := HasFeature(f);
 
-string token := ConstToken(s) | VarToken(old, key) | ErrToken(old, index, label);
+string token := ConstToken(s) | VarToken(old, key) | ErrToken(old);
 
 SyntaxNode newTree := New(tree);
 

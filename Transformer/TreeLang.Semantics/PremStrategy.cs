@@ -86,8 +86,7 @@ namespace Prem.Transformer.TreeLang
         private ProgramNode VarToken(EnvKey key) =>
             new NonterminalNode(Op(nameof(Semantics.VarToken)), Input, Key(key));
 
-        private ProgramNode ErrToken(Optional<int> index, Label label) =>
-            new NonterminalNode(Op(nameof(Semantics.ErrToken)), Input, Index(index), Label(label));
+        private ProgramNode ErrToken() => new NonterminalNode(Op(nameof(Semantics.ErrToken)), Input);
 
         private static ProgramSet Union(params ProgramSet[] unionSpaces) =>
             new UnionProgramSet(null, unionSpaces); // Symbol is unimportant in union spaces.
@@ -139,8 +138,10 @@ namespace Prem.Transformer.TreeLang
             {
                 var varNodes = spec.MapOutputs((i, o) => i.inputTree.Leaves()
                     .Where(l => l.code == i[key]).ArgMin(l => l.depth));
-                Debug.Assert(varNodes.Forall((i, v) => v != null));
-                varNodeDict[key] = varNodes;
+                if (varNodes.Forall((i, v) => v != null))
+                {
+                    varNodeDict[key] = varNodes;
+                }
             }
 
             // Before we synthesize `target`, we have to first perform a diff.
@@ -234,7 +235,10 @@ namespace Prem.Transformer.TreeLang
             // Option 1: lift error node.
             PremSpec<TInput, Node> scopeSpec;
             var scopeSpace = LearnLift(spec, errNodes, Err(), out scopeSpec);
-            spaces.Add(LearnSelect(spec, scopeSpec, scopeSpace));
+            if (!scopeSpace.IsEmpty)
+            {
+                spaces.Add(LearnSelect(spec, scopeSpec, scopeSpace));
+            }
 
             // Option 2: lift var node.
             foreach (var p in varNodeDict)
@@ -244,7 +248,10 @@ namespace Prem.Transformer.TreeLang
                 if (varNodes.Forall((i, v) => v != spec[i])) // Source node != expected node.
                 {
                     scopeSpace = LearnLift(spec, varNodes, Var(key), out scopeSpec);
-                    spaces.Add(LearnSelect(spec, scopeSpec, scopeSpace));
+                    if (!scopeSpace.IsEmpty)
+                    {
+                        spaces.Add(LearnSelect(spec, scopeSpec, scopeSpace));
+                    }
                 }
             }
 
@@ -286,6 +293,7 @@ namespace Prem.Transformer.TreeLang
                 if (!scopeSpec.Forall((i, o) => i.Equals(highest.Key) ? true :
                     o.Ancestors().Any(n => n.label.Equals(label))))
                 {
+                    Log.Warning("Cannot found Lift");
                     return ProgramSet.Empty(Symbol(nameof(Semantics.Lift)));
                 }
 
@@ -528,7 +536,7 @@ partition_end:
                 
                 spaces.Add(ProgramSet.Join(Op(nameof(Semantics.Select)), scopeSpace, labelSpace, Union(featureSpaces)));
             } // if end
-        
+
             return Union(spaces);
         }
 
@@ -564,14 +572,21 @@ partition_end:
                 programs.Add(VarToken(key));
             });
 
+            // Option 3: err token.
+            if (expected == input.errNode.code)
+            {
+                programs.Add(ErrToken());
+            }
+
             return ProgramSet.List(Symbol("token"), programs);
         }
 
         private ProgramSet LearnTree(PremSpec<TInput, SyntaxNode> spec)
         {
             var spaces = new List<ProgramSet>();
+            
             // Case 1: leaf nodes, using `Leaf`.
-            if (spec.Forall((i, o) => o.kind == SyntaxKind.TOKEN))
+            if (spec.Forall((i, o) => o is Token))
             {
 #if DEBUG
                 Log.Tree("Leaf |- {0}", spec);
@@ -597,7 +612,7 @@ partition_end:
             }
 
             // Case 2: nodes/lists, copy a reference from old tree.
-            if (spec.Forall((i, o) => o.matches.Any()))
+            if (spec.Forall((i, o) => o.matches.IsAny()))
             {
 #if DEBUG
                 Log.Tree("Copy |- {0}", spec);
@@ -635,8 +650,38 @@ partition_end:
                 }
             }
 
+            // Case 3: node lists, maybe using `List`.
+            if (spec.Forall((i, o) => o is ListNode))
+            {
+#if DEBUG
+                Log.Tree("ListNode |- {0}", spec);
+#endif
+                Label label;
+                if (spec.Identical((i, o) => o.label, out label))
+                {
+                    var childrenSpec = spec.MapOutputs((i, o) => o.GetChildren());
+#if DEBUG
+                    Log.IncIndent();
+                    Log.Tree("label = {0}", label);
+                    Log.Tree("children |- {0}", childrenSpec);
+                    Log.IncIndent();
+#endif
+                    Debug.Assert(false);
+                    var childrenSpace = LearnChildren(childrenSpec);
+#if DEBUG
+                    Log.DecIndent();
+                    Log.DecIndent();
+#endif
+                    if (childrenSpace.HasValue && !childrenSpace.Value.IsEmpty)
+                    {
+                        spaces.Add(ProgramSet.Join(Op(nameof(Semantics.Node)),
+                            ProgramSet.List(Symbol("Label"), Label(label)), childrenSpace.Value));
+                    }
+                }
+            }
+
             // Case 3: constructor nodes, using `Node`.
-            if (spec.Forall((i, o) => o.kind == SyntaxKind.NODE))
+            if (spec.Forall((i, o) => o is Node))
             {
 #if DEBUG
                 Log.Tree("Node |- {0}", spec);

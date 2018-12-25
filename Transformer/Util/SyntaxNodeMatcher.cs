@@ -50,6 +50,14 @@ namespace Prem.Util
                             .ToList()
                             .ForEach(pair => matching.Add(pair.tree, pair.t));
                     }
+                    else
+                    {
+                        Log.Warning("Same hash {0} but different trees:", tree.treeHash);
+                        var printer = new IndentPrinter();
+                        tree.PrintTo(printer);
+                        printer.PrintLine("<->");
+                        t.PrintTo(printer);
+                    }
                 }
             }
 

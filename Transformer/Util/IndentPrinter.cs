@@ -12,7 +12,7 @@ namespace Prem.Util
 
         bool newline = true;
 
-        public IndentPrinter(int maxLevel = 4, int spaces = 4)
+        public IndentPrinter(int maxLevel = 12, int spaces = 4)
         {
             this.maxLevel = maxLevel;
             this.width = spaces;

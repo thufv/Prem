@@ -57,19 +57,16 @@ namespace Prem.Transformer.TreeLang
         public static Func<SyntaxNode, bool> True() => _ => true;
 
         public static Func<SyntaxNode, bool> Or(Func<SyntaxNode, bool> left, Func<SyntaxNode, bool> right) =>
-            n => left(n) || right(n);
+            n => (left(n) || right(n));
 
         public static Func<SyntaxNode, bool> And(Func<SyntaxNode, bool> left, Func<SyntaxNode, bool> right) =>
-            n => left(n) && right(n);
+            n => (left(n) && right(n));
 
         public static string ConstToken(string s) => s;
 
         public static string VarToken(TInput input, EnvKey key) => input[key];
 
-        public static string ErrToken(TInput input, Optional<int> index, Label label)
-        {
-            return "";
-        }
+        public static string ErrToken(TInput input) => input.errNode.code;
 
         public static SyntaxNode New(PartialNode tree)
         {
@@ -124,7 +121,7 @@ namespace Prem.Transformer.TreeLang
             }
 
             Log.Error("Unique candidates required, but found multiple: {0}", Log.ExplicitlyToString(candidates));
-            return default(U);
+            return mapper(candidates.First());
         }
 
         public static T UniqueOf<T>(IEnumerable<T> candidates) => UniqueOf(candidates, x => x);
