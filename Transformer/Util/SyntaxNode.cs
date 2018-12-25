@@ -51,7 +51,6 @@ namespace Prem.Util
     {
         TOKEN,
         NODE,
-        LIST,
         ERROR
     }
 
@@ -115,6 +114,10 @@ namespace Prem.Util
         /// <value>The parent node, null if `this` is the root.</value>
         public Node parent { get; set; }
 
+        /// <summary>
+        /// Feature scope, i.e. the most recent ancestor of this node, which has multiple children.
+        /// </summary>
+        /// <returns>The root of the feature scope.</returns>
         public Node FeatureScope()
         {
             var node = parent;
@@ -127,6 +130,10 @@ namespace Prem.Util
             return null;
         }
 
+        /// <summary>
+        /// Feature children, i.e. all children of the feature scope, except the one which includes this node itself.
+        /// </summary>
+        /// <returns>Feature children with their indices.</returns>
         public IEnumerable<(int index, SyntaxNode child)> FeatureChildren()
         {
             var node = this;
@@ -150,6 +157,11 @@ namespace Prem.Util
 
         private HashSet<Feature> _features;
 
+        /// <summary>
+        /// Features, just calling `Feature.Collect`.
+        /// </summary>
+        /// <returns>All features of this node.</returns>
+
         public IEnumerable<Feature> Features()
         {
             if (_features == null)
@@ -159,6 +171,10 @@ namespace Prem.Util
             return _features;
         }
 
+        /// <summary>
+        /// Check if this node has a specific feature.
+        /// </summary>
+        /// <returns>This node has the `feature` or not.</returns>
         public bool HasFeature(Feature feature)
         {
             if (_features == null)
@@ -168,13 +184,14 @@ namespace Prem.Util
             return _features.Contains(feature);
         }
 
+        /// <summary>
+        /// Check if this node has a parent (i.e. not the root).
+        /// </summary>
+        /// <returns>This node has a parent or not.</returns>
         public bool HasParent()
         {
             return parent != null;
         }
-
-        public SyntaxNode left;
-        public SyntaxNode right;
 
         /// <summary>
         /// Transform a concrete node to a partial node, by removing the context and depth.
@@ -250,10 +267,18 @@ namespace Prem.Util
         /// <returns>All descendants.</returns>
         public IEnumerable<SyntaxNode> Descendants() => GetSubtrees().Skip(1);
 
+        /// <summary>
+        /// Enumerate all leaf nodes in all possible subtrees.
+        /// </summary>
+        /// <returns>All leaf nodes.</returns>
         public IEnumerable<Leaf> Leaves() => GetSubtrees().Where(n => n.isLeaf).Select(n => (Leaf)n);
 
         abstract public List<T> DFS<T>(Func<SyntaxNode, T> visit);
 
+        /// <summary>
+        /// Enumerate all ancestors, excluding this node itself.
+        /// </summary>
+        /// <returns>All ancestors.</returns>
         public IEnumerable<Node> Ancestors()
         {
             for (var node = parent; node != null; node = node.parent)

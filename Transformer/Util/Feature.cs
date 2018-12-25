@@ -12,6 +12,10 @@ namespace Prem.Util
                 .Concat(SiblingsContainsErrToken.Collect(node));
     }
 
+    /// <summary>
+    /// Feature `SubKindOf(super)`: node `n` is a subkind of `super`, or equivalently,
+    /// `super` is a superkind of `n`.
+    /// </summary>
     public class SubKindOf : Feature
     {
         public Label super { get; }
@@ -21,7 +25,7 @@ namespace Prem.Util
             this.super = super;
         }
 
-        public static IEnumerable<Feature> Collect(SyntaxNode node) =>
+        public new static IEnumerable<Feature> Collect(SyntaxNode node) =>
             node.Ancestors().Select(n => new SubKindOf(n.label));
 
         public override string ToString() => $"<: {super}";
@@ -43,33 +47,34 @@ namespace Prem.Util
         }
     }
 
+    /// <summary>
+    /// Feature `SiblingsContainsLeaf(label, token)`: in the feature scope of node `n`,
+    /// there exists a leaf node with label `label` and token `token`.
+    /// </summary>
     public class SiblingsContainsLeaf : Feature
     {
         public Label label { get; }
 
         public string token { get; }
 
-        public Optional<int> index { get; }
-
-        public SiblingsContainsLeaf(Optional<int> index, Label label, string token)
+        public SiblingsContainsLeaf(Label label, string token)
         {
-            this.index = index;
             this.label = label;
             this.token = token;
         }
 
-        public static IEnumerable<Feature> Collect(SyntaxNode node)
+        public new static IEnumerable<Feature> Collect(SyntaxNode node)
         {
             foreach (var p in node.FeatureChildren())
             {
                 foreach (var l in p.child.Leaves())
                 {
-                    yield return new SiblingsContainsLeaf(Optional<int>.Nothing, l.label, l.code);
+                    yield return new SiblingsContainsLeaf(l.label, l.code);
                 }
             }
         }
 
-        public override string ToString() => $"~ ({index}, {label}, {token})";
+        public override string ToString() => $"Leaf({label}, {token})";
 
         public override bool Equals(object obj)
         {
@@ -79,15 +84,21 @@ namespace Prem.Util
             }
 
             var that = (SiblingsContainsLeaf)obj;
-            return that.index.Equals(index) && that.label.Equals(label) && that.token == token;
+            return that.label.Equals(label) && that.token == token;
         }
 
         public override int GetHashCode()
         {
-            return Hash.Combine(index.GetHashCode(), label.GetHashCode(), token.GetHashCode());
+            return Hash.Combine(label.GetHashCode(), token.GetHashCode());
         }
     }
 
+    /// <summary>
+    /// Feature `SiblingsContainsInfo(label)`: in the feature scope of node `n`,
+    /// there exists a leaf node with label `label` and token `t`,
+    /// where `t` has the same token as the leaf node with label `label`,
+    /// which is inside the error node's `index`-th child.
+    /// </summary>
     public class SiblingsContainsInfo : Feature
     {
         public Label label { get; }
@@ -100,7 +111,7 @@ namespace Prem.Util
             this.index = index;
         }
 
-        public static IEnumerable<Feature> Collect(SyntaxNode node)
+        public new static IEnumerable<Feature> Collect(SyntaxNode node)
         {
             var errNode = node.context.err;
             foreach (var p in node.FeatureChildren())
@@ -123,7 +134,7 @@ namespace Prem.Util
             }
         }
 
-        public override string ToString() => $"@ ({index}, {label})";
+        public override string ToString() => $"@err[{index}]({label})";
 
         public override bool Equals(object obj)
         {
@@ -142,13 +153,17 @@ namespace Prem.Util
         }
     }
 
+    /// <summary>
+    /// Feature `SiblingsContainsInfo()`: in the feature scope of node `n`,
+    /// there exists a leaf node which has the same label and token as the error node.
+    /// </summary>
     public class SiblingsContainsErrToken : Feature
     {
         public SiblingsContainsErrToken()
         {
         }
 
-        public static IEnumerable<Feature> Collect(SyntaxNode node)
+        public new static IEnumerable<Feature> Collect(SyntaxNode node)
         {
             var errNode = node.context.err;
             foreach (var p in node.FeatureChildren())
@@ -163,7 +178,7 @@ namespace Prem.Util
             }
         }
 
-        public override string ToString() => $"@ err";
+        public override string ToString() => $"@err";
 
         public override bool Equals(object obj)
         {
@@ -178,7 +193,7 @@ namespace Prem.Util
 
         public override int GetHashCode()
         {
-            return "@ err".GetHashCode();
+            return "@err".GetHashCode();
         }
     }
 }

@@ -36,7 +36,7 @@ namespace Prem.Util
             }
 
             // Both must be nodes.
-            Debug.Assert(newNode.kind == SyntaxKind.NODE || newNode.kind == SyntaxKind.LIST);
+            Debug.Assert(newNode.kind == SyntaxKind.NODE);
             var oldChildren = ((Node)oldNode).children;
             var newChildren = ((Node)newNode).children;
 

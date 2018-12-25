@@ -80,7 +80,7 @@ namespace Prem.Transformer.TreeLang
         public static double Append(double tree, double siblings) => siblings;
 
         [FeatureCalculator("index", Method = CalculationMethod.FromLiteral)]
-        public static double Index(Optional<int> i) => 1;
+        public static double Index(int index) => 1;
 
         [FeatureCalculator("label", Method = CalculationMethod.FromLiteral)]
         public static double Label(Label label) => 1; // unused

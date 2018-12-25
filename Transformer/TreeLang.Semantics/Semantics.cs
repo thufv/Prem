@@ -26,7 +26,7 @@ namespace Prem.Transformer.TreeLang
             return UniqueOf(candidates);
         }
 
-        public static SyntaxNode Sub(Node node, Optional<int> index) => node.GetChild(index.Value);
+        public static SyntaxNode Sub(Node node, int index) => node.GetChild(index);
 
         public static Node Lift(SyntaxNode source, Label label, int k)
         {

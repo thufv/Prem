@@ -12,16 +12,6 @@ namespace Prem.Transformer.TreeLang
     {
         private static ColorLogger Log = ColorLogger.Instance;
 
-        public static PremSpec<I, O> From(ICollection<KeyValuePair<I, O>> dict)
-        {
-            var spec = new PremSpec<I, O>();
-            foreach (var p in dict)
-            {
-                spec[p.Key] = p.Value;
-            }
-            return spec;
-        }
-
         public static PremSpec<I, E> From<E>(List<I> keys, List<E> values)
         {
             var spec = new PremSpec<I, E>();
@@ -42,7 +32,6 @@ namespace Prem.Transformer.TreeLang
             }
             return spec;
         }
-
 
         public IEnumerable<E> MapInputs<E>(Func<I, E> mapper)
         {
@@ -163,9 +152,5 @@ namespace Prem.Transformer.TreeLang
             }
             return dict;
         }
-    }
-
-    public static class SpecUtil
-    {
     }
 }

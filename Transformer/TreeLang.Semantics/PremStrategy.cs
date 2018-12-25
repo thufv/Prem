@@ -31,17 +31,7 @@ namespace Prem.Transformer.TreeLang
 
         public int MAX_K = 2;
 
-        public bool useFeatureFilter = true;
-
-        public static HashSet<Label> LabelFilters = new HashSet<Label>{
-            new Label(297, "IDENTIFIER")
-        };
-
-        public bool soundnessTest = true;
-
         private TInput GetInput(State input) => (TInput)input[_inputSymbol];
-
-        private SyntaxNode GetSource(State input) => GetInput(input).errNode;
 
         public PremStrategy(Grammar grammar) : base()
         {
@@ -55,11 +45,7 @@ namespace Prem.Transformer.TreeLang
 
         private NonterminalRule Op(string name) => (NonterminalRule)_grammar.Rule(name);
 
-        private ProgramNode Index() => new LiteralNode(Symbol("index"), Optional<int>.Nothing);
-
-        private ProgramNode Index(Optional<int> index) => new LiteralNode(Symbol("index"), index);
-
-        private ProgramNode Index(int index) => Index(index.Some());
+        private ProgramNode Index(int index) => new LiteralNode(Symbol("index"), index);
 
         private ProgramNode K(int k) => new LiteralNode(Symbol("k"), k);
 
@@ -786,7 +772,7 @@ namespace Prem.Transformer.TreeLang
                 // Synthesize param `tail`.
                 var childrenSpec = spec.MapOutputs((i, o) => o.Last(k));
 #if DEBUG
-                Log.Tree("appended children |- {0}", childrenSpec);
+                Log.Tree("append children |- {0}", childrenSpec);
                 Log.IncIndent();
 #endif
                 var childrenSpace = LearnChildren(childrenSpec);
