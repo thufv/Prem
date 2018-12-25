@@ -143,14 +143,31 @@ namespace Prem.Transformer.TreeLang
             return "{ " + String.Join("; ", items) + " }";
         }
 
-        public MultiValueDict<I, O> AsMultiValueDict()
+        public override bool Equals(object obj)
         {
-            var dict = new MultiValueDict<I, O>();
+            if ((obj == null) || !this.GetType().Equals(obj.GetType()))
+            {
+                return false;
+            }
+
+            var that = (PremSpec<I, O>)obj;
+            if (Keys.Count != that.Keys.Count) return false;
+            foreach (var key in Keys)
+            {
+                if (!that.ContainsKey(key)) return false;
+                if (!this[key].Equals(that[key])) return false;
+            }
+            return true;
+        }
+
+        public override int GetHashCode()
+        {
+            var hashValues = new List<int>();
             foreach (var p in this)
             {
-                dict.Add(p.Key, p.Value);
+                hashValues.Add(Hash.Combine(p.Key.GetHashCode(), p.Value.GetHashCode()));
             }
-            return dict;
+            return Hash.Combine(hashValues);
         }
     }
 }

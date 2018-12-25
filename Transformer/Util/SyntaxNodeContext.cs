@@ -2,6 +2,8 @@ using Optional;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Linq;
+using Microsoft.ProgramSynthesis.Utils;
+using System.Collections.Generic;
 
 namespace Prem.Util
 {
@@ -33,14 +35,33 @@ namespace Prem.Util
             return context;
         }
 
-        public Option<SyntaxNode> FindNodeWhere(Func<SyntaxNode, bool> predicate)
-        {
-            var node = root.GetSubtrees().FirstOrDefault(predicate);
-            return node == null ? Option.None<SyntaxNode>() : Option.Some<SyntaxNode>(node);
-        }
+        public Optional<Leaf> FindLeafWhere(Func<Leaf, bool> predicate) =>
+            root.GetSubtrees().TryFirst(n => n is Leaf && predicate((Leaf)n)).MaybeCast<Leaf>();
 
-        public Option<SyntaxNode> FindLeafWhere(Func<Leaf, bool> predicate) =>
-            FindNodeWhere(n => n.isLeaf && predicate((Leaf)n));
+        private MultiValueDict<Record<Label, string>, int> _errFeatureDict;
+        
+        public IEnumerable<int> LocateErrFeatures(Label label, string token)
+        {
+            if (_errFeatureDict == null)
+            {
+                _errFeatureDict = new MultiValueDict<Record<Label, string>, int>();
+                foreach (var p in err.FeatureChildren())
+                {
+                    foreach (var grp in p.child.Leaves().GroupBy(l => l.label))
+                    {
+                        // In this child, only leaf nodes with unique labels could be regarded as a feature.
+                        if (grp.Count() == 1)
+                        {
+                            var grpLabel = grp.Key;
+                            var grpToken = grp.AsEnumerable().First().code;
+                            _errFeatureDict.Add(Record.Create(grpLabel, grpToken), p.index);
+                        }
+                    }
+                }
+            }
+
+            return _errFeatureDict.GetValues(Record.Create(label, token));
+        }
     }
 
     public class Counter

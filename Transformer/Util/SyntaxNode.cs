@@ -65,8 +65,6 @@ namespace Prem.Util
 
         public SyntaxKind kind { get; protected set; }
 
-        public bool isLeaf { get; }
-
         /// <summary>
         /// Associated tree context, which stores useful information about the entire tree.
         /// </summary>
@@ -212,7 +210,6 @@ namespace Prem.Util
             Label label, string code = "")
         {
             this.kind = kind;
-            this.isLeaf = kind != SyntaxKind.NODE;
             this.context = context;
             this.depth = depth;
             this.label = label;
@@ -271,7 +268,7 @@ namespace Prem.Util
         /// Enumerate all leaf nodes in all possible subtrees.
         /// </summary>
         /// <returns>All leaf nodes.</returns>
-        public IEnumerable<Leaf> Leaves() => GetSubtrees().Where(n => n.isLeaf).Select(n => (Leaf)n);
+        public IEnumerable<Leaf> Leaves() => GetSubtrees().Where(n => n is Leaf).Select(n => (Leaf)n);
 
         abstract public List<T> DFS<T>(Func<SyntaxNode, T> visit);
 

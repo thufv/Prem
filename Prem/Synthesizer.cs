@@ -28,16 +28,20 @@ namespace Prem
         public Input(SyntaxNodeContext inputTree, Pos errPos, string errMessage, string file)
         {
             this.tree = inputTree;
-            this.errNode = inputTree.FindLeafWhere(n => n.pos.Equals(errPos)).Match(
-                some: token => token,
-                none: () =>
-                {
-                    Log.Error("Error position {0} not in {1}", errPos, file);
-                    Environment.Exit(1);
-                    return null;
-                }
-            );
-            inputTree.err = errNode as Leaf;
+            var err = inputTree.FindLeafWhere(n => n.pos.Equals(errPos));
+            if (err.HasValue)
+            {
+                inputTree.err = err.Value;
+                this.errNode = err.Value;
+            }
+            else
+            {
+                Log.Error("Error position {0} not in {1}", errPos, file);
+                var x = inputTree.FindLeafWhere(n => n.pos.line == errPos.line);
+                var printer = new IndentPrinter();
+                inputTree.root.PrintTo(printer);
+                Environment.Exit(1);
+            }
             this.errMessage = errMessage;
             this.file = file;
         }

@@ -7,8 +7,9 @@ namespace Prem.Util
     public abstract class Feature
     {
         public static IEnumerable<Feature> Collect(SyntaxNode node) =>
-            SubKindOf.Collect(node).Concat(SiblingsContainsLeaf.Collect(node))
-                .Concat(SiblingsContainsInfo.Collect(node))
+            SubKindOf.Collect(node)
+                .Concat(SiblingsContainsLeaf.Collect(node))
+                .Concat(SiblingsContainsFeature.Collect(node))
                 .Concat(SiblingsContainsErrToken.Collect(node));
     }
 
@@ -74,7 +75,7 @@ namespace Prem.Util
             }
         }
 
-        public override string ToString() => $"Leaf({label}, {token})";
+        public override string ToString() => $"Leaf({label}, \"{token}\")";
 
         public override bool Equals(object obj)
         {
@@ -99,13 +100,13 @@ namespace Prem.Util
     /// where `t` has the same token as the leaf node with label `label`,
     /// which is inside the error node's `index`-th child.
     /// </summary>
-    public class SiblingsContainsInfo : Feature
+    public class SiblingsContainsFeature : Feature
     {
         public Label label { get; }
 
         public int index { get; }
 
-        public SiblingsContainsInfo(Label label, int index)
+        public SiblingsContainsFeature(Label label, int index)
         {
             this.label = label;
             this.index = index;
@@ -113,22 +114,13 @@ namespace Prem.Util
 
         public new static IEnumerable<Feature> Collect(SyntaxNode node)
         {
-            var errNode = node.context.err;
             foreach (var p in node.FeatureChildren())
             {
                 foreach (var l in p.child.Leaves())
                 {
-                    foreach (var ep in errNode.FeatureChildren())
+                    foreach (var index in node.context.LocateErrFeatures(l.label, l.code))
                     {
-                        var candidates = ep.child.Leaves().Where(el => el.label.Equals(l.label)).ToList();
-                        if (candidates.Count == 1)
-                        {
-                            var candidate = candidates.First();
-                            if (candidate.code == l.code)
-                            {
-                                yield return new SiblingsContainsInfo(candidate.label, ep.index);
-                            }
-                        }
+                        yield return new SiblingsContainsFeature(l.label, index);
                     }
                 }
             }
@@ -143,7 +135,7 @@ namespace Prem.Util
                 return false;
             }
 
-            var that = (SiblingsContainsInfo)obj;
+            var that = (SiblingsContainsFeature)obj;
             return that.label.Equals(label) && that.index.Equals(index);
         }
 

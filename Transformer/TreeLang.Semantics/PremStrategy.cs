@@ -130,7 +130,7 @@ namespace Prem.Transformer.TreeLang
                 }
             }
 
-            // Before we synthesize `target`, we have to first perform a diff.
+            // Preparation: Before we synthesize `target`, we have to first perform a diff.
             var diffResults = spec.MapOutputs((i, o) => SyntaxNodeComparer.Diff(i.inputTree, o));
 #if DEBUG
             var printer = new IndentPrinter();
@@ -142,6 +142,20 @@ namespace Prem.Transformer.TreeLang
                 p.Value.Value.Item2.PrintTo(printer);
             }
 #endif
+            // Preparation: Before we synthesize `newTree`, 
+            // we have to perform matching between the old tree and the new node.
+            var treeSpec = diffResults.MapOutputs((i, o) => o.Value.Item2);
+            foreach (var p in treeSpec)
+            {
+                var matcher = new SyntaxNodeMatcher();
+                var matching = matcher.GetMatching(p.Value, p.Key.inputTree);
+                foreach (var match in matching)
+                {
+                    match.Key.matches = new List<SyntaxNode>(match.Value);
+                }
+            }
+
+            // Start synthesis.
             if (diffResults.Forall((i, o) => o.HasValue))
             {
                 // 1. Synthesize param `target`.
@@ -170,18 +184,6 @@ namespace Prem.Transformer.TreeLang
                 if (targetSpace.IsEmpty)
                 {
                     return Optional<ProgramSet>.Nothing;
-                }
-
-                // Before we synthesize `newTree`, we have to perform matching between the old tree and the new node.
-                var treeSpec = diffResults.MapOutputs((i, o) => o.Value.Item2);
-                foreach (var p in treeSpec)
-                {
-                    var matcher = new SyntaxNodeMatcher();
-                    var matching = matcher.GetMatching(p.Value, p.Key.inputTree);
-                    foreach (var match in matching)
-                    {
-                        match.Key.matches = new List<SyntaxNode>(match.Value);
-                    }
                 }
 
                 // 2. Synthesize param `tree` as the `newTree`, constructed by `New(tree)`.
@@ -213,17 +215,23 @@ namespace Prem.Transformer.TreeLang
         /// <returns>Consistent programs (if exist) or emptyset.</returns>
         private ProgramSet LearnRef(PremSpec<TInput, SyntaxNode> spec)
         {
-            var spaces = new List<ProgramSet>();
             // A `ref` must be either a `scope` or `Select`, and both require a `scope`, 
             // whose `node` must be constructed by `Lift`.
             // Heuristic: only lift as lowest as possible until the scope contains the expected node for every example.
 
+            // Before we really learn the selectors, we first collect all learned scopes,
+            // as the same scope may corresponds to multiple lifters.
+            var scopeSpecDict = new MultiValueDict<PremSpec<TInput, Node>, ProgramNode>();
+            
             // Option 1: lift error node.
-            PremSpec<TInput, Node> scopeSpec;
-            var scopeSpace = LearnLift(spec, errNodes, Err(), out scopeSpec);
-            if (!scopeSpace.IsEmpty)
+            if (spec.Forall((i, o) => !i.errNode.Equals(o)))
             {
-                spaces.Add(LearnSelect(spec, scopeSpec, scopeSpace));
+                PremSpec<TInput, Node> scopeSpec;
+                var lifter = LearnLift(spec, errNodes, Err(), out scopeSpec);
+                if (lifter.HasValue)
+                {
+                    scopeSpecDict.Add(scopeSpec, lifter.Value);
+                }
             }
 
             // Option 2: lift var node.
@@ -233,28 +241,45 @@ namespace Prem.Transformer.TreeLang
                 var varNodes = p.Value;
                 if (varNodes.Forall((i, v) => v != spec[i])) // Source node != expected node.
                 {
-                    scopeSpace = LearnLift(spec, varNodes, Var(key), out scopeSpec);
-                    if (!scopeSpace.IsEmpty)
+                    PremSpec<TInput, Node> scopeSpec;
+                    var lifter = LearnLift(spec, varNodes, Var(key), out scopeSpec);
+                    if (lifter.HasValue)
                     {
-                        spaces.Add(LearnSelect(spec, scopeSpec, scopeSpace));
+                        scopeSpecDict.Add(scopeSpec, lifter.Value);
                     }
                 }
             }
 
-            // Collect results.
+            // Finally, let's learn selectors!
+            var spaces = new List<ProgramSet>();
+            foreach (var p in scopeSpecDict)
+            {
+                var scopeSpec = p.Key;
+                var scopeSpace = ProgramSet.List(Symbol(nameof(Semantics.Lift)), p.Value);
+#if DEBUG
+                Log.Tree("lifters");
+                Log.IncIndent();
+                foreach (var lft in p.Value)
+                {
+                    Log.Tree("{0}", lft);
+                }
+                Log.DecIndent();
+#endif
+                spaces.Add(LearnSelect(spec, scopeSpec, scopeSpace));
+            }
             return Union(spaces);
         }
 
         /// <summary>
-        /// Learning a set of `Lift`s, i.e. node lifters, that are consistent with the specification.
+        /// Learning a `Lift`, i.e. node lifter, that is consistent with the specification.
         /// This method only identifies the lowest scope that covers all examples.
         /// </summary>
         /// <param name="spec">Specification of the form: input -> node to be referenced.</param>
         /// <param name="sourceSpec">Constraint on the `source` of `Lift`: input -> source node.</param>
         /// <param name="source">The program which constructs the `source`.</param>
         /// <param name="scopeSpec">Output. Specification for learning `scope`: input -> scope root.</param>
-        /// <returns>Consistent programs (if exist) or emptyset.</returns>
-        private ProgramSet LearnLift(PremSpec<TInput, SyntaxNode> spec, PremSpec<TInput, Leaf> sourceSpec,
+        /// <returns>Consistent program (if exist) or nothing.</returns>
+        private Optional<ProgramNode> LearnLift(PremSpec<TInput, SyntaxNode> spec, PremSpec<TInput, Leaf> sourceSpec,
             ProgramNode source, out PremSpec<TInput, Node> scopeSpec)
         {
             scopeSpec = spec.MapOutputs((i, o) => CommonAncestor.LCA(o, sourceSpec[i]));
@@ -266,10 +291,7 @@ namespace Prem.Transformer.TreeLang
                     scopeSpec.Identical((i, o) => sourceSpec[i].CountAncestorWhere(
                         n => n.label.Equals(label), o.id), out k))
                 {
-#if DEBUG
-                    Log.Tree("Lift({0}, {1}, {2})", source, label, k);
-#endif
-                    return ProgramSet.List(Symbol(nameof(Semantics.Lift)), Lift(source, label, k));
+                    return Lift(source, label, k).Some();
                 }
 
                 // Log.Tree("scopeSpec = {0}", scopeSpec);
@@ -280,7 +302,7 @@ namespace Prem.Transformer.TreeLang
                     o.Ancestors().Any(n => n.label.Equals(label))))
                 {
                     Log.Warning("Cannot found Lift");
-                    return ProgramSet.Empty(Symbol(nameof(Semantics.Lift)));
+                    return Optional<ProgramNode>.Nothing;
                 }
 
                 scopeSpec = scopeSpec.MapOutputs((i, o) => i.Equals(highest.Key) ? o :
@@ -288,13 +310,10 @@ namespace Prem.Transformer.TreeLang
                 if (scopeSpec.Identical((i, o) => sourceSpec[i].CountAncestorWhere(
                         n => n.label.Equals(label), o.id), out k))
                 {
-#if DEBUG
-                    Log.Tree("Lift({0}, {1}, {2})", source, label, k);
-#endif
-                    return ProgramSet.List(Symbol(nameof(Semantics.Lift)), Lift(source, label, k));
+                    return Lift(source, label, k).Some();
                 }
 
-                return ProgramSet.Empty(Symbol(nameof(Semantics.Lift)));
+                return Optional<ProgramNode>.Nothing;
                 // Debug.Assert(false, "Need more lift!");
             }
         }
@@ -378,8 +397,11 @@ namespace Prem.Transformer.TreeLang
 #if DEBUG
                 Log.Tree("label = {0}", label);
 #endif
-                if (spec.Forall((i, o) => scopeSpec[i].GetSubtrees()
-                    .Where(n => n.label.Equals(label)).Except(o).Count() == 1))
+                // When filtering using `label`, all possible nodes (expect the expected one) are its competitors.
+                // Suppose for all examples, the expected node has no competitors,
+                // then predicate `Phi` is not mandatory.
+                if (spec.Forall((i, o) => !scopeSpec[i].GetSubtrees().Where(n => n.label.Equals(label))
+                    .Except(o).Any()))
                 {
 #if DEBUG
                     Log.Tree("feature = true");
@@ -606,8 +628,10 @@ namespace Prem.Transformer.TreeLang
 #endif
                 var refSpecs = spec.FlatMap((i, o) => o.matches);
                 var refSpaces = new List<ProgramSet>();
+#if DEBUG
                 var total = refSpecs.Count();
                 var count = 1;
+#endif
                 foreach (var refSpec in refSpecs)
                 {
 #if DEBUG
@@ -660,15 +684,7 @@ namespace Prem.Transformer.TreeLang
                         Log.Tree("children |- {0}", childrenSpec);
                         Log.IncIndent();
 #endif
-                        // // A very special case is that no children needs to be synthesized.
-                        // if (arity == 0)
-                        // {
-                        //     childrenSpace = Optional<ProgramSet>.Nothing;
-                        // }
-                        // else
-                        // {
-                            childrenSpace = LearnChildren(childrenSpec);
-                        // }
+                        childrenSpace = LearnChildren(childrenSpec);
 #if DEBUG
                         Log.DecIndent();
 #endif
@@ -755,6 +771,12 @@ namespace Prem.Transformer.TreeLang
 
             if (parents.Forall((i, ps) => ps.Any()))
             {
+#if DEBUG
+                if (parents.Any((i, ps) => ps.Count > 1))
+                {
+                    Log.Warning("Possibly multiple ways for frontParentSpec");
+                }
+#endif
                 var frontParentSpec = parents.MapOutputs((i, ps) => ps.First() as SyntaxNode);
 #if DEBUG
                 Log.Tree("front parent |- {0}", frontParentSpec);

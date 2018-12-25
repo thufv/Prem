@@ -96,8 +96,9 @@ namespace Prem.Transformer.TreeLang
                 return mapper(candidates.First());
             }
 
-            Log.Error("Unique candidates required, but found multiple: {0}", Log.ExplicitlyToString(candidates));
-            return mapper(candidates.First());
+            Debug.Assert(false, Log.ExplicitlyFormat("Unique candidates required, but found multiple: {0}, using {1}", 
+                candidates, mapper));
+            return default(U);
         }
 
         public static T UniqueOf<T>(IEnumerable<T> candidates) => UniqueOf(candidates, x => x);

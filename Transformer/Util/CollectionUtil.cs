@@ -107,8 +107,14 @@ namespace Prem.Util
             return results;
         }
 
-        public static Optional<T> TryFirst<T>(this IEnumerable<T> seq) =>
-            seq.Any() ? seq.First().Some() : Optional<T>.Nothing;
+        public static Optional<T> TryFirst<T>(this IEnumerable<T> seq, Predicate<T> predicate)
+        {
+            foreach (var e in seq)
+            {
+                if (predicate(e)) return e.Some();
+            }
+            return Optional<T>.Nothing;
+        }
 
         public static bool Any<T>(this Optional<T> opt, Predicate<T> predicate)
         {
