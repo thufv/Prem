@@ -29,7 +29,7 @@ Func<SyntaxNode, bool> disjunction := True() | conjunction | Or(disjunction, con
 
 Func<SyntaxNode, bool> conjunction := featurePredicate | And(conjunction, featurePredicate);
 
-Func<SyntaxNode, bool> featurePredicate := SiblingsContains(index, label, token) | SubKindOf(label);
+Func<SyntaxNode, bool> featurePredicate := HasFeature(f);
 
 string token := ConstToken(s) | VarToken(old, key) | ErrToken(old, index, label);
 
@@ -44,6 +44,7 @@ IEnumerable<PartialNode> siblings := Append(tree, siblings) | Prepend(tree, sibl
 
 Optional<int> index;
 Label label;
+Feature f;
 int k;
 string s;
 EnvKey key;

@@ -11,6 +11,8 @@ namespace Prem.Util
 
         public SyntaxNode root;
 
+        public Leaf err { get; set; }
+
         public Result result { get; set; }
 
         protected Counter _counter;

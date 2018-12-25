@@ -1,14 +1,14 @@
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.ProgramSynthesis.Utils;
 
 namespace Prem.Util
 {
     public abstract class Feature
     {
-        public static Feature SiblingsContains(Leaf leaf) => new SiblingsContains(leaf);
-
-        public static Feature SiblingsContains(int index, Leaf leaf) => new SiblingsContains(index, leaf);
-
-        public static Feature SubKindOf(Node node) => new SubKindOf(node.label);
+        public static IEnumerable<Feature> Collect(SyntaxNode node) =>
+            SubKindOf.Collect(node).Concat(SiblingsContainsLeaf.Collect(node))
+                .Concat(SiblingsContainsInfo.Collect(node));
     }
 
     public class SubKindOf : Feature
@@ -19,6 +19,9 @@ namespace Prem.Util
         {
             this.super = super;
         }
+
+        public static IEnumerable<Feature> Collect(SyntaxNode node) =>
+            node.Ancestors().Select(n => new SubKindOf(n.label));
 
         public override string ToString() => $"<: {super}";
 
@@ -39,7 +42,7 @@ namespace Prem.Util
         }
     }
 
-    public class SiblingsContains : Feature
+    public class SiblingsContainsLeaf : Feature
     {
         public Label label { get; }
 
@@ -47,39 +50,22 @@ namespace Prem.Util
 
         public Optional<int> index { get; }
 
-        public SiblingsContains(Optional<int> index, Label label, string token)
+        public SiblingsContainsLeaf(Optional<int> index, Label label, string token)
         {
             this.index = index;
             this.label = label;
             this.token = token;
         }
 
-        public SiblingsContains(int index, Label label, string token)
+        public static IEnumerable<Feature> Collect(SyntaxNode node)
         {
-            this.index = index.Some();
-            this.label = label;
-            this.token = token;
-        }
-
-        public SiblingsContains(Label label, string token)
-        {
-            this.index = Optional<int>.Nothing;
-            this.label = label;
-            this.token = token;
-        }
-
-        public SiblingsContains(Leaf leaf)
-        {
-            this.index = Optional<int>.Nothing;
-            this.label = leaf.label;
-            this.token = leaf.code;
-        }
-
-        public SiblingsContains(int index, Leaf leaf)
-        {
-            this.index = index.Some();
-            this.label = leaf.label;
-            this.token = leaf.code;
+            foreach (var p in node.FeatureChildren())
+            {
+                foreach (var l in p.child.Leaves())
+                {
+                    yield return new SiblingsContainsLeaf(Optional<int>.Nothing, l.label, l.code);
+                }
+            }
         }
 
         public override string ToString() => $"~ ({index}, {label}, {token})";
@@ -91,13 +77,67 @@ namespace Prem.Util
                 return false;
             }
 
-            var that = (SiblingsContains)obj;
+            var that = (SiblingsContainsLeaf)obj;
             return that.index.Equals(index) && that.label.Equals(label) && that.token == token;
         }
 
         public override int GetHashCode()
         {
             return Hash.Combine(index.GetHashCode(), label.GetHashCode(), token.GetHashCode());
+        }
+    }
+
+    public class SiblingsContainsInfo : Feature
+    {
+        public Label label { get; }
+
+        public int index { get; }
+
+        public SiblingsContainsInfo(Label label, int index)
+        {
+            this.label = label;
+            this.index = index;
+        }
+
+        public static IEnumerable<Feature> Collect(SyntaxNode node)
+        {
+            var errNode = node.context.err;
+            foreach (var p in node.FeatureChildren())
+            {
+                foreach (var l in p.child.Leaves())
+                {
+                    foreach (var ep in errNode.FeatureChildren())
+                    {
+                        var candidates = ep.child.Leaves().Where(el => el.label.Equals(l.label)).ToList();
+                        if (candidates.Count == 1)
+                        {
+                            var candidate = candidates.First();
+                            if (candidate.code == l.code)
+                            {
+                                yield return new SiblingsContainsInfo(candidate.label, ep.index);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        public override string ToString() => $"@ ({index}, {label})";
+
+        public override bool Equals(object obj)
+        {
+            if ((obj == null) || !this.GetType().Equals(obj.GetType()))
+            {
+                return false;
+            }
+
+            var that = (SiblingsContainsInfo)obj;
+            return that.label.Equals(label) && that.index.Equals(index);
+        }
+
+        public override int GetHashCode()
+        {
+            return Hash.Combine(index.GetHashCode(), label.GetHashCode());
         }
     }
 }

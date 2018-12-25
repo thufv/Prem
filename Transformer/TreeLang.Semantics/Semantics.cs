@@ -49,15 +49,8 @@ namespace Prem.Transformer.TreeLang
             return null;
         }
 
-        public static Func<SyntaxNode, bool> SiblingsContains(Optional<int> index, Label label, string token)
+        public static Func<SyntaxNode, bool> HasFeature(Feature feature)
         {
-            Feature feature = new SiblingsContains(index, label, token);
-            return n => n.HasFeature(feature);
-        }
-
-        public static Func<SyntaxNode, bool> SubKindOf(Label label)
-        {
-            Feature feature = new SubKindOf(label);
             return n => n.HasFeature(feature);
         }
 
@@ -75,8 +68,7 @@ namespace Prem.Transformer.TreeLang
 
         public static string ErrToken(TInput input, Optional<int> index, Label label)
         {
-            return UniqueOf(input.errNode.SFeatures().Where(f => 
-                f.index.Equals(index) && f.label.Equals(label)), f => f.token);
+            return "";
         }
 
         public static SyntaxNode New(PartialNode tree)

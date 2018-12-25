@@ -154,7 +154,7 @@ namespace Prem.Util
             var possibilities = new List<List<List<T>>>();
             for (var count = 1; count <= xs.Count - k + 1; count++)
             {
-                foreach (var firstPart in xs.Choose(count))
+                foreach (var firstPart in xs.ChooseK(count))
                 {
                     var partition = new List<List<T>>{ firstPart.ToList() };
                     foreach (var restParts in PartitionInto(xs.Except(firstPart).ToList(), k - 1))
@@ -219,6 +219,13 @@ namespace Prem.Util
         {
             var first = xs.First();
             return xs.Rest().Aggregate(first, f);
+        }
+
+        public static IEnumerable<IEnumerable<T>> ChooseK<T>(this IEnumerable<T> xs, int k)
+        {
+            return k == 0 ? new[] { new T[0] } :
+              xs.SelectMany((e, i) =>
+                xs.Skip(i + 1).ChooseK(k - 1).Select(c => (new[] { e }).Concat(c)));
         }
     }
 }

@@ -37,6 +37,7 @@ namespace Prem
                     return null;
                 }
             );
+            inputTree.err = errNode as Leaf;
             this.errMessage = errMessage;
             this.file = file;
         }

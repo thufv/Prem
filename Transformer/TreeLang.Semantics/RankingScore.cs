@@ -37,11 +37,8 @@ namespace Prem.Transformer.TreeLang
         [FeatureCalculator(nameof(Semantics.Lift))]
         public static double Lift(double input, double label, double k) => k;
 
-        [FeatureCalculator(nameof(Semantics.SiblingsContains))]
-        public static double SiblingsContains(double label, double token) => 1;
-
-        [FeatureCalculator(nameof(Semantics.SubKindOf))]
-        public static double SubKindOf(double label) => 1;
+        [FeatureCalculator(nameof(Semantics.HasFeature))]
+        public static double HasFeature(double label) => 1;
 
         [FeatureCalculator(nameof(Semantics.True))]
         public static double True() => 1;
@@ -102,6 +99,9 @@ namespace Prem.Transformer.TreeLang
 
         [FeatureCalculator("label", Method = CalculationMethod.FromLiteral)]
         public static double Label(Label label) => 1; // unused
+
+        [FeatureCalculator("f", Method = CalculationMethod.FromLiteral)]
+        public static double F(Feature f) => 1;
 
         // 0 < score(k) <= 1
         // When k > 0, 0 < score(k) <= 0.5

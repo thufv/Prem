@@ -75,11 +75,8 @@ namespace Prem.Transformer.TreeLang
 
         private ProgramNode True() => new NonterminalNode(Op(nameof(Semantics.True)));
 
-        private ProgramNode Feature(Optional<int> index, Label label, ProgramNode token) =>
-            new NonterminalNode(Op(nameof(Semantics.SiblingsContains)), Label(label), token);
-
-        private ProgramNode SubKindOf(Label label) =>
-            new NonterminalNode(Op(nameof(Semantics.SubKindOf)), Label(label));
+        private ProgramNode HasFeature(Feature feature) =>
+            new NonterminalNode(Op(nameof(Semantics.HasFeature)), new LiteralNode(Symbol("f"), feature));
 
         private ProgramNode Lift(ProgramNode source, Label label, int k) =>
             new NonterminalNode(Op(nameof(Semantics.Lift)), source, Label(label), K(k));
@@ -469,8 +466,11 @@ namespace Prem.Transformer.TreeLang
                                     {
                                         // For every possible subset `F` with size `l` of `commonFeatures,
                                         // it forms a predicate `/\_{f \in F} f`. Note that `F` already satisfies 1).
-                                        foreach (var F in commonFeatures.Choose(l))
+                                        foreach (var F in commonFeatures.ChooseK(l))
                                         {
+                                            Debug.Assert(F.Count() <= 2, 
+                                                Log.ExplicitlyFormat("Invalid element {0} when l = {1}", F, l));
+
                                             // Tell if it also satisfies 2), i.e. for any competitor, `F` doesn't hold.
                                             if (competitors.All(c => !c.Features().ContainsMany(F)))
                                             {
@@ -537,21 +537,7 @@ partition_end:
             var spaces = new List<ProgramSet>();
             foreach (var feature in features)
             {
-                if (feature is SiblingsContains)
-                {
-                    var f = (SiblingsContains)feature;
-                    var indexSpace = ProgramSet.List(Symbol("index"), Index(f.index));
-                    var labelSpace = ProgramSet.List(Symbol("label"), Label(f.label));
-                    var tokenSpace = Intersect(inputs.Select(i => LearnToken(i, f.token)));
-                    spaces.Add(ProgramSet.Join(Op(nameof(Semantics.SiblingsContains)),
-                        indexSpace, labelSpace, tokenSpace));
-                }
-                else
-                {
-                    var f = (SubKindOf)feature;
-                    var labelSpace = ProgramSet.List(Symbol("label"), Label(f.super));
-                    spaces.Add(ProgramSet.Join(Op(nameof(Semantics.SubKindOf)), labelSpace));
-                }
+                spaces.Add(ProgramSet.List(Symbol(nameof(Semantics.HasFeature)), HasFeature(feature)));
             }
 
             return spaces.Aggregate1((s1, s2) => ProgramSet.Join(Op(nameof(Semantics.And)), s1, s2));
@@ -577,18 +563,6 @@ partition_end:
             {
                 programs.Add(VarToken(key));
             });
-
-            // Option 3: the token of a feature which the error node contains.
-            var features = input.errNode.SFeatures();
-            foreach (var feature in features.Where(f => f.token == expected))
-            {
-                var label = feature.label;
-                var index = feature.index;
-                if (features.Where(f => f.label.Equals(label) && f.index.Equals(index)).ToList().Count == 1)
-                {
-                    programs.Add(ErrToken(index, label));
-                }
-            }
 
             return ProgramSet.List(Symbol("token"), programs);
         }
