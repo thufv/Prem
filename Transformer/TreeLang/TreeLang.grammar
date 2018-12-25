@@ -37,7 +37,7 @@ SyntaxNode newTree := New(tree);
 
 PartialNode tree := Copy(ref) | Leaf(label, token) | Node(label, children);
 
-IEnumerable<PartialNode> children := Child(tree) | Children(tree, children) | Append(ref, tree);
+IEnumerable<PartialNode> children := Child(tree) | Children(tree, children) | Append(ref, children);
 
 Optional<int> index;
 Label label;

@@ -283,6 +283,9 @@ namespace Prem.Util
 
         public List<SyntaxNode> matches { get; set; }
 
+        public IEnumerable<SyntaxNode> MatchedParents(int index) =>
+            matches.Where(m => m.parent.GetChild(index) == m).Select(m => m.parent);
+
         public abstract bool IdenticalTo(SyntaxNode that);
 
         abstract public void PrintTo(IndentPrinter printer);

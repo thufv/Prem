@@ -444,7 +444,7 @@ namespace Prem.Transformer.TreeLang
                             Log.IncIndent();
 #endif
                             // In case no common features present, the partition fails.
-                            if (!commonFeatures.IsAny())
+                            if (!commonFeatures.Any())
                             {
 #if DEBUG
                                 Log.Tree("<failure>");
@@ -490,13 +490,13 @@ namespace Prem.Transformer.TreeLang
                                         }
                                     }
 
-                                    if (conjunctionSpaces.IsAny())
+                                    if (conjunctionSpaces.Any())
                                     {
                                         break;
                                     }
                                 } // l end
 
-                                if (conjunctionSpaces.IsAny())
+                                if (conjunctionSpaces.Any())
                                 {
                                     groupSpaces.Add(Union(conjunctionSpaces));
                                 }
@@ -523,13 +523,13 @@ namespace Prem.Transformer.TreeLang
 #endif
                     } // partitions end
 
-                    if (disjunctionSpaces.IsAny())
+                    if (disjunctionSpaces.Any())
                     {
                         break;
                     }
                 } // k end
 
-                if (disjunctionSpaces.IsAny())
+                if (disjunctionSpaces.Any())
                 {
                     featureSpaces.Add(Union(disjunctionSpaces));
                 }
@@ -612,7 +612,7 @@ namespace Prem.Transformer.TreeLang
             }
 
             // Case 2: nodes/lists, copy a reference from old tree.
-            if (spec.Forall((i, o) => o.matches.IsAny()))
+            if (spec.Forall((i, o) => o.matches.Any()))
             {
 #if DEBUG
                 Log.Tree("Copy |- {0}", spec);
@@ -653,7 +653,7 @@ namespace Prem.Transformer.TreeLang
             // Case 3: constructor nodes, using `Node`.
             if (spec.Forall((i, o) => o is Node))
             {
-                Optional<ProgramSet> childrenSpace;
+                var childrenSpace = Optional<ProgramSet>.Nothing;
 #if DEBUG
                 Log.Tree("Node |- {0}", spec);
 #endif
@@ -698,7 +698,14 @@ namespace Prem.Transformer.TreeLang
                         Log.Tree("append |- {0}", childrenSpec);
                         Log.IncIndent();
 #endif
-                        childrenSpace = LearnAppend(childrenSpec);
+                        for (int k = 1; k <= 2; k++)
+                        {
+                            childrenSpace = LearnAppend(childrenSpec, k);
+                            if (childrenSpace.HasValue)
+                            {
+                                break;
+                            }
+                        }
 #if DEBUG
                         Log.DecIndent();
 #endif
@@ -734,7 +741,6 @@ namespace Prem.Transformer.TreeLang
             {
                 return ProgramSet.Join(Op(nameof(Semantics.Child)), childSpace).Some();
             }
-
 #if DEBUG
             Debug.Assert(spec.Forall((i, o) => o.Rest().Any()));
 #endif
@@ -749,15 +755,19 @@ namespace Prem.Transformer.TreeLang
             return ProgramSet.Join(Op(nameof(Semantics.Children)), childSpace, childrenSpace.Value).Some();
         }
 
-        private Optional<ProgramSet> LearnAppend(PremSpec<TInput, IEnumerable<SyntaxNode>> spec)
+        private Optional<ProgramSet> LearnAppend(PremSpec<TInput, IEnumerable<SyntaxNode>> spec, int k)
         {
             Debug.Assert(spec.Forall((i, o) => o.Any()));
 
             // Synthesize param `frontParent`.
-            var frontSpec = spec.MapOutputs((i, o) => o.DropLast());
-            var parents = frontSpec.MapOutputs((i, o) => o.MapI((index, c) =>
-                c.matches.Where(m => m.parent.GetChild(index) == m).Select(m => m.parent)).SetIntersect());
-            if (parents.Forall((i, ps) => ps.IsAny()))
+            var frontSpec = spec.MapOutputs((i, o) => o.DropLast(k));
+            var parents = frontSpec.MapOutputs((i, o) =>
+            {
+                var candidates = o.MapI((index, c) => c.MatchedParents(index));
+                return candidates.Any() ? candidates.SetIntersect() : new HashSet<SyntaxNode>();
+            });
+
+            if (parents.Forall((i, ps) => ps.Any()))
             {
                 var frontParentSpec = parents.MapOutputs((i, ps) => ps.First() as SyntaxNode);
 #if DEBUG
@@ -773,22 +783,22 @@ namespace Prem.Transformer.TreeLang
                     return Optional<ProgramSet>.Nothing;
                 }
 
-                // Synthesize param `child`.
-                var childSpec = spec.MapOutputs((i, o) => o.Last());
+                // Synthesize param `tail`.
+                var childrenSpec = spec.MapOutputs((i, o) => o.Last(k));
 #if DEBUG
-                Log.Tree("appended child |- {0}", childSpec);
+                Log.Tree("appended children |- {0}", childrenSpec);
                 Log.IncIndent();
 #endif
-                var childSpace = LearnTree(childSpec);
+                var childrenSpace = LearnChildren(childrenSpec);
 #if DEBUG
                 Log.DecIndent();
 #endif
-                if (childSpace.IsEmpty)
+                if (!childrenSpace.HasValue || childrenSpace.Value.IsEmpty)
                 {
                     return Optional<ProgramSet>.Nothing;
                 }
 
-                return ProgramSet.Join(Op(nameof(Semantics.Append)), frontParentSpace, childSpace).Some();
+                return ProgramSet.Join(Op(nameof(Semantics.Append)), frontParentSpace, childrenSpace.Value).Some();
             }
 
             return Optional<ProgramSet>.Nothing;

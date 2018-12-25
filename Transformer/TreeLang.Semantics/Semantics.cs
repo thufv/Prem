@@ -86,8 +86,8 @@ namespace Prem.Transformer.TreeLang
         public static IEnumerable<PartialNode> Children(PartialNode head, IEnumerable<PartialNode> tail) =>
             head.Yield().Concat(tail);
 
-        public static IEnumerable<PartialNode> Append(SyntaxNode frontParent, PartialNode last) =>
-            frontParent.GetChildren().Select(Copy).Concat(last.Yield());
+        public static IEnumerable<PartialNode> Append(SyntaxNode frontParent, IEnumerable<PartialNode> tail) =>
+            frontParent.GetChildren().Select(Copy).Concat(tail);
 
         public static U UniqueOf<T, U>(IEnumerable<T> candidates, Func<T, U> mapper)
         {

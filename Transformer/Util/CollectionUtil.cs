@@ -19,6 +19,9 @@ namespace Prem.Util
 
         public static IEnumerable<T> Rest<T>(this IEnumerable<T> seq) => seq.Skip(1);
 
+        public static IEnumerable<T> Last<T>(this IEnumerable<T> xs, int k) =>
+            xs.Skip(xs.Count() - k);
+
         public static bool Empty<T>(this List<T> list) => list.Count == 0;
 
         public static IEnumerable<T> Except<T>(this IEnumerable<T> seq, T elem) => seq.Except(elem.Yield());
