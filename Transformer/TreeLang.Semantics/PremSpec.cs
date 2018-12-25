@@ -127,6 +127,23 @@ namespace Prem.Transformer.TreeLang
             return true;
         }
 
+        public bool Identical<E>(Func<I, O, E> mapper)
+        {
+            var pointer = Keys.GetEnumerator();
+            Debug.Assert(pointer.MoveNext());
+            var value = mapper(pointer.Current, this[pointer.Current]);
+
+            while (pointer.MoveNext())
+            {
+                if (!value.Equals(mapper(pointer.Current, this[pointer.Current])))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         public override string ToString()
         {
             var items = new List<string>();

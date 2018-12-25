@@ -81,37 +81,13 @@ namespace Prem.Transformer.TreeLang
         public static PartialNode Node(Label label, IEnumerable<PartialNode> children) =>
             Util.Node.CreatePartial(label, children);
 
-        public static PartialNode ListNode(Label label, IEnumerable<PartialNode> siblings) =>
-            Util.ListNode.CreatePartial(label, siblings);
-
         public static IEnumerable<PartialNode> Child(PartialNode tree) => tree.Yield();
 
         public static IEnumerable<PartialNode> Children(PartialNode head, IEnumerable<PartialNode> tail) =>
             head.Yield().Concat(tail);
 
-        public static IEnumerable<PartialNode> Append(PartialNode tree, IEnumerable<PartialNode> siblings) =>
-            siblings.Concat(tree.Yield());
-
-        public static IEnumerable<PartialNode> Prepend(PartialNode tree, IEnumerable<PartialNode> siblings) =>
-            tree.Yield().Concat(siblings);
-
-        public static IEnumerable<PartialNode> Front(SyntaxNode reference)
-        {
-            Debug.Assert(reference is ListNode);
-            return ((ListNode)reference).Front().Select(x => x.ToPartial());
-        }
-
-        public static IEnumerable<PartialNode> Tail(SyntaxNode reference)
-        {
-            Debug.Assert(reference is ListNode);
-            return ((ListNode)reference).Tail().Select(x => x.ToPartial());
-        }
-
-        public static IEnumerable<PartialNode> Siblings(SyntaxNode reference)
-        {
-            Debug.Assert(reference is ListNode);
-            return ((ListNode)reference).children.Select(x => x.ToPartial());
-        }
+        public static IEnumerable<PartialNode> Append(SyntaxNode frontParent, PartialNode last) =>
+            frontParent.GetChildren().Select(Copy).Concat(last.Yield());
 
         public static U UniqueOf<T, U>(IEnumerable<T> candidates, Func<T, U> mapper)
         {

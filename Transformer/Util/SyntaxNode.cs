@@ -443,7 +443,7 @@ namespace Prem.Util
                     {
                         var kind = (string)o["kind"];
                         return kind == "node" ? Node.CreatePartialFromJSON(o)
-                            : kind == "list" ? ListNode.CreatePartialFromJSONList(o)
+                            : kind == "list" ? Node.CreatePartialFromJSON(o)
                             : kind == "leaf" ? Token.CreatePartialFromJSON(o)
                             : Error.CreatePartialFromJSON(o);
                     });
@@ -510,73 +510,6 @@ namespace Prem.Util
             printer.IncIndent();
             children.ForEach(x => x.PrintTo(printer));
             printer.DecIndent();
-        }
-    }
-
-    public class ListNode : Node
-    {
-        public ListNode(SyntaxNodeContext context, int depth, Label label,
-            IEnumerable<PartialNode> children, string code = "") : base(context, depth, label, children, code)
-        {
-            base.kind = SyntaxKind.LIST;
-        }
-
-        public override PartialNode ToPartial() => new PartialNode(this,
-            (context, depth) => new ListNode(context, depth, label,
-                children.Select(t => t.ToPartial())));
-
-        public static PartialNode CreatePartial(Label label,
-            IEnumerable<PartialNode> builders, string code = "") => new PartialNode(null,
-            (context, depth) => new ListNode(context, depth, label, builders, code));
-
-        public static PartialNode CreatePartialFromJSONList(JObject obj)
-        {
-            var label = new Label((int)obj["label"], (string)obj["name"]);
-            var code = (string)obj["code"];
-            var builders = obj["children"]
-                .Select(t => (JObject)t)
-                .Select(o =>
-                    {
-                        var kind = (string)o["kind"];
-                        return kind == "node" ? Node.CreatePartialFromJSON(o)
-                            : kind == "list" ? ListNode.CreatePartialFromJSONList(o)
-                            : kind == "leaf" ? Token.CreatePartialFromJSON(o)
-                            : Error.CreatePartialFromJSON(o);
-                    });
-
-            return CreatePartial(label, builders, code);
-        }
-
-        public override string ToString() => $"({id}) {label} [list]";
-
-        public override void PrintTo(IndentPrinter printer)
-        {
-            printer.Print(ToString());
-            printer.PrintLine($" #{treeHash}");
-            printer.IncIndent();
-            children.ForEach(x => x.PrintTo(printer));
-            printer.DecIndent();
-        }
-
-        public override bool IdenticalTo(SyntaxNode that)
-        {
-            if (that.kind != SyntaxKind.LIST || !that.label.Equals(label) ||
-                that.GetNumChildren() != GetNumChildren())
-            {
-                return false;
-            }
-
-            return GetChildren().Zip(that.GetChildren(), (x, y) => x.IdenticalTo(y)).All(b => b);
-        }
-
-        public IEnumerable<SyntaxNode> Tail() => children.Rest();
-
-        public IEnumerable<SyntaxNode> Front()
-        {
-            for (int i = 0; i < children.Count - 1; i++)
-            {
-                yield return children[i];
-            }
         }
     }
 }

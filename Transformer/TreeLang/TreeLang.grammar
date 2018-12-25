@@ -35,12 +35,9 @@ string token := ConstToken(s) | VarToken(old, key) | ErrToken(old);
 
 SyntaxNode newTree := New(tree);
 
-PartialNode tree := Copy(ref) | Leaf(label, token) | Node(label, children) | ListNode(label, siblings);
+PartialNode tree := Copy(ref) | Leaf(label, token) | Node(label, children);
 
-IEnumerable<PartialNode> children := Child(tree) | Children(tree, children);
-
-IEnumerable<PartialNode> siblings := Append(tree, siblings) | Prepend(tree, siblings)
-                                   | Front(ref) | Tail(ref) | Siblings(ref);
+IEnumerable<PartialNode> children := Child(tree) | Children(tree, children) | Append(ref, tree);
 
 Optional<int> index;
 Label label;

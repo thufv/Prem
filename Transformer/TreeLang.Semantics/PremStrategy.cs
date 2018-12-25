@@ -476,7 +476,7 @@ namespace Prem.Transformer.TreeLang
                                         // it forms a predicate `/\_{f \in F} f`. Note that `F` already satisfies 1).
                                         foreach (var F in commonFeatures.ChooseK(l))
                                         {
-                                            Debug.Assert(F.Count() <= 2, 
+                                            Debug.Assert(F.Count() <= 2,
                                                 Log.ExplicitlyFormat("Invalid element {0} when l = {1}", F, l));
 
                                             // Tell if it also satisfies 2), i.e. for any competitor, `F` doesn't hold.
@@ -517,7 +517,7 @@ namespace Prem.Transformer.TreeLang
                         disjunctionSpaces.Add(groupSpaces.Aggregate1((s1, s2) =>
                             ProgramSet.Join(Op(nameof(Semantics.Or)), s1, s2)));
 
-partition_end:
+                    partition_end:
 #if DEBUG
                         Log.DecIndent();
 #endif
@@ -533,7 +533,7 @@ partition_end:
                 {
                     featureSpaces.Add(Union(disjunctionSpaces));
                 }
-                
+
                 spaces.Add(ProgramSet.Join(Op(nameof(Semantics.Select)), scopeSpace, labelSpace, Union(featureSpaces)));
             } // if end
 
@@ -584,7 +584,7 @@ partition_end:
         private ProgramSet LearnTree(PremSpec<TInput, SyntaxNode> spec)
         {
             var spaces = new List<ProgramSet>();
-            
+
             // Case 1: leaf nodes, using `Leaf`.
             if (spec.Forall((i, o) => o is Token))
             {
@@ -650,61 +650,65 @@ partition_end:
                 }
             }
 
-            // Case 3: node lists, maybe using `List`.
-            if (spec.Forall((i, o) => o is ListNode))
-            {
-#if DEBUG
-                Log.Tree("ListNode |- {0}", spec);
-#endif
-                Label label;
-                if (spec.Identical((i, o) => o.label, out label))
-                {
-                    var childrenSpec = spec.MapOutputs((i, o) => o.GetChildren());
-#if DEBUG
-                    Log.IncIndent();
-                    Log.Tree("label = {0}", label);
-                    Log.Tree("children |- {0}", childrenSpec);
-                    Log.IncIndent();
-#endif
-                    Debug.Assert(false);
-                    var childrenSpace = LearnChildren(childrenSpec);
-#if DEBUG
-                    Log.DecIndent();
-                    Log.DecIndent();
-#endif
-                    if (childrenSpace.HasValue && !childrenSpace.Value.IsEmpty)
-                    {
-                        spaces.Add(ProgramSet.Join(Op(nameof(Semantics.Node)),
-                            ProgramSet.List(Symbol("Label"), Label(label)), childrenSpace.Value));
-                    }
-                }
-            }
-
             // Case 3: constructor nodes, using `Node`.
             if (spec.Forall((i, o) => o is Node))
             {
+                Optional<ProgramSet> childrenSpace;
 #if DEBUG
                 Log.Tree("Node |- {0}", spec);
 #endif
                 Label label;
                 if (spec.Identical((i, o) => o.label, out label))
                 {
+                    var labelSpace = ProgramSet.List(Symbol("Label"), Label(label));
                     var childrenSpec = spec.MapOutputs((i, o) => o.GetChildren());
 #if DEBUG
                     Log.IncIndent();
                     Log.Tree("label = {0}", label);
-                    Log.Tree("children |- {0}", childrenSpec);
-                    Log.IncIndent();
 #endif
-                    var childrenSpace = LearnChildren(childrenSpec);
+                    int arity;
+                    // Same number of children, learn one-by-one.
+                    if (childrenSpec.Identical((i, cs) => cs.Count(), out arity))
+                    {
 #if DEBUG
-                    Log.DecIndent();
+                        Log.Tree("children |- {0}", childrenSpec);
+                        Log.IncIndent();
+#endif
+                        // // A very special case is that no children needs to be synthesized.
+                        // if (arity == 0)
+                        // {
+                        //     childrenSpace = Optional<ProgramSet>.Nothing;
+                        // }
+                        // else
+                        // {
+                            childrenSpace = LearnChildren(childrenSpec);
+                        // }
+#if DEBUG
+                        Log.DecIndent();
+#endif
+                        if (childrenSpace.HasValue && !childrenSpace.Value.IsEmpty)
+                        {
+                            spaces.Add(ProgramSet.Join(Op(nameof(Semantics.Node)),
+                                ProgramSet.List(Symbol("Label"), Label(label)), childrenSpace.Value));
+                        }
+                    }
+                    else // Different number of children, try `Append`.
+                    {
+#if DEBUG
+                        Log.Tree("append |- {0}", childrenSpec);
+                        Log.IncIndent();
+#endif
+                        childrenSpace = LearnAppend(childrenSpec);
+#if DEBUG
+                        Log.DecIndent();
+#endif
+                    }
+#if DEBUG
                     Log.DecIndent();
 #endif
                     if (childrenSpace.HasValue && !childrenSpace.Value.IsEmpty)
                     {
-                        spaces.Add(ProgramSet.Join(Op(nameof(Semantics.Node)),
-                            ProgramSet.List(Symbol("Label"), Label(label)), childrenSpace.Value));
+                        spaces.Add(ProgramSet.Join(Op(nameof(Semantics.Node)), labelSpace, childrenSpace.Value));
                     }
                 }
             }
@@ -715,7 +719,7 @@ partition_end:
 
         private Optional<ProgramSet> LearnChildren(PremSpec<TInput, IEnumerable<SyntaxNode>> spec)
         {
-            Debug.Assert(spec.Forall((i, o) => o.Any()));
+            Debug.Assert(spec.Forall((i, o) => o.Any()) && spec.Identical((i, o) => o.Count()));
 
             // First synthesize the first child.
             var childSpec = spec.MapOutputs((i, o) => o.First());
@@ -743,6 +747,51 @@ partition_end:
             }
 
             return ProgramSet.Join(Op(nameof(Semantics.Children)), childSpace, childrenSpace.Value).Some();
+        }
+
+        private Optional<ProgramSet> LearnAppend(PremSpec<TInput, IEnumerable<SyntaxNode>> spec)
+        {
+            Debug.Assert(spec.Forall((i, o) => o.Any()));
+
+            // Synthesize param `frontParent`.
+            var frontSpec = spec.MapOutputs((i, o) => o.DropLast());
+            var parents = frontSpec.MapOutputs((i, o) => o.MapI((index, c) =>
+                c.matches.Where(m => m.parent.GetChild(index) == m).Select(m => m.parent)).SetIntersect());
+            if (parents.Forall((i, ps) => ps.IsAny()))
+            {
+                var frontParentSpec = parents.MapOutputs((i, ps) => ps.First() as SyntaxNode);
+#if DEBUG
+                Log.Tree("front parent |- {0}", frontParentSpec);
+                Log.IncIndent();
+#endif
+                var frontParentSpace = LearnRef(frontParentSpec);
+#if DEBUG
+                Log.DecIndent();
+#endif
+                if (frontParentSpace.IsEmpty)
+                {
+                    return Optional<ProgramSet>.Nothing;
+                }
+
+                // Synthesize param `child`.
+                var childSpec = spec.MapOutputs((i, o) => o.Last());
+#if DEBUG
+                Log.Tree("appended child |- {0}", childSpec);
+                Log.IncIndent();
+#endif
+                var childSpace = LearnTree(childSpec);
+#if DEBUG
+                Log.DecIndent();
+#endif
+                if (childSpace.IsEmpty)
+                {
+                    return Optional<ProgramSet>.Nothing;
+                }
+
+                return ProgramSet.Join(Op(nameof(Semantics.Append)), frontParentSpace, childSpace).Some();
+            }
+
+            return Optional<ProgramSet>.Nothing;
         }
 
         private static List<List<int[]>> Partitions(int numExamples, int k)

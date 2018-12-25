@@ -70,9 +70,6 @@ namespace Prem.Transformer.TreeLang
         [FeatureCalculator(nameof(Semantics.Node))]
         public static double Tree(double label, double children) => children;
 
-        [FeatureCalculator(nameof(Semantics.ListNode))]
-        public static double ListTree(double label, double siblings) => siblings;
-
         [FeatureCalculator(nameof(Semantics.Child))]
         public static double Child(double tree) => tree;
 
@@ -81,18 +78,6 @@ namespace Prem.Transformer.TreeLang
 
         [FeatureCalculator(nameof(Semantics.Append))]
         public static double Append(double tree, double siblings) => siblings;
-
-        [FeatureCalculator(nameof(Semantics.Prepend))]
-        public static double Prepend(double tree, double siblings) => siblings;
-
-        [FeatureCalculator(nameof(Semantics.Front))]
-        public static double Front(double reference) => reference;
-
-        [FeatureCalculator(nameof(Semantics.Tail))]
-        public static double Tail(double reference) => reference;
-
-        [FeatureCalculator(nameof(Semantics.Siblings))]
-        public static double Siblings(double reference) => reference;
 
         [FeatureCalculator("index", Method = CalculationMethod.FromLiteral)]
         public static double Index(Optional<int> i) => 1;
