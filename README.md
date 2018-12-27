@@ -23,13 +23,13 @@ dotnet run [options] <benchmark suite>
 ```
 
 Options:
-`-l <language>`: REQUIRED. Specify the language of the benchmarks, such as `c#` and `java`. Same with the one specified by `UTrans`.
-`-k <top-k>`: Synthesize top-k rules. DEFAULT: 1.
-`-L <log level>`: Log level, FINE/DEBUG/INFO/WARNING/ERROR. DEFAULT: DEBUG.
-`--learn <learning set>`: REQUIRED. Specify which examples are used as the learning set, e.g. `1-3,5`
+- `-l <language>`: REQUIRED. Specify the language of the benchmarks, such as `c#` and `java`. Same with the one specified by `UTrans`.
+- `-k <top-k>`: Synthesize top-k rules. DEFAULT: 1.
+- `-L <log level>`: Log level, FINE/DEBUG/INFO/WARNING/ERROR. DEFAULT: DEBUG.
+- `--learn <learning set>`: REQUIRED. Specify which examples are used as the learning set, e.g. `1-3,5`
 meaning the learning set `{1,2,3,5}`.
-`--test <testing set>`: Specify which examples are used as the testing set. If not specify, the testing set is empty, i.e. synthesis only without testing.
-`-o <output dir>`: Specify the output directory for the experiment results (JSON files). DEFAULT: current directory.
+- `--test <testing set>`: Specify which examples are used as the testing set. If not specify, the testing set is empty, i.e. synthesis only without testing.
+- `-o <output dir>`: Specify the output directory for the experiment results (JSON files). DEFAULT: current directory.
 
 Argument:
 `<benchmark suite>`: REQUIRED. Specify the root directory of the benchmark suite, i.e. the directory which contains many benchmarks.
