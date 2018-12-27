@@ -81,7 +81,7 @@ namespace Prem
                 experimentRecord.Add("benchmarks", benchmarkRecords);
 
                 File.WriteAllText(_output_file_path, experimentRecord.ToString());
-                Log.Info("Record saved to file {0}.", _output_file_path);
+                Log.Info("Record saved to file {0}", _output_file_path);
             }
         }
 

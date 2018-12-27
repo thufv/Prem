@@ -96,8 +96,7 @@ namespace Prem.Transformer.TreeLang
                 return mapper(candidates.First());
             }
 
-            Log.Warning("Unique candidates required, but found multiple: {0}, using {1}", 
-                candidates, mapper);
+            Log.Warning("Unique candidates required, but found multiple: {0}", candidates);
             return candidates.Any() ? mapper(candidates.First()) : default(U);
         }
 

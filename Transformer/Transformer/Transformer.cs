@@ -34,6 +34,8 @@ namespace Prem.Transformer
 
     public class TProgram
     {
+        private static ColorLogger Log = ColorLogger.Instance;
+
         private Symbol _inputSymbol;
 
         protected ProgramNode _program;
@@ -50,9 +52,16 @@ namespace Prem.Transformer
         public Optional<SyntaxNode> Apply(TInput input)
         {
             var inputState = State.CreateForExecution(_inputSymbol, input);
-            var result = _program.Invoke(inputState) as SyntaxNode;
-
-            return result == null ? Optional<SyntaxNode>.Nothing : result.Some();
+            try 
+            {
+                var result = _program.Invoke(inputState) as SyntaxNode;
+                return result == null ? Optional<SyntaxNode>.Nothing : result.Some();
+            }
+            catch (Exception e)
+            {
+                Log.Warning("Exception caught when applying program: {0}: {1}", e.GetType(), e.Message);
+                return Optional<SyntaxNode>.Nothing;
+            }
         }
 
         public override string ToString() =>
