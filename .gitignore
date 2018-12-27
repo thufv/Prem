@@ -9,6 +9,7 @@
 Prem/*.grammar
 
 Benchmarks/
+logs/
 
 # User-specific files
 *.suo
