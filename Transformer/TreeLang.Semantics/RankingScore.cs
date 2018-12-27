@@ -19,8 +19,8 @@ namespace Prem.Transformer.TreeLang
 
         // The larger the score, the higher the rank.
 
-        [FeatureCalculator(nameof(Semantics.Transform))]
-        public static double Transform(double target, double newTree) => target + newTree;
+        [FeatureCalculator(nameof(Semantics.Transform), Method = CalculationMethod.FromProgramNode)]
+        public static double Transform(ProgramNode p) => 1;
 
         [FeatureCalculator(nameof(Semantics.Err))]
         public static double Err(double target) => target / 2.1 + 0.5; // (0.5,1]

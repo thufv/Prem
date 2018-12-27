@@ -271,9 +271,9 @@ namespace Prem
 
         public static RuleSet Empty = new RuleSet();
 
-        public int size => transformers.Count;
+        public int Size => transformers.Count;
 
-        public bool isEmpty => !transformers.Any();
+        public bool IsEmpty => !transformers.Any();
 
         public Optional<SyntaxNode> ApplyTop(Input input)
         {
@@ -293,8 +293,8 @@ namespace Prem
             return transformers.First().Apply(input).Any(tree => tree.IdenticalTo(expected));
         }
 
-        public IEnumerable<bool> TestTopMany(IEnumerable<Example> examples) =>
-            examples.Select(TestTop);
+        public IEnumerable<KeyValuePair<Example, bool>> TestTopMany(IEnumerable<Example> examples) =>
+            examples.SelectPair(TestTop);
 
         public Optional<int> TestAll(Example example)
         {
@@ -307,7 +307,7 @@ namespace Prem
                 t.Apply(input).Any(tree => tree.IdenticalTo(expected)));
         }
 
-        public IEnumerable<Optional<int>> TestAllMany(IEnumerable<Example> examples) =>
-            examples.Select(TestAll);
+        public IEnumerable<KeyValuePair<Example, Optional<int>>> TestAllMany(IEnumerable<Example> examples) =>
+            examples.SelectPair(TestAll);
     }
 }

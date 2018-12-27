@@ -8,7 +8,7 @@ namespace Prem.Util
     {
         public static IEnumerable<Feature> Collect(SyntaxNode node) =>
             SubKindOf.Collect(node)
-                .Concat(SiblingsContainsLeaf.Collect(node))
+                // .Concat(SiblingsContainsLeaf.Collect(node))
                 .Concat(SiblingsContainsFeature.Collect(node))
                 .Concat(SiblingsContainsErrToken.Collect(node));
     }
@@ -27,7 +27,7 @@ namespace Prem.Util
         }
 
         public new static IEnumerable<Feature> Collect(SyntaxNode node) =>
-            node.Ancestors().Select(n => new SubKindOf(n.label));
+            node.Ancestors().Take(5).Select(n => new SubKindOf(n.label));
 
         public override string ToString() => $"<: {super}";
 

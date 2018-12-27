@@ -26,17 +26,14 @@ namespace Prem
             [Option('k', "top-k", Default = 1, HelpText = "Synthesize top-k rules.")]
             public int TopK { get; set; }
 
-            [Option('f', "flag", Default = false, HelpText = "Read flag.")]
-            public bool Flag { get; set; }
+            [Option('o', "output", Default = ".", HelpText = "Output dir to write experiment results.")]
+            public string OutputDir { get; set; }
 
-            [Option('o', "only-learn", Default = false, HelpText = "Only learn.")]
-            public bool OnlyLearn { get; set; }
+            [Option("learn", Required = true, HelpText = "Specify learning set, e.g. '1-3,5'")]
+            public string Learn { get; set; }
 
-            [Option('e', "equally", Default = false, HelpText = "Equally treated.")]
-            public bool Equally { get; set; }
-
-            [Option('n', "num-learning", Default = 1, HelpText = "Number of learning examples.")]
-            public int NumLearning { get; set; }
+            [Option("test", Default = "", HelpText = "Specify testing set, e.g. '1-3,5'")]
+            public string Test { get; set; }
 
             [Option('b', "benchmark", Default = false, HelpText = "Run one benchmark.")]
             public bool OneBenchmark { get; set; }
@@ -53,20 +50,48 @@ namespace Prem
                 .WithNotParsed<Options>(errs => HandleErrors(errs));
         }
 
+        static List<int> ParseNumbers(string expr)
+        {
+            var numbers = new List<int>();
+            foreach (var group in expr.Split(','))
+            {
+                var pair = group.Split('-');
+                if (pair.Length == 1)
+                {
+                    numbers.Add(Int32.Parse(pair[0]));
+                }
+                else if (pair.Length == 2)
+                {
+                    var left = Int32.Parse(pair[0]);
+                    var right = Int32.Parse(pair[1]);
+                    for (var num = left; num <= right; num++)
+                    {
+                        numbers.Add(num);
+                    }
+                }
+                else
+                {
+                    Log.Error("Invalid format: {0}", group);
+                    Environment.Exit(1);
+                }
+            }
+
+            return numbers;
+        }
+
         static void Run(Options opts)
         {
             // 1. Configure log
             Log.DisplayLevel = opts.LogDisplayLevel;
             Log.ShowColor = opts.LogShowColor;
 
-            // 2. Start experiment
-            var experiment = opts.Flag ? new Experiment(opts.Lang, opts.Folder, opts.TopK)
-                : opts.OnlyLearn ? new Experiment(opts.Lang, opts.Folder, opts.TopK, -1)
-                : new Experiment(opts.Lang, opts.Folder, opts.TopK, opts.NumLearning, opts.Equally);
-            if (opts.OneBenchmark)
-            {
-                experiment.SetOneBenchmark();
-            }
+            // 2. Parse learning/testing set
+            var learningSet = ParseNumbers(opts.Learn);
+            var testingSet = ParseNumbers(opts.Test);
+
+            // 3. Start experiment
+            var experiment = new Experiment(opts.Lang, opts.Folder, opts.TopK, learningSet, testingSet,
+                opts.OutputDir, opts.OneBenchmark);
             experiment.Launch();
         }
 
@@ -74,7 +99,7 @@ namespace Prem
         {
             foreach (var err in errs)
             {
-                Console.WriteLine(err.ToString());
+                Log.Error(err.ToString());
             }
         }
     }

@@ -68,6 +68,22 @@ namespace Prem.Util
                 .ForEach(p => action(p.index, p.elem));
         }
 
+        public static IEnumerable<T> WhereIndex<T>(this IEnumerable<T> xs, Func<int, bool> f)
+        {
+            int i = 0;
+            foreach (var e in xs)
+            {
+                if (f(i))
+                {
+                    yield return e;
+                }
+                i++;
+            }
+        }
+
+        public static IEnumerable<KeyValuePair<T, U>> SelectPair<T, U>(this IEnumerable<T> xs, Func<T, U> f) =>
+            xs.Select(x => new KeyValuePair<T, U>(x, f(x)));
+
         public static Optional<int> FirstCount<T>(this IEnumerable<T> seq, Predicate<T> predicate)
         {
             int count = 1;

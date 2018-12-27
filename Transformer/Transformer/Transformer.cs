@@ -111,7 +111,8 @@ namespace Prem.Transformer
             Spec spec = new ExampleSpec(constraints);
 
             _stopwatch.Restart();
-            var programSet = _engine.LearnGrammarTopK(spec, _scorer, k);
+            var programSet = _engine.LearnGrammar(spec);
+            // _engine.LearnGrammarTopK(spec, _scorer, k);
             _stopwatch.Stop();
 
             Log.Info("Transformer: {0} program(s) synthesized, time elapsed {1} ms.",

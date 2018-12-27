@@ -73,6 +73,8 @@ namespace Prem
 
         public TExample AsTExample(ErrPattern pattern) =>
             new TExample(input.AsTInput(pattern), output.root);
+
+        public override string ToString() => name;
     }
 
     public sealed class Synthesizer
@@ -81,15 +83,20 @@ namespace Prem
 
         private TLearner _learner;
 
+        private Stopwatch _stopwatch;
+
         public Synthesizer()
         {
             this._learner = new TLearner();
+            this._stopwatch = new Stopwatch();
         }
 
         public RuleSet Synthesize(List<Example> examples, int k = 1)
         {
             Debug.Assert(examples.Count >= 2, "At least 2 examples must be provided.");
-            
+            RuleSet ruleSet;
+
+            _stopwatch.Restart();
             // 1. Synthesize error pattern.
             var pattern = SynthesizeErrPattern(examples);
             if (pattern.HasValue)
@@ -98,13 +105,21 @@ namespace Prem
 
                 // 2. Synthesize transformers.
                 var trans = SynthesizeTransformers(examples.Select(e => e.AsTExample(pattern.Value)), k);
-                return new RuleSet(pattern.Value, trans);
+                ruleSet = new RuleSet(pattern.Value, trans);
             }
+            else
+            {
+                ruleSet = RuleSet.Empty;
+            }
+            _stopwatch.Stop();
 
-            return RuleSet.Empty;
+            Log.Info("Overall synthesis time: {0} ms", _stopwatch.ElapsedMilliseconds);
+            return ruleSet;
         }
 
         public RuleSet Synthesize(Example example, int k = 1) => Synthesize(example.Yield().ToList(), k);
+
+        public long SynthesisTime => _stopwatch.ElapsedMilliseconds;
 
         private Optional<ErrPattern> SynthesizeErrPattern(List<Example> examples)
         {
@@ -150,7 +165,7 @@ namespace Prem
 #if DEBUG
             Log.Debug("Top programs:");
             programs.ForEachI((i, p) =>
-                Log.DebugRaw("#{0} ({1:F3}) {2}", i, p.score, p.ToString()));
+                Log.DebugRaw("#{0} {1}", i, p.ToString()));
 #endif
             return programs;
         }

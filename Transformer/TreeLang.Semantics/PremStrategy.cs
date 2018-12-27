@@ -98,7 +98,6 @@ namespace Prem.Transformer.TreeLang
             var spec = task.Spec;
             var programSet = LearnProgram(
                 PremSpec<TInput, SyntaxNode>.From(spec.Examples, GetInput, o => (SyntaxNode)o));
-            Log.Info("Synthesis done.");
             return programSet;
         }
 
@@ -385,6 +384,7 @@ namespace Prem.Transformer.TreeLang
                 Log.Tree("itself");
 #endif
                 spaces.Add(scopeSpace);
+                return Union(spaces);
             }
 
             // General case: identify using label and feature in the subscope.
@@ -407,6 +407,7 @@ namespace Prem.Transformer.TreeLang
                     Log.Tree("feature = true");
 #endif
                     featureSpaces.Add(ProgramSet.List(Symbol(nameof(Semantics.True)), True()));
+                    goto feature_space_end;
                 }
 
                 var competitors = spec.SelectMany((i, o) => scopeSpec[i].GetSubtrees()
@@ -542,6 +543,7 @@ namespace Prem.Transformer.TreeLang
                     featureSpaces.Add(Union(disjunctionSpaces));
                 }
 
+feature_space_end:
                 spaces.Add(ProgramSet.Join(Op(nameof(Semantics.Select)), scopeSpace, labelSpace, Union(featureSpaces)));
             } // if end
 
@@ -568,11 +570,12 @@ namespace Prem.Transformer.TreeLang
         private ProgramSet LearnToken(TInput input, string expected)
         {
             var programs = new List<ProgramNode>();
-            // Option 1: constant token.
-#if DEBUG
-            // Log.Tree("ConstToken({0})", expected);
-#endif
-            programs.Add(ConstToken(expected));
+
+            // Option 1: err token.
+            if (expected == input.errNode.code)
+            {
+                programs.Add(ErrToken());
+            }
 
             // Option 2: variable token.
             input.TryFind(expected).Select(key =>
@@ -580,11 +583,8 @@ namespace Prem.Transformer.TreeLang
                 programs.Add(VarToken(key));
             });
 
-            // Option 3: err token.
-            if (expected == input.errNode.code)
-            {
-                programs.Add(ErrToken());
-            }
+            // Option 3: constant token.
+            programs.Add(ConstToken(expected));
 
             return ProgramSet.List(Symbol("token"), programs);
         }

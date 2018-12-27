@@ -5,7 +5,8 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using Microsoft.ProgramSynthesis.Utils;
-
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using Prem.Util;
 
 namespace Prem
@@ -22,132 +23,111 @@ namespace Prem
 
         private int _k;
 
-        private bool _read_example_flag;
+        private List<int> _learning_set;
 
-        private bool _only_learn;
+        private string _learning_set_str;
 
-        private int _num_learning_examples;
+        private List<int> _testing_set;
 
-        private bool _equally_treated;
+        private string _testing_set_str;
 
         private bool _one_benchmark;
 
-        public void SetOneBenchmark() { _one_benchmark = true; }
+        private DateTime _create_time;
 
-        public DateTime CreateTime { get; }
+        private string _output_file_path;
 
-        public Experiment(string language, string suiteFolder, int k)
+        public Experiment(string language, string suiteFolder, int k, List<int> learningSet, List<int> testingSet,
+            string outputDir, bool oneBenchmark = false)
         {
             this._parser = new Parser(language);
             this._rootDir = suiteFolder;
             this._synthesizer = new Synthesizer();
             this._k = k;
-            this.CreateTime = DateTime.Now;
+            this._learning_set = learningSet;
+            this._testing_set = testingSet;
+            this._one_benchmark = oneBenchmark;
 
-            this._read_example_flag = true;
-            this._only_learn = false;
-        }
-
-        public Experiment(string language, string suiteFolder, int k, int x)
-        {
-            this._parser = new Parser(language);
-            this._rootDir = suiteFolder;
-            this._synthesizer = new Synthesizer();
-            this._k = k;
-            this.CreateTime = DateTime.Now;
-
-            this._only_learn = true;
-        }
-
-        public Experiment(string language, string suiteFolder, int k, 
-            int numLearningExamples, bool equallyTreated)
-        {
-            this._parser = new Parser(language);
-            this._rootDir = suiteFolder;
-            this._synthesizer = new Synthesizer();
-            this._k = k;
-            this.CreateTime = DateTime.Now;
-
-            this._read_example_flag = false;
-            this._only_learn = false;
-            this._num_learning_examples = numLearningExamples;
-            this._equally_treated = equallyTreated;
+            this._create_time = DateTime.Now;
+            this._learning_set_str = string.Join(',', _learning_set);
+            this._testing_set_str = _testing_set.Any() ? string.Join(',', _testing_set) : "none";
+            var timeStr = _create_time.ToString("s").Replace(':', '_');
+            var fileName = $"Prem_learn_{_learning_set_str}_test_{_testing_set_str}_{timeStr}.json";
+            this._output_file_path = Path.Combine(outputDir, fileName);
         }
 
         public void Launch()
         {
-            if (_one_benchmark)
-            {
-                RunBenchmark(1, 1, _rootDir);
-                return;
-            }
-
-            var benchmarks = Directory.GetDirectories(_rootDir).Sorted().ToList();
-
+            var benchmarks = (_one_benchmark ? _rootDir.Yield() : Directory.GetDirectories(_rootDir).Sorted()).ToList();
             if (!benchmarks.Any())
             {
                 Log.Warning("No benchmarks found in: {0}", _rootDir);
             }
             else
             {
-                benchmarks.ForEachC(RunBenchmark);
+                var experimentRecord = new JObject();
+                experimentRecord.Add("create time", _create_time.ToString());
+                experimentRecord.Add("top k", _k);
+                experimentRecord.Add("learning", _learning_set_str);
+                experimentRecord.Add("testing", _testing_set_str);
+                
+                var benchmarkRecords = new JArray();
+                var index = 1;
+                var total = benchmarks.Count;
+                foreach (var benchmark in benchmarks)
+                {
+                    benchmarkRecords.Add(RunBenchmark(index, total, benchmark));
+                }
+                experimentRecord.Add("benchmarks", benchmarkRecords);
+
+                File.WriteAllText(_output_file_path, experimentRecord.ToString());
+                Log.Info("Record saved to file {0}.", _output_file_path);
             }
         }
 
-        private void RunBenchmark(int index, int total, string benchmarkFolder)
+        private JObject RunBenchmark(int index, int total, string benchmarkFolder)
         {
             Log.Info("Running {0} ({1}/{2})", benchmarkFolder, index, total);
-            var examples = Directory.GetDirectories(benchmarkFolder)
-                .Sorted()
-                .Select(CreateExample);
-
-            if (_read_example_flag)
-            {
-                var partition = examples.GroupBy(
-                    e => e.name.StartsWith("l", true, CultureInfo.InvariantCulture))
-                    .ToDictionary(g => g.Key, g => g.AsEnumerable());
-
-                var learningExamples = partition[true].ToList();
-                if (!learningExamples.Any())
-                {
-                    Log.Error("No learning examples in benchmark: {0}", benchmarkFolder);
-                    Environment.Exit(1);
-                }
-                var ruleSet = _synthesizer.Synthesize(learningExamples, _k);
-
-                var testingExamples = partition[false];
-                PrintResults(ruleSet.TestAllMany(testingExamples));
-                return;
-            }
-
-            if (_only_learn)
-            {
-                // FIXME: only learn 3 examples.
-                _synthesizer.Synthesize(examples.Take(3).ToList(), _k);
-                return;
-            }
             
-            if (!_equally_treated)
-            {
-                var learningExamples = examples.Take(_num_learning_examples).ToList();
-                if (!learningExamples.Any())
-                {
-                    Log.Error("No learning examples in benchmark: {0}", benchmarkFolder);
-                    Environment.Exit(1);
-                }
-                var ruleSet = _synthesizer.Synthesize(learningExamples, _k);
-                if (ruleSet.isEmpty)
-                {
-                    return;
-                }
+            JObject record = new JObject();
+            record.Add("folder", benchmarkFolder);
 
-                var testingExamples = examples.Skip(_num_learning_examples);
-                PrintResults(ruleSet.TestAllMany(testingExamples));
-                return;
+            var examples = Directory.GetDirectories(benchmarkFolder).Sorted().Select(CreateExample).ToList();
+            var learningExamples = examples.WhereIndex(id => _learning_set.Contains(id + 1)).ToList();
+            record.Add("num learning examples", learningExamples.Count);
+            if (!learningExamples.Any())
+            {
+                Log.Warning("No learning examples found in benchmark: {0}", benchmarkFolder);
+                return record;
             }
 
-            // _equally_treated
-            Debug.Assert(false);
+            var ruleSet = _synthesizer.Synthesize(learningExamples, _k);
+            record.Add("synthesis time (ms)", _synthesizer.SynthesisTime);
+            record.Add("synthesis succeeds?", !ruleSet.IsEmpty);
+            if (ruleSet.IsEmpty)
+            {
+                return record;
+            }
+
+            var testingExamples = examples.WhereIndex(id => _testing_set.Contains(id + 1)).ToList();
+            var results = ruleSet.TestAllMany(testingExamples);
+            Log.Info("Testing results: {0}", results.ToDictionary());
+
+            var resultRecords = new JArray();
+            foreach (var result in results)
+            {
+                var resultRecord = new JObject();
+                resultRecord.Add("test case", result.Key.name);
+                resultRecord.Add("solved?", result.Value.HasValue);
+                if (result.Value.HasValue)
+                {
+                    resultRecord.Add("k", result.Value.Value);
+                }
+                resultRecords.Add(resultRecord);
+            }
+
+            record.Add("tests", resultRecords);
+            return record;
         }
 
         private Example CreateExample(string example)
@@ -156,7 +136,7 @@ namespace Prem
             if (fs.Length != 1)
             {
                 Log.Error("Multiple error info files found in {0}", example);
-                return null;
+                Environment.Exit(1);
             }
             var info = _parser.ParseError(fs[0]);
 
@@ -164,7 +144,7 @@ namespace Prem
             if (fs.Length != 1)
             {
                 Log.Error("Multiple input source found in {0}", example);
-                return null;
+                Environment.Exit(1);
             }
             var inputJSON = _parser.ParseProgramAsJSON(fs[0]);
             var file = fs[0];
@@ -173,7 +153,7 @@ namespace Prem
             if (fs.Length != 1)
             {
                 Log.Error("Multiple output source found in {0}", example);
-                return null;
+                Environment.Exit(1);
             }
             var outputJSON = _parser.ParseProgramAsJSON(fs[0]);
 
@@ -182,11 +162,6 @@ namespace Prem
                 SyntaxNodeContext.FromJSON(outputJSON),
                 example
             );
-        }
-
-        private void PrintResults(IEnumerable<Optional<int>> results)
-        {
-            Log.Info("Result: {0}", Show.L(results.ToList()));
         }
     }
 }
