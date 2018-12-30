@@ -53,6 +53,11 @@ namespace Prem
         static List<int> ParseNumbers(string expr)
         {
             var numbers = new List<int>();
+            if (expr == "")
+            {
+                return numbers;
+            }
+
             foreach (var group in expr.Split(','))
             {
                 var pair = group.Split('-');
