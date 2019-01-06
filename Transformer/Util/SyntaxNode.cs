@@ -305,8 +305,15 @@ namespace Prem.Util
 
         public List<SyntaxNode> matches { get; set; }
 
+        /// <summary>
+        /// A matched parent is some node `p` in the input tree, s.t. the `index`-th child of `p` matches `this`.
+        /// This function returns all possible matched parents.
+        /// </summary>
+        /// <param name="index">Child index.</param>
+        /// <returns>Matched parents.</returns>
         public IEnumerable<SyntaxNode> MatchedParents(int index) =>
-            matches.Where(m => m.parent.GetChild(index) == m).Select(m => m.parent);
+            matches.Where(m => m.parent.GetNumChildren() > index && m.parent.GetChild(index) == m)
+                .Select(m => m.parent);
 
         public abstract bool IdenticalTo(SyntaxNode that);
 

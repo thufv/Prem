@@ -110,7 +110,7 @@ namespace Prem
             }
 
             var testingExamples = examples.WhereIndex(id => _testing_set.Contains(id + 1)).ToList();
-            var results = ruleSet.TestAllMany(testingExamples);
+            var results = ruleSet.TestAllMany(testingExamples).ToList();
             Log.Info("Testing results: {0}", results.ToDictionary());
 
             var resultRecords = new JArray();

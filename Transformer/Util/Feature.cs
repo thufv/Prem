@@ -8,9 +8,10 @@ namespace Prem.Util
     {
         public static IEnumerable<Feature> Collect(SyntaxNode node) =>
             SubKindOf.Collect(node)
-                // .Concat(SiblingsContainsLeaf.Collect(node))
+                .Concat(SuperKindOf.Collect(node))
                 .Concat(SiblingsContainsFeature.Collect(node))
-                .Concat(SiblingsContainsErrToken.Collect(node));
+                .Concat(SiblingsContainsErrToken.Collect(node))
+                .Concat(ContainsErrToken.Collect(node));
     }
 
     /// <summary>
@@ -44,9 +45,47 @@ namespace Prem.Util
 
         public override int GetHashCode()
         {
-            return super.GetHashCode();
+            return ToString().GetHashCode();
         }
     }
+
+    public class SuperKindOf : Feature
+    {
+        public Label sub { get; }
+
+        public SuperKindOf(Label sub)
+        {
+            this.sub = sub;
+        }
+
+        public new static IEnumerable<Feature> Collect(SyntaxNode node)
+        {
+            while (node.GetNumChildren() == 1)
+            {
+                node = node.GetChildren().First();
+                yield return new SuperKindOf(node.label);
+            }
+        }
+
+        public override string ToString() => $">: {sub}";
+
+        public override bool Equals(object obj)
+        {
+            if ((obj == null) || !this.GetType().Equals(obj.GetType()))
+            {
+                return false;
+            }
+
+            var that = (SuperKindOf)obj;
+            return that.sub.Equals(sub);
+        }
+
+        public override int GetHashCode()
+        {
+            return ToString().GetHashCode();
+        }
+    }
+
 
     /// <summary>
     /// Feature `SiblingsContainsLeaf(label, token)`: in the feature scope of node `n`,
@@ -126,7 +165,7 @@ namespace Prem.Util
             }
         }
 
-        public override string ToString() => $"@err[{index}]({label})";
+        public override string ToString() => $"~@err[{index}]({label})";
 
         public override bool Equals(object obj)
         {
@@ -141,7 +180,7 @@ namespace Prem.Util
 
         public override int GetHashCode()
         {
-            return Hash.Combine(index.GetHashCode(), label.GetHashCode());
+            return ToString().GetHashCode();
         }
     }
 
@@ -170,7 +209,7 @@ namespace Prem.Util
             }
         }
 
-        public override string ToString() => $"@err";
+        public override string ToString() => $"~@err";
 
         public override bool Equals(object obj)
         {
@@ -180,6 +219,44 @@ namespace Prem.Util
             }
 
             var that = (SiblingsContainsErrToken)obj;
+            return true;
+        }
+
+        public override int GetHashCode()
+        {
+            return "~@err".GetHashCode();
+        }
+    }
+
+    /// <summary>
+    /// Feature `ContainsErrToken()`: in the scope rooted at node `n`,
+    /// there exists a leaf node which has the same label and token as the error node.
+    /// </summary>
+    public class ContainsErrToken : Feature
+    {
+        public ContainsErrToken()
+        {
+        }
+
+        public new static IEnumerable<Feature> Collect(SyntaxNode node)
+        {
+            var errNode = node.context.err;
+            if (node.Leaves().Any(l => l.label.Equals(errNode.label) && l.code == errNode.code))
+            {
+                yield return new ContainsErrToken();
+            }
+        }
+
+        public override string ToString() => $"@err";
+
+        public override bool Equals(object obj)
+        {
+            if ((obj == null) || !this.GetType().Equals(obj.GetType()))
+            {
+                return false;
+            }
+
+            var that = (ContainsErrToken)obj;
             return true;
         }
 

@@ -122,7 +122,7 @@ namespace Prem.Transformer.TreeLang
             foreach (var key in spec.Keys.Select(i => i.Keys).Intersect())
             {
                 var varNodes = spec.MapOutputs((i, o) => i.inputTree.Leaves()
-                    .Where(l => l.code == i[key]).ArgMin(l => l.depth));
+                    .Where(l => l.code == i[key] && i[key] != i.errNode.code).ArgMin(l => l.depth));
                 if (varNodes.Forall((i, v) => v != null))
                 {
                     varNodeDict[key] = varNodes;
@@ -591,8 +591,6 @@ feature_space_end:
 
         private ProgramSet LearnTree(PremSpec<TInput, SyntaxNode> spec)
         {
-            var spaces = new List<ProgramSet>();
-
             // Case 1: leaf nodes, using `Leaf`.
             if (spec.Forall((i, o) => o is Token))
             {
@@ -655,8 +653,7 @@ feature_space_end:
                 var refSpace = Union(refSpaces);
                 if (!refSpace.IsEmpty)
                 {
-                    spaces.Add(ProgramSet.Join(Op(nameof(Semantics.Copy)), refSpace));
-                    return Union(spaces);
+                    return ProgramSet.Join(Op(nameof(Semantics.Copy)), refSpace);
                 }
             }
 
@@ -690,8 +687,8 @@ feature_space_end:
 #endif
                         if (childrenSpace.HasValue && !childrenSpace.Value.IsEmpty)
                         {
-                            spaces.Add(ProgramSet.Join(Op(nameof(Semantics.Node)),
-                                ProgramSet.List(Symbol("Label"), Label(label)), childrenSpace.Value));
+                            return ProgramSet.Join(Op(nameof(Semantics.Node)),
+                                ProgramSet.List(Symbol("label"), Label(label)), childrenSpace.Value);
                         }
                     }
                     else // Different number of children, try `Append`.
@@ -717,13 +714,13 @@ feature_space_end:
 #endif
                     if (childrenSpace.HasValue && !childrenSpace.Value.IsEmpty)
                     {
-                        spaces.Add(ProgramSet.Join(Op(nameof(Semantics.Node)), labelSpace, childrenSpace.Value));
+                        return ProgramSet.Join(Op(nameof(Semantics.Node)), labelSpace, childrenSpace.Value);
                     }
                 }
             }
+            
             // else: Inconsistent specification.
-
-            return Union(spaces);
+            return ProgramSet.Empty(Symbol("tree"));
         }
 
         private Optional<ProgramSet> LearnChildren(PremSpec<TInput, IEnumerable<SyntaxNode>> spec)
@@ -856,7 +853,7 @@ feature_space_end:
                                 return new List<List<int[]>> {
                                     // 3 + 1: C(4, 3) = C(4, 1) = 4
                                     new List<int[]> { new[] { 0, 1, 2 }, new[] { 3 } },
-                                    new List<int[]> { new[] { 0, 1, 4 }, new[] { 2 } },
+                                    new List<int[]> { new[] { 0, 1, 3 }, new[] { 2 } },
                                     new List<int[]> { new[] { 0, 2, 3 }, new[] { 1 } },
                                     new List<int[]> { new[] { 1, 2, 3 }, new[] { 0 } },
                                     // 2 + 2: C(4, 2) / 2 = 3
@@ -918,10 +915,24 @@ feature_space_end:
                                     new List<int[]> { new[] { 1, 2, 3 }, new[] { 0 }, new[] { 4 } },
                                     new List<int[]> { new[] { 1, 2, 4 }, new[] { 0 }, new[] { 3 } },
                                     new List<int[]> { new[] { 1, 3, 4 }, new[] { 0 }, new[] { 2 } },
-                                    new List<int[]> { new[] { 2, 3, 4 }, new[] { 0 }, new[] { 1 } }
-                                    // 2 + 2 + 1: C(5, 2) * C(3, 2) = 18
-                                    // FIXME: TODO
-                                };
+                                    new List<int[]> { new[] { 2, 3, 4 }, new[] { 0 }, new[] { 1 } },
+                                    // 2 + 2 + 1: C(5, 2) * C(3, 2) / A(2,2) = 15
+                                    new List<int[]> { new[] { 0, 1 }, new[] { 2, 3 }, new[] { 4 } },
+                                    new List<int[]> { new[] { 0, 1 }, new[] { 2, 4 }, new[] { 3 } },
+                                    new List<int[]> { new[] { 0, 1 }, new[] { 3, 4 }, new[] { 2 } },
+                                    new List<int[]> { new[] { 0, 2 }, new[] { 1, 3 }, new[] { 4 } },
+                                    new List<int[]> { new[] { 0, 2 }, new[] { 1, 4 }, new[] { 3 } },
+                                    new List<int[]> { new[] { 0, 2 }, new[] { 3, 4 }, new[] { 1 } },
+                                    new List<int[]> { new[] { 0, 3 }, new[] { 1, 2 }, new[] { 4 } },
+                                    new List<int[]> { new[] { 0, 3 }, new[] { 1, 4 }, new[] { 2 } },
+                                    new List<int[]> { new[] { 0, 3 }, new[] { 2, 4 }, new[] { 1 } },
+                                    new List<int[]> { new[] { 0, 4 }, new[] { 1, 2 }, new[] { 3 } },
+                                    new List<int[]> { new[] { 0, 4 }, new[] { 1, 3 }, new[] { 2 } },
+                                    new List<int[]> { new[] { 0, 4 }, new[] { 2, 3 }, new[] { 1 } },
+                                    new List<int[]> { new[] { 1, 2 }, new[] { 3, 4 }, new[] { 0 } },
+                                    new List<int[]> { new[] { 1, 3 }, new[] { 2, 4 }, new[] { 0 } },
+                                    new List<int[]> { new[] { 1, 4 }, new[] { 2, 3 }, new[] { 0 } }
+                               };
                             case 4:
                                 return new List<List<int[]>> {
                                     // 2 + 1 + 1 + 1: C(5,2) = 10
@@ -948,5 +959,6 @@ feature_space_end:
             Debug.Assert(false);
             return null;
         }
+
     }
 }

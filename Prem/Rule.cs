@@ -254,6 +254,8 @@ namespace Prem
 
     public class RuleSet
     {
+        private static ColorLogger Log = ColorLogger.Instance;
+
         public ErrPattern errPattern { get; }
 
         public List<TProgram> transformers { get; }
@@ -298,8 +300,14 @@ namespace Prem
 
         public Optional<int> TestAll(Example example)
         {
+            Log.Debug("Testing: {0}", example);
+
             var env = new Env();
-            if (!errPattern.Match(example.input.errMessage, env)) return Optional<int>.Nothing;
+            if (!errPattern.Match(example.input.errMessage, env))
+            {
+                Log.Warning("Pattern {0} cannot match against \"{1}\".", errPattern, example.input.errMessage);
+                return Optional<int>.Nothing;
+            }
 
             var input = example.input.AsTInput(env);
             var expected = example.output.root;
