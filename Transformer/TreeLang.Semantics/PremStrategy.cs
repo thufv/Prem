@@ -282,39 +282,42 @@ namespace Prem.Transformer.TreeLang
             ProgramNode source, out PremSpec<TInput, Node> scopeSpec)
         {
             scopeSpec = spec.MapOutputs((i, o) => CommonAncestor.LCA(o, sourceSpec[i]));
-            while (true)
+
+            while (scopeSpec.Forall((i, o) => o != null))
             {
+                Log.Tree("iter scopeSpec = {0}", scopeSpec);
+
                 Label label;
                 int k;
-                if (scopeSpec.Identical((i, o) => o.label, out label) &&
-                    scopeSpec.Identical((i, o) => sourceSpec[i].CountAncestorWhere(
-                        n => n.label.Equals(label), o.id), out k))
+                if (scopeSpec.Identical((i, o) => o.label, out label))
                 {
-                    return Lift(source, label, k).Some();
+                    if (scopeSpec.Identical((i, o) => sourceSpec[i].CountAncestorWhere(
+                         n => n.label.Equals(label), o.id), out k))
+                    {
+                        return Lift(source, label, k).Some();
+                    }
+
+                    // else: lift more, simultaneously
+                    scopeSpec = scopeSpec.MapOutputs((i, o) => o.parent);
+                    continue;
                 }
 
-                // Log.Tree("scopeSpec = {0}", scopeSpec);
-
+                // labels are different: try lift all of them to the highest
                 var highest = scopeSpec.ArgMin(p => p.Value.depth);
                 label = highest.Value.label;
                 if (!scopeSpec.Forall((i, o) => i.Equals(highest.Key) ? true :
                     o.Ancestors().Any(n => n.label.Equals(label))))
                 {
-                    Log.Warning("Cannot found Lift");
+                    Log.Warning("Lift: impossible to lift all of them to the highest");
                     return Optional<ProgramNode>.Nothing;
                 }
 
                 scopeSpec = scopeSpec.MapOutputs((i, o) => i.Equals(highest.Key) ? o :
                     o.Ancestors().First(n => n.label.Equals(label)));
-                if (scopeSpec.Identical((i, o) => sourceSpec[i].CountAncestorWhere(
-                        n => n.label.Equals(label), o.id), out k))
-                {
-                    return Lift(source, label, k).Some();
-                }
-
-                return Optional<ProgramNode>.Nothing;
-                // Debug.Assert(false, "Need more lift!");
             }
+
+            Log.Warning("Lift: loop ends");
+            return Optional<ProgramNode>.Nothing;
         }
 
         /// <summary>
