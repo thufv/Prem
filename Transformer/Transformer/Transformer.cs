@@ -85,7 +85,7 @@ namespace Prem.Transformer
 
         public TLearner()
         {
-            var grammar = LoadGrammar("/Users/paul/Workspace/prem/Transformer/TreeLang/TreeLang.grammar",
+            var grammar = LoadGrammar("TreeLang.grammar",
                 CompilerReference.FromAssemblyFiles(
                     typeof(Microsoft.ProgramSynthesis.Utils.Record).GetTypeInfo().Assembly,
                     typeof(Semantics).GetTypeInfo().Assembly,

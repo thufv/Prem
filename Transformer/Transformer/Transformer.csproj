@@ -4,9 +4,9 @@
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
 
-  <!-- <ItemGroup>
+  <ItemGroup>
     <None Include="..\TreeLang\TreeLang.grammar" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup> -->
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\TreeLang.Semantics\TreeLang.Semantics.csproj" />
