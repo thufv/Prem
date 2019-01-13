@@ -102,7 +102,8 @@ namespace Prem.Transformer.TreeLang
         public bool Identical<E>(Func<I, O, E> mapper, out E value)
         {
             var pointer = Keys.GetEnumerator();
-            Debug.Assert(pointer.MoveNext());
+            bool hasNext = pointer.MoveNext();
+            Debug.Assert(hasNext);
             value = mapper(pointer.Current, this[pointer.Current]);
 
             while (pointer.MoveNext())
@@ -119,7 +120,8 @@ namespace Prem.Transformer.TreeLang
         public bool Identical<E>(Func<I, O, E> mapper)
         {
             var pointer = Keys.GetEnumerator();
-            Debug.Assert(pointer.MoveNext());
+            bool hasNext = pointer.MoveNext();
+            Debug.Assert(hasNext);
             var value = mapper(pointer.Current, this[pointer.Current]);
 
             while (pointer.MoveNext())

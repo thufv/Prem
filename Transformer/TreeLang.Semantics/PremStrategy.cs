@@ -529,7 +529,7 @@ namespace Prem.Transformer.TreeLang
                         disjunctionSpaces.Add(groupSpaces.Aggregate1((s1, s2) =>
                             ProgramSet.Join(Op(nameof(Semantics.Or)), s1, s2)));
 
-                    partition_end:
+partition_end: ;
 #if DEBUG
                         Log.DecIndent();
 #endif

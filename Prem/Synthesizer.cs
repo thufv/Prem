@@ -49,7 +49,8 @@ namespace Prem
         public TInput AsTInput(ErrPattern pattern)
         {
             var env = new Env();
-            Debug.Assert(pattern.Match(errMessage, env));
+            bool isMatched = pattern.Match(errMessage, env); 
+            Debug.Assert(isMatched);
             return AsTInput(env);
         }
 

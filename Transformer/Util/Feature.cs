@@ -28,7 +28,7 @@ namespace Prem.Util
         }
 
         public new static IEnumerable<Feature> Collect(SyntaxNode node) =>
-            node.Ancestors().Take(5).Select(n => new SubKindOf(n.label));
+            node.Ancestors().Take(3).Select(n => new SubKindOf(n.label));
 
         public override string ToString() => $"<: {super}";
 
