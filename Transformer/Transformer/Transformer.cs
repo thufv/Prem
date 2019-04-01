@@ -13,6 +13,8 @@ using Microsoft.ProgramSynthesis.Learning;
 using Microsoft.ProgramSynthesis.Learning.Strategies;
 using Microsoft.ProgramSynthesis.Learning.Logging;
 using Microsoft.ProgramSynthesis.Utils;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 using Prem.Transformer.TreeLang;
 using Prem.Util;
@@ -36,22 +38,19 @@ namespace Prem.Transformer
     {
         private static ColorLogger Log = ColorLogger.Instance;
 
-        private Symbol _inputSymbol;
-
         protected ProgramNode _program;
 
         public double score { get; }
 
-        public TProgram(ProgramNode program, double score, Symbol inputSymbol)
+        public TProgram(ProgramNode program, double score)
         {
             this._program = program;
-            this._inputSymbol = inputSymbol;
             this.score = score;
         }
 
         public Optional<SyntaxNode> Apply(TInput input)
         {
-            var inputState = State.CreateForExecution(_inputSymbol, input);
+            var inputState = State.CreateForExecution(TLearner.InputSymbol, input);
             try 
             {
                 var result = _program.Invoke(inputState) as SyntaxNode;
@@ -66,6 +65,24 @@ namespace Prem.Transformer
 
         public override string ToString() =>
             _program.PrintAST(ASTSerializationFormat.HumanReadable);
+
+        // dump to JSON
+        public JObject DumpJSON()
+        {
+            var obj = new JObject();
+            obj.Add("program", ToString());
+            obj.Add("score", score);
+            return obj;
+        }
+
+        // load from JSON
+        public static TProgram FromJSON(JObject obj)
+        {
+            var src = (string)obj["program"];
+            var prog = ProgramNode.Parse(src, TLearner._grammar, ASTSerializationFormat.HumanReadable);
+            var score = (double)obj["score"];
+            return new TProgram(prog, score);
+        }
     }
 
 
@@ -73,37 +90,39 @@ namespace Prem.Transformer
     /// A tree transformer for synthesizing programs expressed with the `TreeLang` described in
     /// `Prem.Transformer.TreeLang`.
     /// </summary>
-    public sealed class TLearner
+    public static class TLearner
     {
         private static ColorLogger Log = ColorLogger.Instance;
 
-        private SynthesisEngine _engine;
-        private Symbol _inputSymbol;
-        private RankingScore _scorer;
+        private static SynthesisEngine _engine;
+        public static Symbol InputSymbol;
+        private static RankingScore _scorer;
 
-        private Stopwatch _stopwatch = new Stopwatch();
+        private static Stopwatch _stopwatch = new Stopwatch();
 
-        public TLearner()
+        public static Grammar _grammar;
+
+        public static void Setup()
         {
-            var grammar = LoadGrammar("TreeLang.grammar",
+            _grammar = LoadGrammar("TreeLang.grammar",
                 CompilerReference.FromAssemblyFiles(
                     typeof(Microsoft.ProgramSynthesis.Utils.Record).GetTypeInfo().Assembly,
                     typeof(Semantics).GetTypeInfo().Assembly,
                     typeof(SyntaxNode).GetTypeInfo().Assembly));
-            if (grammar == null)
+            if (_grammar == null)
             {
-                Log.Error("Transformer: grammar not compiled.");
+                Log.Error("Transformer: _grammar not compiled.");
                 return;
             }
 
-            _inputSymbol = grammar.InputSymbol;
+            InputSymbol = _grammar.InputSymbol;
 
-            _scorer = new RankingScore(grammar);
-            _engine = new SynthesisEngine(grammar, new SynthesisEngine.Config
+            _scorer = new RankingScore(_grammar);
+            _engine = new SynthesisEngine(_grammar, new SynthesisEngine.Config
             {
                 Strategies = new ISynthesisStrategy[]
                 {
-                    new PremStrategy(grammar),
+                    new PremStrategy(_grammar),
                 },
                 UseThreads = false
             });
@@ -111,17 +130,17 @@ namespace Prem.Transformer
             Log.Debug("Transformer: synthesis engine is setup.");
         }
 
-        public List<TProgram> Learn(IEnumerable<TExample> examples, int k)
+        public static List<TProgram> Learn(IEnumerable<TExample> examples, int k)
         {
             var constraints = examples.ToDictionary(
-                e => State.CreateForLearning(_inputSymbol, e.input),
+                e => State.CreateForLearning(InputSymbol, e.input),
                 e => (object)e.output
             );
             Spec spec = new ExampleSpec(constraints);
 
             _stopwatch.Restart();
             var programSet = _engine.LearnGrammar(spec);
-            // _engine.LearnGrammarTopK(spec, _scorer, k);
+            // _engine.Learn_GrammarTopK(spec, _scorer, k);
             _stopwatch.Stop();
 
             Log.Info("Transformer: {0} program(s) synthesized, time elapsed {1} ms.",
@@ -132,7 +151,7 @@ namespace Prem.Transformer
             {
                 foreach (var e in examples)
                 {
-                    var tree = p.Invoke(State.CreateForExecution(_inputSymbol, e.input)) as SyntaxNode;
+                    var tree = p.Invoke(State.CreateForExecution(InputSymbol, e.input)) as SyntaxNode;
                     if (tree == null || !tree.IdenticalTo(e.output))
                     {
                         Console.WriteLine(String.Join(" ", tree.Leaves().Select(l => l.code)));
@@ -143,7 +162,7 @@ namespace Prem.Transformer
             }
 
             return programSet.RealizedPrograms.Take(k)
-                .Select(p => new TProgram(p, p.GetFeatureValue(_scorer), _inputSymbol))
+                .Select(p => new TProgram(p, p.GetFeatureValue(_scorer)))
                 .ToList();
         }
 

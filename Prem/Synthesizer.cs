@@ -82,14 +82,12 @@ namespace Prem
     {
         private static ColorLogger Log = ColorLogger.Instance;
 
-        private TLearner _learner;
-
         private Stopwatch _stopwatch;
 
         public Synthesizer()
         {
-            this._learner = new TLearner();
             this._stopwatch = new Stopwatch();
+            TLearner.Setup();
         }
 
         public RuleSet Synthesize(List<Example> examples, int k = 1)
@@ -162,7 +160,7 @@ namespace Prem
    
         private List<TProgram> SynthesizeTransformers(IEnumerable<TExample> examples, int k)
         {
-            var programs = _learner.Learn(examples, k);
+            var programs = TLearner.Learn(examples, k);
 #if DEBUG
             Log.Debug("Top programs:");
             programs.ForEachI((i, p) =>
