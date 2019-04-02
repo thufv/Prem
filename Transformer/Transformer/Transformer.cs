@@ -38,19 +38,22 @@ namespace Prem.Transformer
     {
         private static ColorLogger Log = ColorLogger.Instance;
 
+        private Symbol _inputSymbol;
         protected ProgramNode _program;
 
         public double score { get; }
 
-        public TProgram(ProgramNode program, double score)
+        public TProgram(ProgramNode program, double score, Symbol inputSymbol)
         {
             this._program = program;
             this.score = score;
+            this._inputSymbol = inputSymbol;
         }
 
         public Optional<SyntaxNode> Apply(TInput input)
         {
-            var inputState = State.CreateForExecution(TLearner.InputSymbol, input);
+            // var inputState = State.CreateForExecution(TLearner.InputSymbol, input);
+            var inputState = State.CreateForExecution(_inputSymbol, input);
             try 
             {
                 var result = _program.Invoke(inputState) as SyntaxNode;
@@ -70,7 +73,13 @@ namespace Prem.Transformer
         public JObject DumpJSON()
         {
             var obj = new JObject();
-            obj.Add("program", ToString());
+            // System.Console.Write(_program);
+            // File.WriteAllText("/Users/xrc/Repository/Prem/logs",_program.PrintAST(ASTSerializationFormat.XML));
+            // var x = _program.PrintAST();
+            // var y = ProgramNode.Parse(x, TLearner._grammar);
+            // var z = System.Xml.Linq.XElement.Parse(x);
+            // var y = ProgramNode.ParseXML(TLearner._grammar,z);
+            obj.Add("program", _program.PrintAST(ASTSerializationFormat.XML));
             obj.Add("score", score);
             return obj;
         }
@@ -79,9 +88,9 @@ namespace Prem.Transformer
         public static TProgram FromJSON(JObject obj)
         {
             var src = (string)obj["program"];
-            var prog = ProgramNode.Parse(src, TLearner._grammar, ASTSerializationFormat.HumanReadable);
+            var prog = ProgramNode.Parse(src.Replace("\\",""), TLearner._grammar, ASTSerializationFormat.XML);
             var score = (double)obj["score"];
-            return new TProgram(prog, score);
+            return new TProgram(prog, score, null);
         }
     }
 
@@ -132,6 +141,7 @@ namespace Prem.Transformer
 
         public static List<TProgram> Learn(IEnumerable<TExample> examples, int k)
         {
+            Setup();
             var constraints = examples.ToDictionary(
                 e => State.CreateForLearning(InputSymbol, e.input),
                 e => (object)e.output
@@ -162,7 +172,7 @@ namespace Prem.Transformer
             }
 
             return programSet.RealizedPrograms.Take(k)
-                .Select(p => new TProgram(p, p.GetFeatureValue(_scorer)))
+                .Select(p => new TProgram(p, p.GetFeatureValue(_scorer),InputSymbol))
                 .ToList();
         }
 

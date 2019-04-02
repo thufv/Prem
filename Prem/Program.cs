@@ -45,6 +45,7 @@ namespace Prem
 
         static void Main(string[] args)
         {
+            System.Console.Write(args);
             CommandLine.Parser.Default.ParseArguments<Options>(args)
                 .WithParsed<Options>(opts => Run(opts))
                 .WithNotParsed<Options>(errs => HandleErrors(errs));

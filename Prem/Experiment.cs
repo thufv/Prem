@@ -11,6 +11,7 @@ using Prem.Util;
 
 namespace Prem
 {
+    using Env = Dictionary<EnvKey, string>;
     public class Experiment
     {
         private static ColorLogger Log = ColorLogger.Instance;
@@ -37,6 +38,8 @@ namespace Prem
 
         private string _output_file_path;
 
+        private string _rule_lib_path;
+
         public Experiment(string language, string suiteFolder, int k, List<int> learningSet, List<int> testingSet,
             string outputDir, bool oneBenchmark = false)
         {
@@ -54,6 +57,7 @@ namespace Prem
             var timeStr = _create_time.ToString("s").Replace(':', '_');
             var fileName = $"Prem_learn_{_learning_set_str}_test_{_testing_set_str}_{timeStr}.json";
             this._output_file_path = Path.Combine(outputDir, fileName);
+            this._rule_lib_path = Path.Combine(outputDir,$"rule.lib.json");
         }
 
         public void Launch()
@@ -74,15 +78,105 @@ namespace Prem
                 var benchmarkRecords = new JArray();
                 var index = 1;
                 var total = benchmarks.Count;
+
+                RuleLib ruleLib = new RuleLib();
+
                 foreach (var benchmark in benchmarks)
                 {
-                    benchmarkRecords.Add(RunBenchmark(index, total, benchmark));
+                    // benchmarkRecords.Add(RunBenchmark(index, total, benchmark));
+                    benchmarkRecords.Add(LearnBenchmark(index,total,benchmark,ref ruleLib));
+                    index = index + 1;
                 }
                 experimentRecord.Add("benchmarks", benchmarkRecords);
+
+                // File.WriteAllText(_rule_lib_path,ruleLib.DumpJSON().ToString());
+                Log.Info("Learning Finished.");
+                index = 1;
+                foreach (var benchmark in benchmarks)
+                {
+                    // benchmarkRecords.Add(RunBenchmark(index, total, benchmark));
+                    benchmarkRecords.Add(ApplyBenchmark(index,total,benchmark,ruleLib));
+                    index = index + 1;
+                }
 
                 File.WriteAllText(_output_file_path, experimentRecord.ToString());
                 Log.Info("Record saved to file {0}", _output_file_path);
             }
+        }
+
+        private JObject LearnBenchmark(int index, int total, string benchmarkFolder, ref RuleLib ruleLib)
+        {
+            Log.Info("Learning {0} ({1}/{2})", benchmarkFolder, index, total);
+            
+            JObject record = new JObject();
+            record.Add("folder", benchmarkFolder);
+
+            var examples = Directory.GetDirectories(benchmarkFolder).Sorted().Select(CreateExample).ToList();
+            var learningExamples = examples.WhereIndex(id => _learning_set.Contains(id + 1)).ToList();
+            record.Add("num learning examples", learningExamples.Count);
+            if (!learningExamples.Any())
+            {
+                Log.Warning("No learning examples found in benchmark: {0}", benchmarkFolder);
+                return record;
+            }
+
+            var ruleSet = _synthesizer.Synthesize(learningExamples, _k);
+            record.Add("synthesis time (ms)", _synthesizer.SynthesisTime);
+            record.Add("synthesis succeeds?", !ruleSet.IsEmpty);
+
+            ruleLib.add(ruleSet);
+
+            return record;
+        }
+
+        
+        private JObject ApplyBenchmark(int index, int total,string benchmarkFolder,RuleLib ruleLib)
+        {
+            Log.Info("Applying {0} ({1}/{2})", benchmarkFolder, index, total);
+            var record = new JArray();
+
+            var examples = Directory.GetDirectories(benchmarkFolder).Sorted().Select(CreateExample).ToList();
+            var learningExamples = examples.WhereIndex(id => _learning_set.Contains(id + 1)).ToList();
+
+            var testingExamples = examples.WhereIndex(id => _testing_set.Contains(id + 1)).ToList();
+
+
+            foreach(var ruleSet in ruleLib.ruleSets)
+            {
+                var resultRecords = new JArray();
+                // foreach(var example in testingExamples)
+                // {
+                    // var env = new Env();
+                    // if(!ruleSet.errPattern.Match(example.input.errMessage,env))
+                    // {
+                    //     continue;
+                    // }
+
+                    
+                    var results = ruleSet.TestAllMany(testingExamples).ToList();
+                    Log.Info("Testing results: {0}", results.ToDictionary());
+
+                    
+                    foreach (var result in results)
+                    {
+                        var resultRecord = new JObject();
+                        resultRecord.Add("test case", result.Key.name);
+                        resultRecord.Add("solved?", result.Value.HasValue);
+                        if (result.Value.HasValue)
+                        {
+                            resultRecord.Add("k", result.Value.Value);
+                        }
+                        resultRecords.Add(resultRecord);
+                    }
+
+                    record.Add(resultRecords);
+
+                // }
+            }
+
+            JObject obj = new JObject();
+            obj.Add("tests",record);
+            return obj;
         }
 
         private JObject RunBenchmark(int index, int total, string benchmarkFolder)

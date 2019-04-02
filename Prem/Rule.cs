@@ -8,6 +8,9 @@ using Microsoft.ProgramSynthesis.Utils;
 using Prem.Transformer;
 using Prem.Util;
 
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
 namespace Prem
 {
     using Env = Dictionary<EnvKey, string>;
@@ -250,6 +253,21 @@ namespace Prem
 
         public override string ToString() =>
             $"[{String.Join(", ", matchers.Select(m => m.ToString()))}]";
+
+        public JObject DumpJSON()
+        {
+            var jset = new JsonSerializerSettings() { TypeNameHandling = TypeNameHandling.All };
+            var obj = JObject.Parse(JsonConvert.SerializeObject(this,jset));
+            return obj;
+        }
+
+        // load from JSON
+        public static ErrPattern FromJSON(JObject obj)
+        {
+            var jset = new JsonSerializerSettings() { TypeNameHandling = TypeNameHandling.All };
+            var pat = JsonConvert.DeserializeObject<ErrPattern>(obj.ToString(),jset);
+            return pat;
+        }
     }
 
     public class RuleSet
@@ -317,5 +335,75 @@ namespace Prem
 
         public IEnumerable<KeyValuePair<Example, Optional<int>>> TestAllMany(IEnumerable<Example> examples) =>
             examples.SelectPair(TestAll);
+
+        public JObject DumpJSON()
+        {
+            var obj = new JObject();
+            obj.Add("errPattern",errPattern.DumpJSON());
+            List<JObject> listJObject = new List<JObject>();
+            foreach(var transformer in transformers)
+            {
+                listJObject.Add(transformer.DumpJSON());
+            }
+            obj.Add("transformers",JToken.FromObject(listJObject));
+            return obj;
+        }
+
+        // load from JSON
+        public static RuleSet FromJSON(JObject obj)
+        {
+            var pattern = ErrPattern.FromJSON((JObject) obj["errPattern"]);
+            List<TProgram> programs = new List<TProgram>();
+            foreach(var program in obj["transformers"].ToObject<List<JObject>>())
+            {
+                programs.Add(TProgram.FromJSON(program));
+            }
+            var ruleSet = new RuleSet(pattern,programs);
+            return ruleSet;
+        }
+    }
+
+    public class RuleLib
+    {
+        public List<RuleSet> ruleSets{get;}
+        public RuleLib()
+        {
+            this.ruleSets = new List<RuleSet>();
+        }
+        public RuleLib(List<RuleSet> ruleSets)
+        {
+            this.ruleSets = ruleSets;
+        }
+        public int Size => ruleSets.Count;
+
+        public bool IsEmpty => !ruleSets.Any();
+
+        public void add(RuleSet ruleset)
+        {
+            this.ruleSets.Add(ruleset);
+        }
+
+        public JObject DumpJSON()
+        {
+            var obj = new JObject();
+            List<JObject> listJObject = new List<JObject>();
+            foreach(var ruleSet in ruleSets)
+            {
+                listJObject.Add(ruleSet.DumpJSON());
+            }
+            obj.Add("ruleSets",JToken.FromObject(listJObject));
+            return obj;
+        }
+        
+        public static RuleLib FromJSON(JObject obj)
+        {
+            List<RuleSet> ruleSets = new List<RuleSet>();
+            var x = obj["ruleSets"];
+            foreach(var ruleSet in x.ToObject<List<JObject>>())
+            {
+                ruleSets.Add(RuleSet.FromJSON(ruleSet));
+            }
+            return new RuleLib(ruleSets);
+        }
     }
 }

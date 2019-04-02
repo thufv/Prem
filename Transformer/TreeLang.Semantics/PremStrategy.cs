@@ -308,7 +308,7 @@ namespace Prem.Transformer.TreeLang
                 if (!scopeSpec.Forall((i, o) => i.Equals(highest.Key) ? true :
                     o.Ancestors().Any(n => n.label.Equals(label))))
                 {
-                    Log.Warning("Lift: impossible to lift all of them to the highest");
+                    // Log.Warning("Lift: impossible to lift all of them to the highest");
                     return Optional<ProgramNode>.Nothing;
                 }
 
