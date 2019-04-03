@@ -144,14 +144,6 @@ namespace Prem
             foreach(var ruleSet in ruleLib.ruleSets)
             {
                 var resultRecords = new JArray();
-                // foreach(var example in testingExamples)
-                // {
-                    // var env = new Env();
-                    // if(!ruleSet.errPattern.Match(example.input.errMessage,env))
-                    // {
-                    //     continue;
-                    // }
-
                     
                     var results = ruleSet.TestAllMany(testingExamples).ToList();
                     Log.Info("Testing results: {0}", results.ToDictionary());
@@ -161,6 +153,8 @@ namespace Prem
                     {
                         var resultRecord = new JObject();
                         resultRecord.Add("test case", result.Key.name);
+                        // resultRecord.Add("rule",ruleSet.transformers);
+                        resultRecord.Add("matched?", ruleSet.errPattern.Match(result.Key.input.errMessage,new Env()));
                         resultRecord.Add("solved?", result.Value.HasValue);
                         if (result.Value.HasValue)
                         {
