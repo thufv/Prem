@@ -133,43 +133,59 @@ namespace Prem
         private JObject ApplyBenchmark(int index, int total,string benchmarkFolder,RuleLib ruleLib)
         {
             Log.Info("Applying {0} ({1}/{2})", benchmarkFolder, index, total);
-            var record = new JArray();
 
             var examples = Directory.GetDirectories(benchmarkFolder).Sorted().Select(CreateExample).ToList();
             var learningExamples = examples.WhereIndex(id => _learning_set.Contains(id + 1)).ToList();
 
             var testingExamples = examples.WhereIndex(id => _testing_set.Contains(id + 1)).ToList();
 
+            var names = new List<string>(testingExamples.Count);
+            var countK = new List<int>(testingExamples.Count);
+            var solves = new List<bool>(testingExamples.Count);
 
+            for(int i=0;i<testingExamples.Count;++i)
+            {
+                countK.Add(0);
+                solves.Add(false);
+                names.Add("");
+            }
+            var resultRecords = new JArray();
             foreach(var ruleSet in ruleLib.ruleSets)
             {
-                var resultRecords = new JArray();
-                    
-                    var results = ruleSet.TestAllMany(testingExamples).ToList();
-                    Log.Info("Testing results: {0}", results.ToDictionary());
-
-                    
-                    foreach (var result in results)
+                var results = ruleSet.TestAllMany(testingExamples).ToList();
+                Log.Info("Testing results: {0}", results.ToDictionary());
+                
+                for(int i=0;i<results.Count;++i)
+                {
+                    if(solves[i]) continue;
+                    var result = results[i];
+                    names[i] = result.Key.name;
+                    var matched = ruleSet.errPattern.Match(result.Key.input.errMessage,new Env());
+                    var solved = result.Value.HasValue;
+                    if(matched && !solved)
                     {
-                        var resultRecord = new JObject();
-                        resultRecord.Add("test case", result.Key.name);
-                        // resultRecord.Add("rule",ruleSet.transformers);
-                        resultRecord.Add("matched?", ruleSet.errPattern.Match(result.Key.input.errMessage,new Env()));
-                        resultRecord.Add("solved?", result.Value.HasValue);
-                        if (result.Value.HasValue)
-                        {
-                            resultRecord.Add("k", result.Value.Value);
-                        }
-                        resultRecords.Add(resultRecord);
+                        countK[i] += ruleSet.Size;
                     }
-
-                    record.Add(resultRecords);
-
-                // }
+                    if(matched && solved)
+                    {
+                        countK[i] += result.Value.Value;
+                        solves[i] = true;
+                    }
+                }
             }
-
+            for(int i=0;i<names.Count;++i)
+            {
+                var resultRecord = new JObject();
+                resultRecord.Add("test case", names[i]);
+                resultRecord.Add("solved?", solves[i]);
+                if (solves[i])
+                {
+                    resultRecord.Add("k", countK[i]);
+                }
+                resultRecords.Add(resultRecord);
+            }
             JObject obj = new JObject();
-            obj.Add("tests",record);
+            obj.Add("tests",resultRecords);
             return obj;
         }
 
