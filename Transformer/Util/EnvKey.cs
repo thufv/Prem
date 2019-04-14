@@ -1,9 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
-
+using System;
+using System.Xml.Linq;
 namespace Prem.Util
 {
-    public class EnvKey
+    public class EnvKey : ASTSerialization.IObjSerializable
     {
         private List<int> keys = new List<int>();
 
@@ -43,6 +44,19 @@ namespace Prem.Util
         public override int GetHashCode()
         {
             return ToString().GetHashCode();
+        }
+        public Type getSerializedType() => typeof(EnvKey);
+        public XElement serialize()
+        {
+            var xe = new XElement("Envkey");
+            var keys_xe = new XElement("Attr-keys");
+            ASTSerialization.Serialization.fillXElement(keys,keys_xe);
+            xe.Add(keys_xe);
+            return xe;
+        }
+        public EnvKey(XElement xe)
+        {
+            keys = ASTSerialization.Serialization.makeObject(xe.Element("Attr-keys")) as List<int>;
         }
     }
 }

@@ -10,16 +10,20 @@ using Prem.Util;
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-
+using System.Xml.Linq;
 namespace Prem
 {
     using Env = Dictionary<EnvKey, string>;
 
-    public abstract class Matcher
+    public abstract class Matcher : ASTSerialization.IObjSerializable
     {
         public abstract bool Match(string word, Env env);
 
         public abstract void LabelVar(Counter counter);
+
+        public abstract Type getSerializedType();
+
+        public abstract XElement serialize();
     }
 
     public class Const : Matcher
@@ -49,6 +53,21 @@ namespace Prem
         public override int GetHashCode() => literal.GetHashCode();
 
         public override string ToString() => $"\"{literal}\"";
+
+        public override Type getSerializedType() => typeof(Const);
+
+        public override XElement serialize()
+        {
+            var xe = new XElement("Const");
+            var literal_xe = new XElement("Attr-literal");
+            ASTSerialization.Serialization.fillXElement(literal,literal_xe);
+            xe.Add(literal_xe);
+            return xe;
+        }
+        public Const(XElement xe)
+        {
+            literal = ASTSerialization.Serialization.makeObject(xe.Element("Attr-literal")) as string;
+        }
     }
 
     public class Var : Matcher
@@ -149,9 +168,32 @@ namespace Prem
 
         public override string ToString() =>
             quotePair == NO_QUOTE ? $"?{var}" : $"{quotePair.left}?{var}{quotePair.right}";
+
+        public override Type getSerializedType() => typeof(Var);
+
+        public override XElement serialize()
+        {
+            var xe = new XElement("Var");
+            var var_xe = new XElement("Attr-var");
+            var quotePair_left_xe = new XElement("Attr-quotePair_left");
+            var quotePair_right_xe = new XElement("Attr-quotePair_right");
+            ASTSerialization.Serialization.fillXElement(var,var_xe);
+            ASTSerialization.Serialization.fillXElement(quotePair.left,quotePair_left_xe);
+            ASTSerialization.Serialization.fillXElement(quotePair.right,quotePair_right_xe);
+            xe.Add(var_xe);
+            xe.Add(quotePair_left_xe);
+            xe.Add(quotePair_right_xe);
+            return xe;
+        }
+        public Var(XElement xe)
+        {
+            var = ASTSerialization.Serialization.makeObject(xe.Element("Attr-var")) as EnvKey;
+            quotePair = (ASTSerialization.Serialization.makeObject(xe.Element("Attr-quotePair_left")) as string,
+                ASTSerialization.Serialization.makeObject(xe.Element("Attr-quotePair_right")) as string);
+        }
     }
 
-    public class ErrPattern
+    public class ErrPattern : ASTSerialization.IObjSerializable
     {
         public List<Matcher> matchers { get; }
 
@@ -268,9 +310,25 @@ namespace Prem
             var pat = JsonConvert.DeserializeObject<ErrPattern>(obj.ToString(),jset);
             return pat;
         }
+
+        public Type getSerializedType() => typeof(ErrPattern);
+
+        public XElement serialize()
+        {
+            var xe = new XElement("ErrPattern");
+            var matchers_xe = new XElement("Attr-matchers");
+            ASTSerialization.Serialization.fillXElement(matchers,matchers_xe);
+            xe.Add(matchers_xe);
+            return xe;
+        }
+
+        public ErrPattern(XElement xe)
+        {
+            matchers = ASTSerialization.Serialization.makeObject(xe.Element("Attr-matchers")) as List<Matcher>;
+        }
     }
 
-    public class RuleSet
+    public class RuleSet : ASTSerialization.IObjSerializable
     {
         private static ColorLogger Log = ColorLogger.Instance;
 
@@ -361,9 +419,28 @@ namespace Prem
             var ruleSet = new RuleSet(pattern,programs);
             return ruleSet;
         }
+
+        public Type getSerializedType() => typeof(RuleSet);
+        public XElement serialize()
+        {
+            var xe = new XElement("RuleSet");
+            var errPattern_xe = new XElement("Attr-errPattern");
+            ASTSerialization.Serialization.fillXElement(errPattern,errPattern_xe);
+            var transformers_xe = new XElement("Attr-transformers");
+            ASTSerialization.Serialization.fillXElement(transformers,transformers_xe);
+            xe.Add(errPattern_xe);
+            xe.Add(transformers_xe);
+            return xe;
+        }
+        
+        public RuleSet(XElement xe)
+        {
+            errPattern = ASTSerialization.Serialization.makeObject(xe.Element("Attr-errPattern")) as ErrPattern;
+            transformers = ASTSerialization.Serialization.makeObject(xe.Element("Attr-transformers")) as List<TProgram>;
+        }
     }
 
-    public class RuleLib
+    public class RuleLib : ASTSerialization.IObjSerializable
     {
         public List<RuleSet> ruleSets{get;}
         public RuleLib()
@@ -405,5 +482,23 @@ namespace Prem
             }
             return new RuleLib(ruleSets);
         }
+
+        public XElement DumpXml() => serialize();
+        public static RuleLib FromXml(XElement xe) => new RuleLib(xe);
+
+        public RuleLib(XElement xe)
+        {
+            ruleSets = ASTSerialization.Serialization.makeObject(xe.Element("Attr-ruleSets")) as List<RuleSet>;
+        }
+
+        public XElement serialize()
+        {
+            var xe = new XElement("RuleLib");
+            var list_xe = new XElement("Attr-ruleSets");
+            ASTSerialization.Serialization.fillXElement(ruleSets,list_xe);
+            xe.Add(list_xe);
+            return xe;
+        }
+        public Type getSerializedType() => typeof(RuleLib);
     }
 }

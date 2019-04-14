@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Prem.Util;
 
+using Prem.Transformer;
 namespace Prem
 {
     using Env = Dictionary<EnvKey, string>;
@@ -41,7 +42,7 @@ namespace Prem
         private string _rule_lib_path;
 
         public Experiment(string language, string suiteFolder, int k, List<int> learningSet, List<int> testingSet,
-            string outputDir, bool oneBenchmark = false)
+            string outputDir, string ruleLib, bool oneBenchmark = false)
         {
             this._parser = new Parser(language);
             this._rootDir = suiteFolder;
@@ -57,11 +58,42 @@ namespace Prem
             var timeStr = _create_time.ToString("s").Replace(':', '_');
             var fileName = $"Prem_learn_{_learning_set_str}_test_{_testing_set_str}_{timeStr}.json";
             this._output_file_path = Path.Combine(outputDir, fileName);
-            this._rule_lib_path = Path.Combine(outputDir,$"rule.lib.json");
+            this._rule_lib_path = ruleLib;
+        }
+
+        public void SettingChecking()
+        {
+            if(_rule_lib_path=="")
+            {
+                if(_testing_set.Any() && !_learning_set.Any())
+                {
+                    Log.Error("Testing must be executed after learning or with a given rule lib.");
+                    System.Environment.Exit(0);
+                    // throw(new ArgumentException("Testing must be executed after learning or with a given rule lib."));
+                }
+                if(!_testing_set.Any() && _learning_set.Any())
+                {
+                    Log.Warning("Only learning process is executed and result will be lost.");
+                }
+                if(!_testing_set.Any() && !_learning_set.Any())
+                {
+                    Log.Warning("Nothing will be done.");
+                }
+            }
+            else 
+            {
+                if(!_learning_set.Any() && !File.Exists(_rule_lib_path))
+                {
+                    Log.Error("Rule lib could not be found.");
+                    System.Environment.Exit(0);
+                    // throw(new ArgumentException("Rule lib could not be found."));
+                }
+            }
         }
 
         public void Launch()
         {
+            SettingChecking();
             var benchmarks = (_one_benchmark ? _rootDir.Yield() : Directory.GetDirectories(_rootDir).Sorted()).ToList();
             if (!benchmarks.Any())
             {
@@ -72,33 +104,60 @@ namespace Prem
                 var experimentRecord = new JObject();
                 experimentRecord.Add("create time", _create_time.ToString());
                 experimentRecord.Add("top k", _k);
-                experimentRecord.Add("learning", _learning_set_str);
-                experimentRecord.Add("testing", _testing_set_str);
-                
+                if(_learning_set.Any())
+                    experimentRecord.Add("learning", _learning_set_str);
+                if(_testing_set.Any())
+                    experimentRecord.Add("testing", _testing_set_str);
+                if(_rule_lib_path!="")
+                    experimentRecord.Add("rule-lib", _rule_lib_path);
                 var benchmarkRecords = new JArray();
                 var index = 1;
                 var total = benchmarks.Count;
 
-                RuleLib ruleLib = new RuleLib();
-
-                foreach (var benchmark in benchmarks)
+                RuleLib ruleLib = null;
+                
+                if(_learning_set.Any())
                 {
-                    // benchmarkRecords.Add(RunBenchmark(index, total, benchmark));
-                    benchmarkRecords.Add(LearnBenchmark(index,total,benchmark,ref ruleLib));
-                    index = index + 1;
+                    Log.Info("Learning started.");
+                    ruleLib = new RuleLib();
+                    foreach (var benchmark in benchmarks)
+                    {
+                        // benchmarkRecords.Add(RunBenchmark(index, total, benchmark));
+                        benchmarkRecords.Add(LearnBenchmark(index,total,benchmark,ref ruleLib));
+                        index = index + 1;
+                    }
+                    experimentRecord.Add("benchmarks", benchmarkRecords);
+                    Log.Info("Learning finished.");
                 }
-                experimentRecord.Add("benchmarks", benchmarkRecords);
-
-                // File.WriteAllText(_rule_lib_path,ruleLib.DumpJSON().ToString());
-                Log.Info("Learning Finished.");
-                index = 1;
-                foreach (var benchmark in benchmarks)
+                if(_rule_lib_path!="")
                 {
-                    // benchmarkRecords.Add(RunBenchmark(index, total, benchmark));
-                    benchmarkRecords.Add(ApplyBenchmark(index,total,benchmark,ruleLib));
-                    index = index + 1;
+                    if(ruleLib!=null)
+                    {
+                        if(File.Exists(_rule_lib_path))
+                            Log.Warning("Rule lib file has existed and it will be over-written.");
+                        ruleLib.DumpXml().Save(_rule_lib_path);
+                        Log.Info("Rule lib write to file {0} successfully.",_rule_lib_path);
+                    }
+                    else
+                    {
+                        ASTSerialization.Serialization.instance.grammarSetter(TLearner._grammar);
+                        var xmlObj = System.Xml.Linq.XElement.Load(_rule_lib_path);
+                        ruleLib = RuleLib.FromXml(xmlObj);
+                        Log.Info("Load rule lib successfully.");
+                    }
                 }
-
+                if(_testing_set.Any())
+                {
+                    Log.Info("Test started.");
+                    index = 1;
+                    foreach (var benchmark in benchmarks)
+                    {
+                        // benchmarkRecords.Add(RunBenchmark(index, total, benchmark));
+                        benchmarkRecords.Add(ApplyBenchmark(index,total,benchmark,ruleLib));
+                        index = index + 1;
+                    }
+                    Log.Info("Test finished.");
+                }
                 File.WriteAllText(_output_file_path, experimentRecord.ToString());
                 Log.Info("Record saved to file {0}", _output_file_path);
             }

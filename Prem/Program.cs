@@ -29,11 +29,14 @@ namespace Prem
             [Option('o', "output", Default = ".", HelpText = "Output dir to write experiment results.")]
             public string OutputDir { get; set; }
 
-            [Option("learn", Required = true, HelpText = "Specify learning set, e.g. '1-3,5'")]
+            [Option("learn", Default = "", HelpText = "Specify learning set, e.g. '1-3,5'")]
             public string Learn { get; set; }
 
             [Option("test", Default = "", HelpText = "Specify testing set, e.g. '1-3,5'")]
             public string Test { get; set; }
+
+            [Option("rulelib", Default = "", HelpText = "Specify a rule lib file.")]
+            public string RuleLib { get; set; }
 
             [Option('b', "benchmark", Default = false, HelpText = "Run one benchmark.")]
             public bool OneBenchmark { get; set; }
@@ -97,7 +100,7 @@ namespace Prem
 
             // 3. Start experiment
             var experiment = new Experiment(opts.Lang, opts.Folder, opts.TopK, learningSet, testingSet,
-                opts.OutputDir, opts.OneBenchmark);
+                opts.OutputDir,opts.RuleLib, opts.OneBenchmark);
             experiment.Launch();
         }
 

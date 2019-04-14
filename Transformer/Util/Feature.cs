@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 using System.Linq;
+using System;
+using System.Xml.Linq;
 using Microsoft.ProgramSynthesis.Utils;
 
 namespace Prem.Util
 {
-    public abstract class Feature
+    public abstract class Feature : ASTSerialization.IObjSerializable
     {
         public static IEnumerable<Feature> Collect(SyntaxNode node) =>
             SubKindOf.Collect(node)
@@ -12,6 +14,9 @@ namespace Prem.Util
                 .Concat(SiblingsContainsFeature.Collect(node))
                 .Concat(SiblingsContainsErrToken.Collect(node))
                 .Concat(ContainsErrToken.Collect(node));
+        public abstract Type getSerializedType();
+        public abstract XElement serialize();
+
     }
 
     /// <summary>
@@ -46,6 +51,19 @@ namespace Prem.Util
         public override int GetHashCode()
         {
             return ToString().GetHashCode();
+        }
+        public override Type getSerializedType() => typeof(SubKindOf);
+        public override XElement serialize()
+        {
+            var xe = new XElement("SubKindOf");
+            var super_xe = new XElement("Attr-super");
+            ASTSerialization.Serialization.fillXElement(super,super_xe);
+            xe.Add(super_xe);
+            return xe;
+        }
+        public SubKindOf(XElement xe)
+        {
+            super = ASTSerialization.Serialization.makeObject(xe.Element("Attr-super")) as Label;
         }
     }
 
@@ -83,6 +101,19 @@ namespace Prem.Util
         public override int GetHashCode()
         {
             return ToString().GetHashCode();
+        }
+        public override Type getSerializedType() => typeof(SuperKindOf);
+        public override XElement serialize()
+        {
+            var xe = new XElement("SuperKindOf");
+            var sub_xe = new XElement("Attr-sub");
+            ASTSerialization.Serialization.fillXElement(sub,sub_xe);
+            xe.Add(sub_xe);
+            return xe;
+        }
+        public SuperKindOf(XElement xe)
+        {
+            sub = ASTSerialization.Serialization.makeObject(xe.Element("Attr-sub")) as Label;
         }
     }
 
@@ -130,6 +161,23 @@ namespace Prem.Util
         public override int GetHashCode()
         {
             return Hash.Combine(label.GetHashCode(), token.GetHashCode());
+        }
+        public override Type getSerializedType() => typeof(SiblingsContainsLeaf);
+        public override XElement serialize()
+        {
+            var xe = new XElement("SiblingsContainsLeaf");
+            var label_xe = new XElement("Attr-label");
+            var token_xe = new XElement("Attr-token");
+            ASTSerialization.Serialization.fillXElement(label,label_xe);
+            ASTSerialization.Serialization.fillXElement(token,token_xe);
+            xe.Add(label_xe);
+            xe.Add(token_xe);
+            return xe;
+        }
+        public SiblingsContainsLeaf(XElement xe)
+        {
+            label = ASTSerialization.Serialization.makeObject(xe.Element("Attr-label")) as Label;
+            token = ASTSerialization.Serialization.makeObject(xe.Element("Attr-token")) as string;
         }
     }
 
@@ -182,6 +230,23 @@ namespace Prem.Util
         {
             return ToString().GetHashCode();
         }
+        public override Type getSerializedType() => typeof(SiblingsContainsFeature);
+        public override XElement serialize()
+        {
+            var xe = new XElement("SiblingsContainsFeature");
+            var label_xe = new XElement("Attr-label");
+            var index_xe = new XElement("Attr-index");
+            ASTSerialization.Serialization.fillXElement(label,label_xe);
+            ASTSerialization.Serialization.fillXElement(index,index_xe);
+            xe.Add(label_xe);
+            xe.Add(index_xe);
+            return xe;
+        }
+        public SiblingsContainsFeature(XElement xe)
+        {
+            label = ASTSerialization.Serialization.makeObject(xe.Element("Attr-label")) as Label;
+            index = (int) ASTSerialization.Serialization.makeObject(xe.Element("Attr-index"));
+        }
     }
 
     /// <summary>
@@ -226,6 +291,15 @@ namespace Prem.Util
         {
             return "~@err".GetHashCode();
         }
+        public override Type getSerializedType() => typeof(SiblingsContainsErrToken);
+        public override XElement serialize()
+        {
+            var xe = new XElement("SiblingsContainsErrToken");
+            return xe;
+        }
+        public SiblingsContainsErrToken(XElement xe)
+        {
+        }
     }
 
     /// <summary>
@@ -263,6 +337,15 @@ namespace Prem.Util
         public override int GetHashCode()
         {
             return "@err".GetHashCode();
+        }
+        public override Type getSerializedType() => typeof(ContainsErrToken);
+        public override XElement serialize()
+        {
+            var xe = new XElement("ContainsErrToken");
+            return xe;
+        }
+        public ContainsErrToken(XElement xe)
+        {
         }
     }
 }

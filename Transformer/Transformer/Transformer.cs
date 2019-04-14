@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Diagnostics;
+using System.Xml.Linq;
 using Microsoft.ProgramSynthesis;
 using Microsoft.ProgramSynthesis.AST;
 using Microsoft.ProgramSynthesis.Compiler;
@@ -34,7 +35,7 @@ namespace Prem.Transformer
         }
     }
 
-    public class TProgram
+    public class TProgram : ASTSerialization.IObjSerializable
     {
         private static ColorLogger Log = ColorLogger.Instance;
 
@@ -73,13 +74,18 @@ namespace Prem.Transformer
         public JObject DumpJSON()
         {
             var obj = new JObject();
-            // System.Console.Write(_program);
-            // File.WriteAllText("/Users/xrc/Repository/Prem/logs",_program.PrintAST(ASTSerializationFormat.XML));
-            // var x = _program.PrintAST();
-            // var y = ProgramNode.Parse(x, TLearner._grammar);
+            var serialization = new ASTSerialization.Serialization(TLearner._grammar);
+            var serializedAST = serialization.PrintXML(_program);
+            // File.WriteAllText("/Users/xrc/Repository/Prem/logs/ast.xml",x);
+            // System.Xml.Serialization.XmlSerializer xs = new System.Xml.Serialization.XmlSerializer(typeof(ProgramNode));
+            // Stream stream = new MemoryStream();
+            // xs.Serialize(stream, _program);
+            // var y = xs.Deserialize(stream);
+            // var gm = _program.Grammar;
+            // var y = ProgramNode.Parse(x, gm,ASTSerializationFormat.XML);
             // var z = System.Xml.Linq.XElement.Parse(x);
             // var y = ProgramNode.ParseXML(TLearner._grammar,z);
-            obj.Add("program", _program.PrintAST(ASTSerializationFormat.XML));
+            obj.Add("program", serializedAST.ToString());
             obj.Add("score", score);
             return obj;
         }
@@ -88,10 +94,31 @@ namespace Prem.Transformer
         public static TProgram FromJSON(JObject obj)
         {
             var src = (string)obj["program"];
-            var prog = ProgramNode.Parse(src.Replace("\\",""), TLearner._grammar, ASTSerializationFormat.XML);
+            var serialization = new ASTSerialization.Serialization(TLearner._grammar);
+            var prog = serialization.Parse(System.Xml.Linq.XElement.Parse(src));
             var score = (double)obj["score"];
-            return new TProgram(prog, score, null);
+            return new TProgram(prog, score, TLearner.InputSymbol);
         }
+
+        public Type getSerializedType() => typeof(TProgram);
+        public XElement serialize()
+        {
+            var xe = new XElement("TProgram");
+            var program_xe = new XElement("Attr-program");
+            ASTSerialization.Serialization.fillXElement(_program,program_xe);
+            var score_xe = new XElement("Attr-score");
+            ASTSerialization.Serialization.fillXElement(score,score_xe);
+            xe.Add(program_xe);
+            xe.Add(score_xe);
+            return xe;
+        }
+        public TProgram(XElement xe)
+        {
+            _program = ASTSerialization.Serialization.makeObject(xe.Element("Attr-program")) as ProgramNode;
+            score = (double) ASTSerialization.Serialization.makeObject(xe.Element("Attr-score"));
+            _inputSymbol = TLearner.InputSymbol;
+        }
+
     }
 
 
