@@ -153,7 +153,7 @@ namespace Prem
                     foreach (var benchmark in benchmarks)
                     {
                         // benchmarkRecords.Add(RunBenchmark(index, total, benchmark));
-                        benchmarkRecords.Add(ApplyBenchmark(index,total,benchmark,ruleLib));
+                        benchmarkRecords.Add(ApplyBenchmarkModified(index,total,benchmark,ruleLib));
                         index = index + 1;
                     }
                     Log.Info("Test finished.");
@@ -188,7 +188,45 @@ namespace Prem
             return record;
         }
 
-        
+        private JObject ApplyBenchmarkModified(int index, int total,string benchmarkFolder,RuleLib ruleLib)
+        {
+            Log.Info("Applying {0} ({1}/{2})", benchmarkFolder, index, total);
+            var examples = Directory.GetDirectories(benchmarkFolder).Sorted().Select(CreateExample).ToList();
+            var testExamples = examples.WhereIndex(id => _testing_set.Contains(id + 1)).ToList();
+            var resultRecords = new JArray();
+            foreach(var testExample in testExamples)
+            {
+                (bool isSolved,int applyTry,int matchTry) solveResult = (false,0,0);
+                foreach(var ruleSet in ruleLib.ruleSets)
+                {
+                    solveResult.matchTry++;
+                    if(ruleSet.errPattern.Match(testExample.input.errMessage,new Env()))
+                    {
+                        foreach(var transformer in ruleSet.transformers)
+                        {
+                            solveResult.applyTry++;
+                            var transformResult = transformer.Apply(testExample.input.AsTInput(new Env()));
+                            if(transformResult.Any(tree => tree.IdenticalTo(testExample.output.root)))
+                            {
+                                solveResult.isSolved = true;
+                                break;
+                            }
+                        }
+                        if(solveResult.isSolved) 
+                            break;
+                    }
+                }
+                var resultRecord = new JObject();
+                resultRecord.Add("test case", testExample.name);
+                resultRecord.Add("solved?",solveResult.isSolved);
+                if(solveResult.isSolved)
+                    resultRecord.Add("k",solveResult.applyTry);
+                resultRecords.Add(resultRecord);
+            }
+            JObject obj = new JObject();
+            obj.Add("tests",resultRecords);
+            return obj;
+        }
         private JObject ApplyBenchmark(int index, int total,string benchmarkFolder,RuleLib ruleLib)
         {
             Log.Info("Applying {0} ({1}/{2})", benchmarkFolder, index, total);
