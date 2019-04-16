@@ -26,9 +26,11 @@ Options:
 - `-l <language>`: REQUIRED. Specify the language of the benchmarks, such as `c#` and `java`. Same with the one specified by `UTrans`.
 - `-k <top-k>`: Synthesize top-k rules. DEFAULT: 1.
 - `-L <log level>`: Log level, FINE/DEBUG/INFO/WARNING/ERROR. DEFAULT: DEBUG.
-- `--learn <learning set>`: REQUIRED. Specify which examples are used as the learning set, e.g. `1-3,5`
+- `--learn <learning set>`: Specify which examples are used as the learning set, e.g. `1-3,5`
 meaning the learning set `{1,2,3,5}`.
 - `--test <testing set>`: Specify which examples are used as the testing set. If not specify, the testing set is empty, i.e. synthesis only without testing.
+- `--rulelib <rule lib path>` Specify a rule lib file. If learning set specified, the rule lib will be serialized and written to the file. 
+Otherwise the rule lib will be read and deserialized from the rule lib file.
 - `-o <output dir>`: Specify the output directory for the experiment results (JSON files). DEFAULT: current directory.
 
 Argument:
@@ -36,11 +38,11 @@ Argument:
 
 For example,
 ```
-dotnet run -l c# -k 10 -L FINE -o ../logs --learn 1-3 --test 4-6 Compile.Error.Benchmarks/CSharp
+dotnet run -l c# -k 10 -L FINE -o ../logs --learn 1-3 --test 4-6 --rulelib ../logs/rulelib.xml Compile.Error.Benchmarks/CSharp
 ```
 
 Running one benchmark only: Specify the option `-b`, then the argument is interpreted as the root directory of the benchmark.
 For example,
 ```
-dotnet run -l c# -k 10 -L FINE -o ../logs --learn 1-3 --test 4-6 -b Compile.Error.Benchmarks/CSharp/CS0120
+dotnet run -l c# -k 10 -L FINE -o ../logs --learn 1-3 --test 4-6 -b --rulelib ../logs/rulelib.xml Compile.Error.Benchmarks/CSharp/CS0120
 ```
