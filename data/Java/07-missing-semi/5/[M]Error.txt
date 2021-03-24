@@ -1,0 +1,4 @@
+*https://www.tutorialspoint.com/java/java_innerclasses.htm
+MyClass.java:20: error: ';' expected
+       outer.my_Method()
+                        ^

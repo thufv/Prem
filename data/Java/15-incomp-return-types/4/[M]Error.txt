@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/33314606/dog-java16-error-incompatible-types-unexpected-return-value
+Program.java:16: error: incompatible types: unexpected return value
+      return age;
+             ^

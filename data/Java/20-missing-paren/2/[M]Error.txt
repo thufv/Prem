@@ -1,0 +1,4 @@
+*https://www.w3schools.com/java/java_methods.asp
+MyClass.java:17: error: ')' expected
+    public static void main(String[] args {
+                                         ^

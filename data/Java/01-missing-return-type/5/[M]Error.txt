@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/24345971/java-complains-about-invalid-method-declaration-return-type-required
+Test.java:2: error: invalid method declaration; return type required
+    public NewCard()
+           ^

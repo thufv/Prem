@@ -1,0 +1,4 @@
+*https://beginnersbook.com/2013/12/java-string-charat-method-example/
+CharAtExample.java:5: error: array required, but String found
+        char ch1 = str[0];
+                      ^

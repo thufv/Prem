@@ -1,0 +1,2 @@
+[88,17]
+error: non-static variable 'fast' cannot be referenced from a static context

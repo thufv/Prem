@@ -1,0 +1,2 @@
+[17,33]
+error CS0122: 'PrivateMethodScripts.dragonsSpawned' is inaccessible due to its protection level

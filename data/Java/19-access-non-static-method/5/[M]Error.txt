@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/45270519/non-static-method-cannot-be-referenced-from-a-static-context-cant-call-the-met
+FizzBuzz.java:6: error: non-static method fizzBuzz(int) cannot be referenced from a static context
+        System.out.println(fizzBuzz(15));
+                           ^

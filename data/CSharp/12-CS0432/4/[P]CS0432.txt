@@ -1,0 +1,2 @@
+[22,9]
+error CS0432: Alias 'Automobile' not found

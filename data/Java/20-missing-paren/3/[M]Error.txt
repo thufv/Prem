@@ -1,0 +1,4 @@
+*https://www.w3schools.com/java/java_methods.asp
+MyClass.java:7: error: ')' expected
+    if (age < 18 {
+                ^

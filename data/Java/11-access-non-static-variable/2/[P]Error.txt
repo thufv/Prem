@@ -1,0 +1,2 @@
+[14,60]
+error: non-static variable 'album' cannot be referenced from a static context

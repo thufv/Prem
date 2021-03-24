@@ -1,0 +1,2 @@
+[34,21]
+error: 'hoursWorked' has private access in 'ProductionWorker'

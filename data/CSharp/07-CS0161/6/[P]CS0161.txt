@@ -1,0 +1,2 @@
+[8,16]
+error CS0161: 'Program.SpawnEnemy(int)': not all code paths return a value

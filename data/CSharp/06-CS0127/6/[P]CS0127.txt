@@ -1,0 +1,2 @@
+[58,21]
+error CS0127: Since 'Program.input()' returns void, a return keyword must not be followed by an object expression

@@ -1,0 +1,2 @@
+[8,36]
+error CS1001: Identifier expected

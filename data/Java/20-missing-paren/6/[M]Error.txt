@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/36513898/error-expected-compiler-error
+Math.java:6: error: ')' expected
+        if(args[1].equalsIgnoreCase("+")
+                                        ^

@@ -1,0 +1,4 @@
+*https://stackoverflow.com/questions/5585779/how-do-i-convert-a-string-to-an-int-in-java
+Main.java:7: error: error: bad operand types for binary operator '-'
+  if (18-x>0) {
+        ^

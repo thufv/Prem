@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/34324407/possible-lossy-conversion-from-double-to-int-and-cannot-find-symbol/34324444
+project5.java:9: error: incompatible types: possible lossy conversion from double to int
+          int Low = Math.sqrt(count);
+                             ^

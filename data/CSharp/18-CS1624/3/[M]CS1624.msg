@@ -1,0 +1,2 @@
+https://answers.unity.com/questions/460382/error-cs1624-c.html
+(8,10,8,22): error CS1624: The body of 'Program.StartedQuest()' cannot be an iterator block because 'void' is not an iterator interface type

@@ -1,0 +1,2 @@
+[12,44]
+error: non-static method 'Sort(int[])' cannot be referenced from a static context

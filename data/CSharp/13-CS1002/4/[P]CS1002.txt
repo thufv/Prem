@@ -1,0 +1,2 @@
+[13,30]
+error CS1002: ';' expected

@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/31246030/non-static-variable-cannot-be-referenced-from-a-static-context-java
+JavaApplication5.java:88: error: non-static variable fast cannot be referenced from a static context
+            if (fast == 1) {
+                ^

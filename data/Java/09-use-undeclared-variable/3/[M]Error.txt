@@ -1,0 +1,4 @@
+*http://www.runoob.com/java/java-object-classes.html
+Test.java:11: error: cannot find symbol
+        color = new String();
+        ^

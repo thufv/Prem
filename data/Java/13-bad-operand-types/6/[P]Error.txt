@@ -1,0 +1,2 @@
+[28,13]
+error: bad operand types for binary operator '<'

@@ -1,0 +1,4 @@
+*https://stackoverflow.com/questions/579445/java-constructors
+Program.java:9: error: invalid method declaration; return type required
+    public Bike(int startCadence, int startSpeed, int startGear) {
+           ^

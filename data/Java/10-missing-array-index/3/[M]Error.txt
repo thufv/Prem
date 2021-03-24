@@ -1,0 +1,4 @@
+*https://stackoverflow.com/questions/41626676/incompatible-type-int-cannot-be-converted-to-int-error
+Program.java:11: error: incompatible types: int cannot be converted to int[]
+                    grades=g[i];
+                            ^

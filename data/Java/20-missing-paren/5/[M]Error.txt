@@ -1,0 +1,4 @@
+https://stackify.com/top-java-software-errors/
+MyClass.java:9: error: ')' expected
+                if (solidom.equalsIgnoreCase("cilindro") {
+                                                        ^

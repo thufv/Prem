@@ -1,0 +1,2 @@
+[7,19]
+error: incompatible types: possible lossy conversion from 'double' to 'int'

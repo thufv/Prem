@@ -1,0 +1,2 @@
+https://books.google.com/books?id=ZqKlzmETH1QC&pg=PA144&lpg=PA144&dq=cs1503+error++tostring&source=bl&ots=GOWeMZpUCd&sig=KdVC6EO8lwepIy3u7OZERbgjNP8&hl=zh-CN&sa=X&ved=2ahUKEwj5obCixLDfAhXjGjQIHVRsBOoQ6AEwBnoECAgQAQ#v=onepage&q=cs1503%20error%20%20tostring&f=false
+(20,20,20,22): error CS1503: Argument 1: cannot convert from 'int' to 'string'

@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/23983541/compiler-error-array-required-but-java-lang-string-found
+a.java:42: error: array required, but String found
+                temp[remainder] = Integer.parseInt(numbers[i]);
+                                                          ^

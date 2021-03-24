@@ -1,0 +1,2 @@
+[38,18]
+error: 'color' has private access in 'Shape'

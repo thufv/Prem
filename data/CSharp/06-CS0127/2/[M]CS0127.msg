@@ -1,0 +1,2 @@
+https://forum.unity.com/threads/practice-method-problem.530980/
+(12,9,12,15): error CS0127: Since 'MethodeReturn.LongHypo(float, float)' returns void, a return keyword must not be followed by an object expression

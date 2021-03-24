@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/23463427/variable-has-private-access
+Shape.java:38: error: color has private access in Shape
+        setColor(color);
+                 ^

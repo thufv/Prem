@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/7025093/non-static-method-cannot-be-referenced-from-a-static-context-testing-sort-metho
+Sorting.java:12: error: non-static method Sort(int[]) cannot be referenced from a static context
+        System.out.println(Arrays.toString(Sort(a)));
+                                           ^

@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/7969851/java-how-can-i-avoid-might-not-have-been-initialized
+Main.java:13: error: variable 'gradeList' might not have been initialized
+            if ( gradeList.size() <= 5 ) {// THIS IS WHERE ERROR OCCURES
+                 ^

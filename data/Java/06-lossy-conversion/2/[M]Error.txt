@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/14839320/possible-loss-of-precision-error-in-java
+test.java:6: error: incompatible types: possible lossy conversion from double to float
+        float c = 30.123;
+                  ^

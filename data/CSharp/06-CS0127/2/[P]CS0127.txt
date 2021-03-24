@@ -1,0 +1,2 @@
+[12,9]
+error CS0127: Since 'MethodeReturn.LongHypo(float, float)' returns void, a return keyword must not be followed by an object expression

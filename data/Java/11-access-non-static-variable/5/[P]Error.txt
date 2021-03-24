@@ -1,0 +1,2 @@
+[25,28]
+error: non-static variable 'stringComponent' cannot be referenced from a static context

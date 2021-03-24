@@ -1,0 +1,2 @@
+[16,11]
+error CS0122: 'MyClass.MyMethod()' is inaccessible due to its protection level

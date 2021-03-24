@@ -1,0 +1,4 @@
+*https://www.geeksforgeeks.org/java-lang-class-class-java-set-1/
+Test.java:4: error: cannot find symbol
+        a = new A();
+        ^

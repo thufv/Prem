@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/22162271/java-invalid-method-declaration-return-type-required-for-a-method
+WriteContacts.java:25: error: invalid method declaration; return type required
+    public ReadContacts2 ()
+           ^

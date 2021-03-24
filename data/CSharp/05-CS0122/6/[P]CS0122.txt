@@ -1,0 +1,2 @@
+[19,34]
+error CS0122: 'PrivateMethodScripts.SpawnDragons()' is inaccessible due to its protection level

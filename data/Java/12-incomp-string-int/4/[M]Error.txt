@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/48536811/error-incompatible-types-string-cannot-be-converted-to-int-in-java
+Name.java:24: error: incompatible types: String cannot be converted to int
+        int Total = args[0];
+                        ^

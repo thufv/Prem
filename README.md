@@ -1,5 +1,7 @@
 # PREM: Program Repair using Error Messages
 
+This repo contains the source code and evaluation artifact of the paper *Compilation Error Repairing by Examples*.
+
 ## System Requirements
 
 Before building PREM, the following platforms/tools are required as external dependencies. All libraries that PREM depends on are specified in the project files and will be proceed automatically by `dotnet`.
@@ -31,7 +33,7 @@ Please remember that every `dotnet` command must be executed under the folder `s
 
 ### Dataset Folder Structure
 
-Datasets passed to options `--learn` and `--bench` must have the following folder structure:
+Datasets passed to options `--learn` and `--bench` (see `data/CSharp/` for an example) must have the following folder structure:
 ```
 <root>/
      example_group_1/
@@ -50,7 +52,7 @@ PREM recognizes a file with prefix `[E]` as the erroneous version, `[C]` as the 
 
 To make filters `--learn-with` and `--bench-with` work normally, you must have your example folder (itself is a subfolder of some example group folder) named as a digit, e.g. `2` rather than `example-2`.
 
-Datasets passed to option `--predict` must have the following folder structure:
+Datasets passed to option `--predict` (see `data/Mutation/` for an example) must have the following folder structure:
 ```
 <root>/
     case_1/
@@ -59,3 +61,7 @@ Datasets passed to option `--predict` must have the following folder structure:
     case_2/
     ...
 ```
+
+## Reproducing
+
+See [Reproducing Guide](eval/REPRODUCING.md).

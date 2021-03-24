@@ -1,0 +1,2 @@
+[12,37]
+error CS0428: Cannot convert method group 'ToString' to non-delegate type 'string'. Did you intend to invoke the method?

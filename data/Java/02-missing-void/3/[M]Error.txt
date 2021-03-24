@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/51876988/method-overloading-in-java-program-error
+Program.java:9: error: invalid method declaration; return type required
+    calc(int a, int b) {
+    ^

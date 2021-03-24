@@ -1,0 +1,4 @@
+https://teamtreehouse.com/community/incompatible-types-unexpected-return-value-return-counter
+ScrabblePlayer.java:27: error: incompatible types: unexpected return value
+    return counter;
+           ^

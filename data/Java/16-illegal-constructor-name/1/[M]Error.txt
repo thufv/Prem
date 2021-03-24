@@ -1,0 +1,4 @@
+*https://www.tutorialspoint.com/java/java_constructors.htm
+Program.java:6: error: invalid method declaration; return type required
+    MyClas(int i ) {
+    ^

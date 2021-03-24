@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/19525594/java-missing-return-statement
+stringstuff.java:11: error: incompatible types: missing return value
+        return;
+        ^

@@ -1,0 +1,4 @@
+*http://www.runoob.com/java/java-array.html
+Program.java:8: error: incompatible types: double cannot be converted to double[]
+            myList = out;
+                     ^

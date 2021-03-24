@@ -1,0 +1,4 @@
+http://www.cs.pomona.edu/~dkauchak/classes/f10/cs051-f10/handouts/JavaErrorsExplained.pdf
+MyClass.java:3: error: ')' expected
+        if (i > j // Error, unbalanced parentheses
+                 ^

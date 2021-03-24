@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/35638018/getting-the-error-incompatible-types-possible-lossy-conversion-from-double-to
+DebugThree1.java:7: error: incompatible types: possible lossy conversion from double to int
+        int ret = tip;
+                  ^

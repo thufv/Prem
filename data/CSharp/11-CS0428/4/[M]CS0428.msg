@@ -1,0 +1,2 @@
+https://support.unity3d.com/hc/en-us/articles/206529373-What-is-CS0428-
+(8,58,8,83): error CS0428: Cannot convert method group 'GetComponent' to non-delegate type 'EnemyScript'. Did you intend to invoke the method?

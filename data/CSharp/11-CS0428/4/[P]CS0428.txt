@@ -1,0 +1,2 @@
+[8,58]
+error CS0428: Cannot convert method group 'GetComponent' to non-delegate type 'EnemyScript'. Did you intend to invoke the method?

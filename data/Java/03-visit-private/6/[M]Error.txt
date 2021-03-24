@@ -1,0 +1,4 @@
+*https://www.dreamincode.net/forums/topic/88757-variable-has-private-access-in-class-error/
+Shape.java:39: error: x has private access in Shape
+        fillRect(x, y, width, height);
+                 ^

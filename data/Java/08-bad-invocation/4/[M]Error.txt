@@ -1,0 +1,4 @@
+*https://www.tutorialspoint.com/java/java_methods.htm
+[E]This_Example.java:47: error: cannot find symbol
+      int ret = obj2.print;
+                    ^

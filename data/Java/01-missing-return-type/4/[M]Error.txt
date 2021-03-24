@@ -1,0 +1,4 @@
+*https://stackoverflow.com/questions/17880364/java-invalid-method-declaration-return-type-requied-in-init-run
+Program.java:3: error: invalid method declaration; return type required
+    public init() throws MalformedURLException {
+           ^

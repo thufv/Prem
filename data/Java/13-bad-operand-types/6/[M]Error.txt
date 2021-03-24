@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/32385777/bad-operand-types-for-binary-operator
+TransitionWork.java:28: error: bad operand types for binary operator '<'
+    if (age < 17) {
+            ^

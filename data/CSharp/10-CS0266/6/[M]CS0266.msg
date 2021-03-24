@@ -1,0 +1,2 @@
+https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs0266
+(29,14,29,16): error CS0266: Cannot implicitly convert type 'MyClass' to 'DerivedClass'. An explicit conversion exists (are you missing a cast?)

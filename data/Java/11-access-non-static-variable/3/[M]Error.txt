@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/14272376/error-non-static-variable-cannot-be-referenced-from-a-static-context
+Program.java:5: error: non-static variable idNo cannot be referenced from a static context
+        System.out.println("firstclass citizen " + idNo);
+                                                   ^

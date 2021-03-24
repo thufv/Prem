@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/34396577/java-jdk-possible-lossy-conversion-from-double-to-int/34396831
+TrainTicket.java:31: error: incompatible types: possible lossy conversion from double to int
+            int total2 = price* much* 0.7;
+                                    ^

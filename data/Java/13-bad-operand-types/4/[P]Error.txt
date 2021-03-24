@@ -1,0 +1,2 @@
+[23,22]
+error: bad operand types for binary operator '>='

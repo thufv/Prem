@@ -1,0 +1,2 @@
+[6,31]
+error: variable 'a' might not have been initialized

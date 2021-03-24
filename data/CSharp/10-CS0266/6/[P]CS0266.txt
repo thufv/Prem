@@ -1,0 +1,2 @@
+[29,14]
+error CS0266: Cannot implicitly convert type 'MyClass' to 'DerivedClass'. An explicit conversion exists (are you missing a cast?)

@@ -1,0 +1,4 @@
+http://cs-people.bu.edu/dgs/courses/cs111-old/assignments/errors.html
+Test.java:7: error: invalid method declaration; return type required
+    public static getValue() {
+                  ^

@@ -1,0 +1,4 @@
+*https://www.geeksforgeeks.org/new-operator-java/
+Test.java:20: error: cannot find symbol
+        b1 = new Box();
+        ^

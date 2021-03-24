@@ -1,0 +1,2 @@
+[18,44]
+error: non-static method 'hero(double,double,double)' cannot be referenced from a static context

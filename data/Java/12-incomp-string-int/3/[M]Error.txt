@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/30430785/errorincomparable-types-string-cannot-be-converted-into-int
+Name.java:15: error: incompatible types: 'String' cannot be converted to 'int'
+    userAge = in.nextLine();
+                         ^

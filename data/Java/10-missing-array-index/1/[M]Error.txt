@@ -1,0 +1,4 @@
+*https://stackoverflow.com/questions/45901985/int-cannot-be-converted-to-int
+Program.java:12: error: incompatible types: int cannot be converted to int[]
+                sumArray = R1[i]; // Error
+                             ^

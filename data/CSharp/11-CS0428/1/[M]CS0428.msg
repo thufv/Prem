@@ -1,0 +1,2 @@
+https://ninjatrader.com/support/helpGuides/HelpGuideV6/helpguide.html?CS0428
+(8,31,8,39): error CS0428: Cannot convert method group 'ToString' to non-delegate type 'string'. Did you intend to invoke the method?

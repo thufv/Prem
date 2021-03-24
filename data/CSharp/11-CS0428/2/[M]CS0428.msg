@@ -1,0 +1,2 @@
+https://bytes.com/topic/c-sharp/answers/641703-simple-c-type-conversion-problem
+(12,37,12,45): error CS0428: Cannot convert method group 'ToString' to non-delegate type 'string'. Did you intend to invoke the method?

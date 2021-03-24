@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/34324407/possible-lossy-conversion-from-double-to-int-and-cannot-find-symbol/34324444
+Lyrics.java:16: error: incompatible types: possible lossy conversion from double to int
+          int ret = Math.pow (b, 3);
+                             ^

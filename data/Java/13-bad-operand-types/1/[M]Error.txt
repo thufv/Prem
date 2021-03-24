@@ -1,0 +1,4 @@
+*https://www.sololearn.com/Discuss/719813/i-am-getting-an-error-bad-operand-types-for-binary-operator-if-x-18-first-type-scanner-second-type
+Main.java:7: error: error: bad operand types for binary operator '<'
+  if (x <18) {
+        ^

@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/19600216/non-static-method-moveint-int-cannot-be-referenced-from-a-static-context
+Program.java:15: error: non-static method move(int,int) cannot be referenced from a static context
+        move(0,0);
+        ^

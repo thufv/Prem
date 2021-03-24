@@ -1,0 +1,4 @@
+https://teamtreehouse.com/community/error-messages-come-out-repeatly-cannot-find-symbol-class-object
+Prompter.java:51: error: cannot find symbol
+    while (mGame.getRemainingTries>0) {
+                ^

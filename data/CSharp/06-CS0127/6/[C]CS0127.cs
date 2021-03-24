@@ -1,0 +1,102 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace Inventory_system_test
+{
+    class Program
+    {
+        //Objects
+        static private Inventory inv = new Inventory();
+
+        //strings
+        static private string args;
+        //variables
+
+
+
+        static void Main(string[] args)
+        {
+            Write("Do you want to kill dave?");
+            input();
+        }
+
+        static public string input()
+        {
+
+            bool done = false;
+
+            Writen("Enter a command: ");
+            args = Console.ReadLine();
+            while (!done)
+            {
+                if (args.Contains("add inv "))
+                {
+                    args = args.Split()[2];
+                    inv.additem(args);
+
+                }
+                else if (args.Contains("remove inv "))
+                {
+                    args = args.Split()[2];
+                    inv.removeitem(args);
+
+                }
+                else if (args.Contains("see inv"))
+                {
+                    Write("INVENTORY:");
+                    inv.getinv();
+                }
+                else if (args == "close")
+                {
+                    Environment.Exit(0);
+                }
+                else
+                {
+                    done = true;
+                    return args; ///**Here is the error ofcourse.**
+                }
+
+            }
+        } //Input files things :)
+
+
+        //#region Easy Commands (Write, Sleep)
+        //Write to console
+        public static void Write(string writev)
+        {
+            Console.WriteLine(writev);
+        }
+
+        //Sleep for 'int sleeptime' in milliseconds
+        public static void Sleep(int sleeptime)
+        {
+            System.Threading.Thread.Sleep(sleeptime);
+        }
+
+        public static void Writen(string writen)
+        {
+            Console.Write(writen);
+        }
+        //#endregion
+    }
+
+    internal class Inventory
+    {
+        internal void additem(string args)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal void getinv()
+        {
+            throw new NotImplementedException();
+        }
+
+        internal void removeitem(string args)
+        {
+            throw new NotImplementedException();
+        }
+    }
+}

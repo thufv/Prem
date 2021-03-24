@@ -1,0 +1,2 @@
+[4,28]
+error: variable 'd' might not have been initialized

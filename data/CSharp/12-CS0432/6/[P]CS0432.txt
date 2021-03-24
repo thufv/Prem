@@ -1,0 +1,2 @@
+[8,26]
+error CS0432: Alias 'Double' not found

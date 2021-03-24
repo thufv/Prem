@@ -1,0 +1,2 @@
+https://www.strathweb.com/2018/10/no-internalvisibleto-no-problem-bypassing-c-visibility-rules-with-roslyn/
+(24,31,24,40): error CS0122: 'AreaCalculator.Calculate(Square)' is inaccessible due to its protection level

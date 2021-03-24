@@ -1,0 +1,2 @@
+https://answers.unity.com/questions/438740/error-cs0119-expression-denotes-a-type-where-a-var.html
+(44,55,44,62): error CS0119: Expression denotes a `type' where a `variable',`value' or `method group' was expected
