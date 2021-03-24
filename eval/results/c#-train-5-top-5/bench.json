@@ -1,0 +1,246 @@
+{
+  "create time": "03/24/2021 21:39:57",
+  "file filter": "6",
+  "benchmarks": [
+    {
+      "group path": "../../data/CSharp/01-CS0022-1",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/CSharp/01-CS0022-1/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 01-CS0022-1"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/CSharp/02-CS0022-2",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/CSharp/02-CS0022-2/6",
+          "solved?": true,
+          "num attempted rules": 3,
+          "rule applied": "from 02-CS0022-2"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/CSharp/03-CS0022-3",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/CSharp/03-CS0022-3/6",
+          "solved?": true,
+          "num attempted rules": 8,
+          "rule applied": "from 03-CS0022-3"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/CSharp/04-CS0117",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/CSharp/04-CS0117/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 04-CS0117"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/CSharp/05-CS0122",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/CSharp/05-CS0122/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 05-CS0122"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/CSharp/06-CS0127",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/CSharp/06-CS0127/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 06-CS0127"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/CSharp/07-CS0161",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/CSharp/07-CS0161/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 07-CS0161"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/CSharp/08-CS0163",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/CSharp/08-CS0163/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 08-CS0163"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/CSharp/09-CS0165",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/CSharp/09-CS0165/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 09-CS0165"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/CSharp/10-CS0266",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/CSharp/10-CS0266/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 10-CS0266"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/CSharp/11-CS0428",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/CSharp/11-CS0428/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 11-CS0428"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/CSharp/12-CS0432",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/CSharp/12-CS0432/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 12-CS0432"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/CSharp/13-CS1002",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/CSharp/13-CS1002/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 13-CS1002"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/CSharp/14-CS1003",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/CSharp/14-CS1003/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 14-CS1003"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/CSharp/15-CS1041",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/CSharp/15-CS1041/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 15-CS1041"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/CSharp/16-CS1503",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/CSharp/16-CS1503/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 16-CS1503"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/CSharp/17-CS1513",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/CSharp/17-CS1513/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 17-CS1513"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/CSharp/18-CS1624",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/CSharp/18-CS1624/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 18-CS1624"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/CSharp/19-CS1656",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/CSharp/19-CS1656/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 19-CS1656"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/CSharp/20-CS8070",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/CSharp/20-CS8070/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 20-CS8070"
+        }
+      ]
+    }
+  ]
+}

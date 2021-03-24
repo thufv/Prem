@@ -1,0 +1,167 @@
+{
+  "create time": "03/24/2021 21:19:21",
+  "top k": 1,
+  "file filter": "1,2,3,4,5",
+  "synthesis tasks": [
+    {
+      "example group path": "../../data/Java/01-missing-return-type",
+      "example group size": 5,
+      "synthesis time (ms)": 551,
+      "synthesis succeeds?": true,
+      "rule set size": 1,
+      "rule set name": "from 01-missing-return-type"
+    },
+    {
+      "example group path": "../../data/Java/02-missing-void",
+      "example group size": 5,
+      "synthesis time (ms)": 314,
+      "synthesis succeeds?": true,
+      "rule set size": 1,
+      "rule set name": "from 02-missing-void"
+    },
+    {
+      "example group path": "../../data/Java/03-visit-private",
+      "example group size": 5,
+      "synthesis time (ms)": 625,
+      "synthesis succeeds?": true,
+      "rule set size": 1,
+      "rule set name": "from 03-visit-private"
+    },
+    {
+      "example group path": "../../data/Java/04-string-access-by-index",
+      "example group size": 5,
+      "synthesis time (ms)": 429,
+      "synthesis succeeds?": true,
+      "rule set size": 1,
+      "rule set name": "from 04-string-access-by-index"
+    },
+    {
+      "example group path": "../../data/Java/05-use-uninitialized-instance-variable",
+      "example group size": 5,
+      "synthesis time (ms)": 633,
+      "synthesis succeeds?": true,
+      "rule set size": 1,
+      "rule set name": "from 05-use-uninitialized-instance-variable"
+    },
+    {
+      "example group path": "../../data/Java/06-lossy-conversion",
+      "example group size": 5,
+      "synthesis time (ms)": 300,
+      "synthesis succeeds?": true,
+      "rule set size": 1,
+      "rule set name": "from 06-lossy-conversion"
+    },
+    {
+      "example group path": "../../data/Java/07-missing-semi",
+      "example group size": 5,
+      "synthesis time (ms)": 297,
+      "synthesis succeeds?": true,
+      "rule set size": 1,
+      "rule set name": "from 07-missing-semi"
+    },
+    {
+      "example group path": "../../data/Java/08-bad-invocation",
+      "example group size": 5,
+      "synthesis time (ms)": 285,
+      "synthesis succeeds?": true,
+      "rule set size": 1,
+      "rule set name": "from 08-bad-invocation"
+    },
+    {
+      "example group path": "../../data/Java/09-use-undeclared-variable",
+      "example group size": 5,
+      "synthesis time (ms)": 319,
+      "synthesis succeeds?": true,
+      "rule set size": 1,
+      "rule set name": "from 09-use-undeclared-variable"
+    },
+    {
+      "example group path": "../../data/Java/10-missing-array-index",
+      "example group size": 5,
+      "synthesis time (ms)": 493,
+      "synthesis succeeds?": true,
+      "rule set size": 1,
+      "rule set name": "from 10-missing-array-index"
+    },
+    {
+      "example group path": "../../data/Java/11-access-non-static-variable",
+      "example group size": 5,
+      "synthesis time (ms)": 515,
+      "synthesis succeeds?": true,
+      "rule set size": 1,
+      "rule set name": "from 11-access-non-static-variable"
+    },
+    {
+      "example group path": "../../data/Java/12-incomp-string-int",
+      "example group size": 5,
+      "synthesis time (ms)": 305,
+      "synthesis succeeds?": true,
+      "rule set size": 1,
+      "rule set name": "from 12-incomp-string-int"
+    },
+    {
+      "example group path": "../../data/Java/13-bad-operand-types",
+      "example group size": 5,
+      "synthesis time (ms)": 300,
+      "synthesis succeeds?": true,
+      "rule set size": 1,
+      "rule set name": "from 13-bad-operand-types"
+    },
+    {
+      "example group path": "../../data/Java/14-use-uninitialized-primary-variable",
+      "example group size": 5,
+      "synthesis time (ms)": 271,
+      "synthesis succeeds?": true,
+      "rule set size": 1,
+      "rule set name": "from 14-use-uninitialized-primary-variable"
+    },
+    {
+      "example group path": "../../data/Java/15-incomp-return-types",
+      "example group size": 5,
+      "synthesis time (ms)": 357,
+      "synthesis succeeds?": true,
+      "rule set size": 1,
+      "rule set name": "from 15-incomp-return-types"
+    },
+    {
+      "example group path": "../../data/Java/16-illegal-constructor-name",
+      "example group size": 5,
+      "synthesis time (ms)": 300,
+      "synthesis succeeds?": true,
+      "rule set size": 1,
+      "rule set name": "from 16-illegal-constructor-name"
+    },
+    {
+      "example group path": "../../data/Java/17-reach-eof",
+      "example group size": 5,
+      "synthesis time (ms)": 300,
+      "synthesis succeeds?": true,
+      "rule set size": 1,
+      "rule set name": "from 17-reach-eof"
+    },
+    {
+      "example group path": "../../data/Java/18-missing-return-value",
+      "example group size": 5,
+      "synthesis time (ms)": 463,
+      "synthesis succeeds?": true,
+      "rule set size": 1,
+      "rule set name": "from 18-missing-return-value"
+    },
+    {
+      "example group path": "../../data/Java/19-access-non-static-method",
+      "example group size": 5,
+      "synthesis time (ms)": 416,
+      "synthesis succeeds?": true,
+      "rule set size": 1,
+      "rule set name": "from 19-access-non-static-method"
+    },
+    {
+      "example group path": "../../data/Java/20-missing-paren",
+      "example group size": 5,
+      "synthesis time (ms)": 273,
+      "synthesis succeeds?": true,
+      "rule set size": 1,
+      "rule set name": "from 20-missing-paren"
+    }
+  ]
+}
