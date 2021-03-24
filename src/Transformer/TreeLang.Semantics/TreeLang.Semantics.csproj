@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Util\Util.csproj" />
+        <PackageReference Include="Microsoft.ProgramSynthesis.Common" Version="6.9.0" />
+    </ItemGroup>
+
+</Project>

@@ -4,11 +4,9 @@
 # VS Code
 .vscode
 
-# Log and grammar files
+# Log
 *.xml
-Prem/*.grammar
-
-Benchmarks/
+*.out
 logs/
 
 # User-specific files
@@ -190,4 +188,3 @@ _site/
 .idea/
 node_modules/
 Gemfile.lock
-
