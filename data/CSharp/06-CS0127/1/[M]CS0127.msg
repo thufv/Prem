@@ -1,0 +1,2 @@
+*https://support.unity3d.com/hc/en-us/articles/207443183-What-is-CS0127-
+(5,9,5,15): CS0127: Since 'ExampleScript.MyMethod()' returns void, a return keyword must not be followed by an object expression

@@ -1,0 +1,4 @@
+*https://stackoverflow.com/questions/21868207/having-trouble-figuring-out-why-java-is-throwing-a-return-type-error
+RectangleCalc.java:11: error: invalid method declaration; return type required
+    public getArea() {
+           ^

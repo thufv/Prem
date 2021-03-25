@@ -1,0 +1,2 @@
+[24,31]
+error CS0122: 'AreaCalculator.Calculate(Square)' is inaccessible due to its protection level

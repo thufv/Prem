@@ -1,0 +1,2 @@
+*https://docs.microsoft.com/en-us/dotnet/csharp/programming-guide/classes-and-structs/static-classes-and-static-class-members
+(50,42,50,60): error CS0117: 'TemperatureConverter' does not contain a definition for 'FahrenheitToCelsiu'

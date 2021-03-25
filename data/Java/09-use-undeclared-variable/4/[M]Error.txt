@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/8630026/java-cannot-find-symbol
+Deck.java:3: error: cannot find symbol
+        deck = new Card();
+        ^

@@ -1,0 +1,2 @@
+[6,28]
+error: non-static method 'fizzBuzz(int)' cannot be referenced from a static context

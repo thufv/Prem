@@ -1,0 +1,4 @@
+http://www.cs.pomona.edu/~dkauchak/classes/f10/cs051-f10/handouts/JavaErrorsExplained.pdf
+MyClass.java:4: error: ';' expected
+            max = i // Error, missing semicolon
+                   ^

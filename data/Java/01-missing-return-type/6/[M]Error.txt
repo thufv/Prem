@@ -1,0 +1,4 @@
+https://coderanch.com/t/396186/java/invalid-method-declaration-return-type
+Test.java:16: error: invalid method declaration; return type required
+    public finnMaks(String filnavn)
+           ^

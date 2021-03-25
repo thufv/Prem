@@ -1,46 +1,67 @@
-Prem: Program Repair using Error Messages
-===
+# PREM: Program Repair using Error Messages
 
-Configure UTrans
------
-Make sure that the environment variable `UTRANS_JAR` refers to the absolute path of UTrans jar.
-You may add `export UTRANS_JAR=<complete path to UTrans-1.0.jar>` in your shell profile: `bashrc`, or `zshrc`, whatever.
+This repo contains the source code and evaluation artifact of the paper *Compilation Error Repairing by Examples*.
 
-Build
-------
+## System Requirements
 
-```
-cd Prem/
+Before building PREM, the following platforms/tools are required as external dependencies. All libraries that PREM depends on are specified in the project files and will be proceed automatically by `dotnet`.
+
+### .NET
+
+.NET is a cross-platform development environment. PREM is built as a `netcoreapp2.0`. To build and run PREM, you need to install a .NET Core SDK with version 2.x. The recommended version is [v2.1.26](https://dotnet.microsoft.com/download/dotnet/2.1). After installation, use `dotnet --version` to check the version number.
+
+### UTrans Parser
+
+PREM relies on UTrans, an external parser (for C# and Java) developed with [ANTLR](https://www.antlr.org) in Java. The standalone `jar` file is provided in the `lib/` folder. Please make sure that you put this jar somewhere on your file system, and let the environment variable `UTRANS_JAR` point to the full path of this jar, e.g. by adding `export UTRANS_JAR=<full path to UTrans-1.0.jar>` in your shell profile: `bashrc`, `zshrc`, or whatever.
+
+### C# Compiler
+
+To allow PREM invoke C# compiler from command line to check if a repaired program compiles, you should have `csc` on your system PATH. You may use the one supported by .NET (if any) or [Mono](https://www.mono-project.com) instead.
+
+## Building & Running
+
+In the project root directory:
+
+```sh
+cd src/Prem/
 dotnet build
 ```
 
-Run Benchmarks
-------
+Type `dotnet run` to see command line option helps.
 
-Usage: In directory `Prem/`, type
+Please remember that every `dotnet` command must be executed under the folder `src/Prem/`, otherwise it cannot resolve the correct project file.
+
+### Dataset Folder Structure
+
+Datasets passed to options `--learn` and `--bench` (see `data/CSharp/` for an example) must have the following folder structure:
 ```
-dotnet run [options] <benchmark suite>
-```
-
-Options:
-- `-l <language>`: REQUIRED. Specify the language of the benchmarks, such as `c#` and `java`. Same with the one specified by `UTrans`.
-- `-k <top-k>`: Synthesize top-k rules. DEFAULT: 1.
-- `-L <log level>`: Log level, FINE/DEBUG/INFO/WARNING/ERROR. DEFAULT: DEBUG.
-- `--learn <learning set>`: REQUIRED. Specify which examples are used as the learning set, e.g. `1-3,5`
-meaning the learning set `{1,2,3,5}`.
-- `--test <testing set>`: Specify which examples are used as the testing set. If not specify, the testing set is empty, i.e. synthesis only without testing.
-- `-o <output dir>`: Specify the output directory for the experiment results (JSON files). DEFAULT: current directory.
-
-Argument:
-`<benchmark suite>`: REQUIRED. Specify the root directory of the benchmark suite, i.e. the directory which contains many benchmarks.
-
-For example,
-```
-dotnet run -l c# -k 10 -L FINE -o ../logs --learn 1-3 --test 4-6 Compile.Error.Benchmarks/CSharp
+<root>/
+     example_group_1/
+         1/
+             [E]* erroneous version
+             [C]* corrected version
+             [P]* error info
+         2/
+             ...
+     example_group_2/
+         ...
+     ...
 ```
 
-Running one benchmark only: Specify the option `-b`, then the argument is interpreted as the root directory of the benchmark.
-For example,
+PREM recognizes a file with prefix `[E]` as the erroneous version, `[C]` as the corrected version, and `[P]` as the error info (first line error position, second line error message).
+
+To make filters `--learn-with` and `--bench-with` work normally, you must have your example folder (itself is a subfolder of some example group folder) named as a digit, e.g. `2` rather than `example-2`.
+
+Datasets passed to option `--predict` (see `data/Mutation/` for an example) must have the following folder structure:
 ```
-dotnet run -l c# -k 10 -L FINE -o ../logs --learn 1-3 --test 4-6 -b Compile.Error.Benchmarks/CSharp/CS0120
+<root>/
+    case_1/
+        [E]* testcase
+        [P]* error info
+    case_2/
+    ...
 ```
+
+## Reproducing
+
+See [Reproducing Guide](eval/REPRODUCING.md).

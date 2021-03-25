@@ -1,0 +1,4 @@
+*https://stackify.com/top-https://www.tutorialspoint.com/java/java_arrays.htm
+MyClass.java:4: error: ';' expected
+       double[] myList = {1.9, 2.9, 3.4, 3.5}
+                                             ^

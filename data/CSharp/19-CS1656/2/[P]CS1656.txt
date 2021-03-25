@@ -1,0 +1,2 @@
+[13,13]
+error CS1656: Cannot assign to 'Score' because it is a 'method group'

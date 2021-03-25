@@ -1,0 +1,2 @@
+[33,22]
+error: cannot find symbol

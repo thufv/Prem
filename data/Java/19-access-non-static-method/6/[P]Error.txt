@@ -1,0 +1,2 @@
+[30,9]
+error: non-static method 'fillMachine(Game)' cannot be referenced from a static context

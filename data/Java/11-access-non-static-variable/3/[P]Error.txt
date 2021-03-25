@@ -1,0 +1,2 @@
+[5,52]
+error: non-static variable 'idNo' cannot be referenced from a static context

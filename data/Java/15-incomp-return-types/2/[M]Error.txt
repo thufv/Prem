@@ -1,0 +1,4 @@
+https://cursos.alura.com.br/forum/topico-duvida-no-ex-3-da-aula-5-modificadores-de-acesso-22266
+MyClass.java:11: error: incompatible types: unexpected return value
+        return this.salario;  //linha 64
+                   ^

@@ -1,0 +1,2 @@
+[7,10]
+error CS1624: The body of 'C.Start()' cannot be an iterator block because 'void' is not an iterator interface type

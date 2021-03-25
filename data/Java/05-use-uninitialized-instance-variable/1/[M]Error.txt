@@ -1,0 +1,4 @@
+http://javahowto.blogspot.com/2007/01/variable-might-not-have-been.html
+Main.java:4: error: variable d might not have been initialized
+        System.out.println(d);
+                           ^

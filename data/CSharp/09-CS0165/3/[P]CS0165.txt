@@ -1,0 +1,2 @@
+[15,17]
+error CS0165: Use of unassigned local variable 'tmpCnt'

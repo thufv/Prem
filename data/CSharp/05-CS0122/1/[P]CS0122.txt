@@ -1,0 +1,2 @@
+[7,29]
+error CS0122: 'Test.Test(int)' is inaccessible due to its protection level

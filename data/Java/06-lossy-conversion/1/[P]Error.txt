@@ -1,0 +1,2 @@
+[3,26]
+error: incompatible types: possible lossy conversion from 'double' to 'int'

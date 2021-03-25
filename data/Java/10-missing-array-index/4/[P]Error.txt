@@ -1,0 +1,2 @@
+[8,22]
+error: incompatible types: 'double' cannot be converted to 'double[]'

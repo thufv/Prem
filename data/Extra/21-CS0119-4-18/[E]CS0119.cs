@@ -1,0 +1,1 @@
+public class RectTransform { public RectTransform ( int x ) { /* inserted */ int _25 = 6 ; } } class Program { void Start ( ) { RectTransform myRect = RectTransform ( 0 ) ; } static void Main ( string [ ] args ) { } } 

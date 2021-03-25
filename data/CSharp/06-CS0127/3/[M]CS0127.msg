@@ -1,0 +1,2 @@
+https://forum.unity.com/threads/tutorial-problems.459273/
+(23,9,23,15): error CS0127: Since 'SecondScript.AddTwoNumbers(int, int)' returns void, a return keyword must not be followed by an object expression

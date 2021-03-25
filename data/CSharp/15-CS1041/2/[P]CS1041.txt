@@ -1,0 +1,2 @@
+[12,21]
+error CS1001: Identifier expected

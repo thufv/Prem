@@ -1,0 +1,2 @@
+[34,54]
+error: 'rateOfPay' has private access in 'ProductionWorker'

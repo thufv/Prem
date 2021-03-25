@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/49783701/invalid-method-declaration-return-type-required-line-10-14-additional-errors
+Program.java:16: error: invalid method declaration; return type required
+    public setRadius (double r){
+           ^

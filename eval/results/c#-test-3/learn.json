@@ -1,0 +1,167 @@
+{
+  "create time": "03/24/2021 22:35:30",
+  "top k": 10,
+  "file filter": "1,2,4,5,6",
+  "synthesis tasks": [
+    {
+      "example group path": "../../data/CSharp/01-CS0022-1",
+      "example group size": 5,
+      "synthesis time (ms)": 615,
+      "synthesis succeeds?": true,
+      "rule set size": 1,
+      "rule set name": "from 01-CS0022-1"
+    },
+    {
+      "example group path": "../../data/CSharp/02-CS0022-2",
+      "example group size": 5,
+      "synthesis time (ms)": 607,
+      "synthesis succeeds?": true,
+      "rule set size": 10,
+      "rule set name": "from 02-CS0022-2"
+    },
+    {
+      "example group path": "../../data/CSharp/03-CS0022-3",
+      "example group size": 5,
+      "synthesis time (ms)": 477,
+      "synthesis succeeds?": true,
+      "rule set size": 10,
+      "rule set name": "from 03-CS0022-3"
+    },
+    {
+      "example group path": "../../data/CSharp/04-CS0117",
+      "example group size": 5,
+      "synthesis time (ms)": 358,
+      "synthesis succeeds?": true,
+      "rule set size": 8,
+      "rule set name": "from 04-CS0117"
+    },
+    {
+      "example group path": "../../data/CSharp/05-CS0122",
+      "example group size": 5,
+      "synthesis time (ms)": 327,
+      "synthesis succeeds?": true,
+      "rule set size": 1,
+      "rule set name": "from 05-CS0122"
+    },
+    {
+      "example group path": "../../data/CSharp/06-CS0127",
+      "example group size": 5,
+      "synthesis time (ms)": 3287,
+      "synthesis succeeds?": true,
+      "rule set size": 5,
+      "rule set name": "from 06-CS0127"
+    },
+    {
+      "example group path": "../../data/CSharp/07-CS0161",
+      "example group size": 5,
+      "synthesis time (ms)": 1818,
+      "synthesis succeeds?": true,
+      "rule set size": 10,
+      "rule set name": "from 07-CS0161"
+    },
+    {
+      "example group path": "../../data/CSharp/08-CS0163",
+      "example group size": 5,
+      "synthesis time (ms)": 2532,
+      "synthesis succeeds?": true,
+      "rule set size": 1,
+      "rule set name": "from 08-CS0163"
+    },
+    {
+      "example group path": "../../data/CSharp/09-CS0165",
+      "example group size": 5,
+      "synthesis time (ms)": 645,
+      "synthesis succeeds?": true,
+      "rule set size": 10,
+      "rule set name": "from 09-CS0165"
+    },
+    {
+      "example group path": "../../data/CSharp/10-CS0266",
+      "example group size": 5,
+      "synthesis time (ms)": 436,
+      "synthesis succeeds?": true,
+      "rule set size": 10,
+      "rule set name": "from 10-CS0266"
+    },
+    {
+      "example group path": "../../data/CSharp/11-CS0428",
+      "example group size": 5,
+      "synthesis time (ms)": 288,
+      "synthesis succeeds?": true,
+      "rule set size": 4,
+      "rule set name": "from 11-CS0428"
+    },
+    {
+      "example group path": "../../data/CSharp/12-CS0432",
+      "example group size": 5,
+      "synthesis time (ms)": 451,
+      "synthesis succeeds?": true,
+      "rule set size": 10,
+      "rule set name": "from 12-CS0432"
+    },
+    {
+      "example group path": "../../data/CSharp/13-CS1002",
+      "example group size": 5,
+      "synthesis time (ms)": 281,
+      "synthesis succeeds?": true,
+      "rule set size": 1,
+      "rule set name": "from 13-CS1002"
+    },
+    {
+      "example group path": "../../data/CSharp/14-CS1003",
+      "example group size": 5,
+      "synthesis time (ms)": 264,
+      "synthesis succeeds?": true,
+      "rule set size": 1,
+      "rule set name": "from 14-CS1003"
+    },
+    {
+      "example group path": "../../data/CSharp/15-CS1041",
+      "example group size": 5,
+      "synthesis time (ms)": 385,
+      "synthesis succeeds?": true,
+      "rule set size": 10,
+      "rule set name": "from 15-CS1041"
+    },
+    {
+      "example group path": "../../data/CSharp/16-CS1503",
+      "example group size": 5,
+      "synthesis time (ms)": 486,
+      "synthesis succeeds?": true,
+      "rule set size": 1,
+      "rule set name": "from 16-CS1503"
+    },
+    {
+      "example group path": "../../data/CSharp/17-CS1513",
+      "example group size": 5,
+      "synthesis time (ms)": 260,
+      "synthesis succeeds?": true,
+      "rule set size": 1,
+      "rule set name": "from 17-CS1513"
+    },
+    {
+      "example group path": "../../data/CSharp/18-CS1624",
+      "example group size": 5,
+      "synthesis time (ms)": 290,
+      "synthesis succeeds?": true,
+      "rule set size": 3,
+      "rule set name": "from 18-CS1624"
+    },
+    {
+      "example group path": "../../data/CSharp/19-CS1656",
+      "example group size": 5,
+      "synthesis time (ms)": 284,
+      "synthesis succeeds?": true,
+      "rule set size": 2,
+      "rule set name": "from 19-CS1656"
+    },
+    {
+      "example group path": "../../data/CSharp/20-CS8070",
+      "example group size": 5,
+      "synthesis time (ms)": 422,
+      "synthesis succeeds?": true,
+      "rule set size": 1,
+      "rule set name": "from 20-CS8070"
+    }
+  ]
+}

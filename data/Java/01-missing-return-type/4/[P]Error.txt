@@ -1,0 +1,2 @@
+[3,12]
+error: invalid method declaration; return type required

@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/37771581/java-error-array-required-but-string-found-while-importing-text-file
+MyClass.java:19: error: array required, but String found
+                    this.lab[x][y]=Integer.parseInt(str[x]);
+                                                       ^

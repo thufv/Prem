@@ -1,0 +1,2 @@
+https://stackoverflow.com/questions/47938715/why-in-c-sharp-break-is-required-in-switch-loop-after-default-case
+(27,17,27,25): error CS8070: Control cannot fall out of switch from final case label ('default:')

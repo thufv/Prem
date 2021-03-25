@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/290884/what-is-the-reason-behind-non-static-method-cannot-be-referenced-from-a-static
+Program.java:9: error: non-static method someMethod() cannot be referenced from a static context
+        java.util.List<String> someList = someMethod();
+                                          ^

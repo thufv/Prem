@@ -1,0 +1,4 @@
+https://softwareengineering.stackexchange.com/questions/361502/why-doesnt-java-automatically-initialize-local-variables-with-its-default-value
+A.java:4: error: variable 'test' might not have been initialized
+        System.out.println(test);
+                           ^

@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/49072803/error-variable-might-not-have-been-initialized-how-to-initialize-arraylist
+Main.java:31: error: variable 'bCoeffs' might not have been initialized
+                bCoeffs.add(temp);
+                ^

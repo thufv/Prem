@@ -1,0 +1,2 @@
+[14,37]
+error cs0117: 'GameObject' does not contain a definition for 'GetComponnent'

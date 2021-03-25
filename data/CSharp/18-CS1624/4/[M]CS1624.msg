@@ -1,0 +1,2 @@
+https://support.unity3d.com/hc/en-us/articles/207157773-What-is-CS1624-
+(8,10,8,19): error CS1624: The body of 'ExampleScript.WaitCheck()' cannot be an iterator block because 'void' is not an iterator interface type

@@ -1,0 +1,2 @@
+https://social.msdn.microsoft.com/Forums/en-US/fe623256-e08d-429e-be85-6397104cd2b2/cannot-convert-from-systemdatetime-to-string?forum=csharplanguage
+(45,29,45,47): error CS1503: Argument 1: cannot convert from 'System.DateTime' to 'string'

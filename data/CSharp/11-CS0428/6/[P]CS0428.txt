@@ -1,0 +1,2 @@
+[30,31]
+error CS0428: Cannot convert method group 'Method2' to non-delegate type 'ExampleClass'. Did you intend to invoke the method?

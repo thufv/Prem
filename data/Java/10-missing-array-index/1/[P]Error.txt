@@ -1,0 +1,2 @@
+[12,30]
+error: incompatible types: 'int' cannot be converted to 'int[]'

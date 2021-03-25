@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/22270710/invalid-method-declaration-return-type-required-in-constructor?rq=1
+Program.java:7: error: invalid method declaration; return type required
+    public setStudentInfo(int IDnum,String Name,String Year)
+           ^

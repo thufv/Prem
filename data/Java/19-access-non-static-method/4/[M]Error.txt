@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/19600216/non-static-method-moveint-int-cannot-be-referenced-from-a-static-context
+Program.java:18: error: non-static method hero(double,double,double) cannot be referenced from a static context
+        area_of_triangle = (double) MyMath.hero(length_of_a,length_of_b,length_of_c);
+                                          ^

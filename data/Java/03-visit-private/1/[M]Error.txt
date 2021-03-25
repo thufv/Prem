@@ -1,0 +1,4 @@
+https://www.dreamincode.net/forums/topic/88757-variable-has-private-access-in-class-error/
+Cat1Driver.java:33: error: 'name' has private access in 'Cat1'
+                myCat1.name = stdIn.next();
+                      ^

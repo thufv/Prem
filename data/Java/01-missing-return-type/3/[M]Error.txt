@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/7451707/java-error-invalid-method-declaration-return-type-required
+Circle.java:8: error: invalid method declaration; return type required
+    public diameter()
+           ^

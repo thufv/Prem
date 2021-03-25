@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/15122617/possible-loss-of-precision
+UseMath.java:3: error: incompatible types: possible lossy conversion from double to int
+        int x = Math.pow (2,4);
+                         ^

@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/9420059/non-static-method-cannot-be-referenced-from-a-static-context
+Program.java:30: error: non-static method fillMachine(Game) cannot be referenced from a static context
+        fillMachine(game1);
+        ^

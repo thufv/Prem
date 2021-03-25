@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/44502917/invalid-method-declaration-return-type-required-diffrent-class-name-to-filena
+Program.java:12: error: invalid method declaration; return type required
+    public Q1LanguageExplorerJava()
+           ^

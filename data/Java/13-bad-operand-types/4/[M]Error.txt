@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/48602452/bad-operand-types-for-binary-operator/48602627
+Unit02Prog1.java:23: error: bad operand types for binary operator '>='
+        if (numWords >= 50) {
+                     ^

@@ -1,0 +1,2 @@
+[9,67]
+error CS0165: Use of unassigned local variable 'enumerable'

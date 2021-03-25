@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/43277464/error-incompatible-types-unexpected-return-value?rq=1
+Fibo.java:11: error: incompatible types: unexpected return value
+        return c ;
+               ^

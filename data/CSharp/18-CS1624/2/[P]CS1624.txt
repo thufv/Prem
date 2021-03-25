@@ -1,0 +1,2 @@
+[3,17]
+error CS1624: The body of 'Program.ChangeCharacter()' cannot be an iterator block because 'void' is not an iterator interface type

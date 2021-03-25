@@ -1,0 +1,2 @@
+[7,19]
+error: variable 'b' might not have been initialized

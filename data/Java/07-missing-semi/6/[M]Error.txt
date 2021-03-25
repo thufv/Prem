@@ -1,0 +1,4 @@
+*https://www.tutorialspoint.com/java/java_innerclasses.htm
+Outerclass.java:15: error: ';' expected
+       inner.print()
+                    ^

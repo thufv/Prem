@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/16697465/operator-cannot-be-applied-to-java
+App.java:22: error: bad operand types for binary operator '<'
+        if ( theNumber < 20 )
+                       ^

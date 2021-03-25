@@ -1,0 +1,2 @@
+*https://stackoverflow.com/questions/38651860/error-cs0266-cannot-implicitly-convert-type-long-to-int-an-explicit-convers
+(8,20,8,35): error CS0266: Cannot implicitly convert type 'long' to 'int'. An explicit conversion exists (are you missing a cast?)

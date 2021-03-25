@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/28493652/error-private-access-in-class
+MyClass.java:34: error: hoursWorked has private access in ProductionWorker
+            pay = ((hoursWorked + hoursWorked / 2) * rateOfPay) + monthlyBonus;
+                    ^

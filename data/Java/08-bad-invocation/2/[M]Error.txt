@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/25706216/what-does-a-cannot-find-symbol-compilation-error-mean
+Test.java:13: error: cannot find symbol
+        System.out.println(il.length);
+                             ^

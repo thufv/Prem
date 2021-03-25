@@ -1,0 +1,2 @@
+[13,9]
+error CS0432: Alias 'B' not found

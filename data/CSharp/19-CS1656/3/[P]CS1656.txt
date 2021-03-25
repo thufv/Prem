@@ -1,0 +1,2 @@
+[16,13]
+error CS1656: Cannot assign to 'WriteLine' because it is a 'method group'

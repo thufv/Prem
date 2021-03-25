@@ -1,0 +1,2 @@
+https://stackoverflow.com/questions/28336401/control-cannot-fall-through-from-one-case-label-default-to-another-in-c-sha?lq=1
+(40,17,40,25): error CS8070: Control cannot fall out of switch from final case label ('default:')

@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/29224355/java-error-invalid-method-declaration-return-type-required?rq=1
+Test.java:16: error: invalid method declaration; return type required
+  public Sorter(String newPhrase)
+         ^

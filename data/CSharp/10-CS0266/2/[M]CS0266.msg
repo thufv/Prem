@@ -1,0 +1,2 @@
+*https://stackoverflow.com/questions/8894984/error-cs0266-cannot-implicitly-convert-type-object-to-int
+(11,18,11,35): error CS0266: Cannot implicitly convert type 'object' to 'int'. An explicit conversion exists (are you missing a cast?)

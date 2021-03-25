@@ -1,0 +1,2 @@
+https://stackoverflow.com/questions/6353211/yield-and-wwwform-error
+(3,10,3,15): error CS1624: The body of 'Program.Start()' cannot be an iterator block because 'void' is not an iterator interface type

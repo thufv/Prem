@@ -1,0 +1,244 @@
+{
+  "create time": "03/24/2021 22:08:28",
+  "file filter": "6",
+  "benchmarks": [
+    {
+      "group path": "../../data/Java/01-missing-return-type",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/Java/01-missing-return-type/6",
+          "solved?": false
+        }
+      ]
+    },
+    {
+      "group path": "../../data/Java/02-missing-void",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/Java/02-missing-void/6",
+          "solved?": true,
+          "num attempted rules": 11,
+          "rule applied": "from 02-missing-void"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/Java/03-visit-private",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/Java/03-visit-private/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 03-visit-private"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/Java/04-string-access-by-index",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/Java/04-string-access-by-index/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 04-string-access-by-index"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/Java/05-use-uninitialized-instance-variable",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/Java/05-use-uninitialized-instance-variable/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 05-use-uninitialized-instance-variable"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/Java/06-lossy-conversion",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/Java/06-lossy-conversion/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 06-lossy-conversion"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/Java/07-missing-semi",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/Java/07-missing-semi/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 07-missing-semi"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/Java/08-bad-invocation",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/Java/08-bad-invocation/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 08-bad-invocation"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/Java/09-use-undeclared-variable",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/Java/09-use-undeclared-variable/6",
+          "solved?": true,
+          "num attempted rules": 2,
+          "rule applied": "from 09-use-undeclared-variable"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/Java/10-missing-array-index",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/Java/10-missing-array-index/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 10-missing-array-index"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/Java/11-access-non-static-variable",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/Java/11-access-non-static-variable/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 11-access-non-static-variable"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/Java/12-incomp-string-int",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/Java/12-incomp-string-int/6",
+          "solved?": true,
+          "num attempted rules": 9,
+          "rule applied": "from 12-incomp-string-int"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/Java/13-bad-operand-types",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/Java/13-bad-operand-types/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 13-bad-operand-types"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/Java/14-use-uninitialized-primary-variable",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/Java/14-use-uninitialized-primary-variable/6",
+          "solved?": true,
+          "num attempted rules": 11,
+          "rule applied": "from 14-use-uninitialized-primary-variable"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/Java/15-incomp-return-types",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/Java/15-incomp-return-types/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 15-incomp-return-types"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/Java/16-illegal-constructor-name",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/Java/16-illegal-constructor-name/6",
+          "solved?": true,
+          "num attempted rules": 15,
+          "rule applied": "from 16-illegal-constructor-name"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/Java/17-reach-eof",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/Java/17-reach-eof/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 17-reach-eof"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/Java/18-missing-return-value",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/Java/18-missing-return-value/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 18-missing-return-value"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/Java/19-access-non-static-method",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/Java/19-access-non-static-method/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 19-access-non-static-method"
+        }
+      ]
+    },
+    {
+      "group path": "../../data/Java/20-missing-paren",
+      "group size": 1,
+      "tests": [
+        {
+          "path": "../../data/Java/20-missing-paren/6",
+          "solved?": true,
+          "num attempted rules": 1,
+          "rule applied": "from 20-missing-paren"
+        }
+      ]
+    }
+  ]
+}

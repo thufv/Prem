@@ -1,0 +1,2 @@
+[6,9]
+error CS0127: Since 'ExampleScript.MyMethod()' returns void, a return keyword must not be followed by an object expression

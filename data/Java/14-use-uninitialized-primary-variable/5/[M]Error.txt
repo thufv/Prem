@@ -1,0 +1,4 @@
+https://www.dreamincode.net/forums/topic/94196-local-variable-may-not-have-been-initialized/
+Main.java:14: error: variable row might not have been initialized
+        board[row][col] = ch;
+              ^

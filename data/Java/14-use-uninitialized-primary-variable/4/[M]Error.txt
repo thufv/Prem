@@ -1,0 +1,4 @@
+https://www.sololearn.com/Discuss/1350620/variable-might-not-have-been-initialized
+Main.java:9: error: variable result might not have been initialized
+                 result= a*i;
+                 ^

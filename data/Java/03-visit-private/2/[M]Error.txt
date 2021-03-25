@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/28493652/error-private-access-in-class
+MyClass.java:32: error: 'shift' has private access in 'ProductionWorker'
+        if (shift == 2)
+            ^

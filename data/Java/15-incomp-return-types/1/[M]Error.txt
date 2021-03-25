@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/15518399/cannot-return-a-value-from-method-whose-result-type-is-void-error
+MyClass.java:8: error: incompatible types: unexpected return value
+        return userMove;
+               ^

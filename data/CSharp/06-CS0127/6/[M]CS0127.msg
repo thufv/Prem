@@ -1,0 +1,2 @@
+https://stackoverflow.com/questions/20019909/c-sharp-input-system-since-method-returns-void-a-return-keyword-must-not
+(58,21,58,27): error CS0127: Since 'Program.input()' returns void, a return keyword must not be followed by an object expression

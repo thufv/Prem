@@ -1,0 +1,4 @@
+https://teamtreehouse.com/community/introductionsjava8-error-expected
+Introductions.java:6: error: ';' expected
+        Console console = System.console()
+                                          ^

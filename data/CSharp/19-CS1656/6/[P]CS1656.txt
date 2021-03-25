@@ -1,0 +1,2 @@
+[14,9]
+error CS1656: Cannot assign to 'AppendText' because it is a 'method group'

@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/49072803/error-variable-might-not-have-been-initialized-how-to-initialize-arraylist
+Main.java:20: error: variable 'filteredRPM' might not have been initialized
+                RPM.add(scanner.nextDouble());
+                ^

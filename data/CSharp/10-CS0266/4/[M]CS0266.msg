@@ -1,0 +1,2 @@
+https://support.unity3d.com/hc/en-us/articles/206570786-What-is-CS0266-
+(10,18,10,19): error CS0266: Cannot implicitly convert type 'double' to 'int'. An explicit conversion exists (are you missing a cast?)

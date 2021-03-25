@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/26954833/error-array-required-but-string-found
+a.java:18: error: array required, but String found
+            System.out.println(s[0]);
+                                ^

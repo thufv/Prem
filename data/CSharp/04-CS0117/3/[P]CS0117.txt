@@ -1,0 +1,2 @@
+[11,22]
+error CS0117: 'BaseClass' does not contain a definition for 'someMember'

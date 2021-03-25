@@ -1,0 +1,4 @@
+https://stackoverflow.com/questions/34099722/non-static-variable-cannot-be-referenced-from-a-static-context-and-i-only-have
+FileReaderProgram.java:25: error: non-static variable stringComponent cannot be referenced from a static context
+        System.out.println(stringComponent);
+                           ^

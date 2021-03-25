@@ -1,0 +1,2 @@
+https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/compiler-messages/cs0266
+(19,27,19,30): error CS0266: Cannot implicitly convert type 'object' to 'MyClass'. An explicit conversion exists (are you missing a cast?)

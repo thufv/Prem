@@ -1,0 +1,4 @@
+*http://www.runoob.com/java/java-object-classes.html
+Test.java:10: error: cannot find symbol
+        bread = new String();
+        ^

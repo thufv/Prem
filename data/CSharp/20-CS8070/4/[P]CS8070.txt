@@ -1,0 +1,2 @@
+[27,17]
+error CS8070: Control cannot fall out of switch from final case label ('default:')

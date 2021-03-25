@@ -1,0 +1,4 @@
+*https://www.tutorialspoint.com/java/java_string_charat.htm
+Test.java:5: error: array required, but String found
+       char result = s[8];
+                      ^

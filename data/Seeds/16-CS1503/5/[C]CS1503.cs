@@ -1,0 +1,23 @@
+using System;
+using Examples;
+
+namespace Examples
+{
+    public class Object1
+    {
+    }
+}
+
+public class Example
+{
+    public static void Main()
+    {
+        object obj1 = new Object1();
+        func(obj1.ToString());
+    }
+    public static void func(string s)
+    {
+    }
+}
+// The example displays the following output:
+//   Examples.Object1

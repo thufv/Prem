@@ -1,0 +1,4 @@
+*https://docs.oracle.com/javase/tutorial/java/javaOO/objectcreation.html
+Rectangle.java:4: error: cannot find symbol
+        origin = new Point(0, 0);
+        ^

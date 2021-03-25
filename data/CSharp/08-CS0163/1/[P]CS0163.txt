@@ -1,0 +1,2 @@
+[15,17]
+error CS0163: Control cannot fall through from one case label ('case 0:') to another

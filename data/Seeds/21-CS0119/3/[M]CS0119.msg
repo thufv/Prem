@@ -1,0 +1,2 @@
+https://stackoverflow.com/questions/28709799/expression-denotes-a-type-where-a-variable-value-or-method-group-was-e
+(56,52,56,59): error CS0119: Expression denotes a `type' where a `variable',`value' or `method group' was expected

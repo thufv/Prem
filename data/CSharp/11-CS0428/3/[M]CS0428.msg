@@ -1,0 +1,2 @@
+https://devask.nl/questions/8944543/getting-the-id-of-an-inserted-row
+(15,35,15,48): error CS0428: Cannot convert method group 'ExecuteScalar' to non-delegate type 'int'. Did you intend to invoke the method?

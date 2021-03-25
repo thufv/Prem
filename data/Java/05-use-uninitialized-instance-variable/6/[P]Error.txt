@@ -1,0 +1,2 @@
+[22,17]
+error: variable 'RPM' might not have been initialized

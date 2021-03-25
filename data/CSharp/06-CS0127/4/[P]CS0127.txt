@@ -1,0 +1,2 @@
+[23,9]
+error CS0127: Since 'SecondScript.AddTwoNumbers(int, int)' returns void, a return keyword must not be followed by an object expression
